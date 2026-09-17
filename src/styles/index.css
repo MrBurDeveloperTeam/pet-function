@@ -1,0 +1,992 @@
+/**
+ * Package-owned compiled CSS foundation.
+ *
+ * Everything is scoped under the .snabbb-molar-experience root class so
+ * nothing here can ever restyle a host's own `body`, `button`, `input`,
+ * `p`, `div`, or any other unscoped/global selector. Hosts do NOT need
+ * Tailwind, PostCSS, or any build-time class scanning to use this file —
+ * it is plain, pre-compiled CSS, imported once.
+ *
+ * CSS variables below are placeholders establishing the --molar-* naming
+ * convention (deliberately renamed from Content Studio's own --cp-* tokens
+ * to avoid any collision with a host that happens to define --cp-* itself).
+ * The full Content Studio token set/theme is NOT reproduced yet — this
+ * phase only proves the scoped, namespaced delivery mechanism works.
+ */
+
+.snabbb-molar-experience {
+  --molar-bg: #ffffff;
+  --molar-surface: #f4f4f5;
+  --molar-text-primary: #0f172a;
+  --molar-text-secondary: #475569;
+  --molar-brand: #2a9d8f;
+  --molar-brand-hover: #1f7a6f;
+  --molar-border: #e2e8f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .snabbb-molar-experience:not([data-molar-theme='light']) {
+    --molar-bg: #0f172a;
+    --molar-surface: #1e293b;
+    --molar-text-primary: #f8fafc;
+    --molar-text-secondary: #cbd5e1;
+    --molar-border: #334155;
+  }
+}
+
+.snabbb-molar-experience[data-molar-theme='dark'] {
+  --molar-bg: #0f172a;
+  --molar-surface: #1e293b;
+  --molar-text-primary: #f8fafc;
+  --molar-text-secondary: #cbd5e1;
+  --molar-border: #334155;
+}
+
+/* ==========================================================================
+   Cat presentation — ported verbatim from Content Studio's CatMascot.jsx.
+   Values (colors, spacing, radii, shadows, breakpoints) are the exact
+   Tailwind-utility-equivalent pixel values already in use there; this is a
+   delivery-mechanism change (compiled CSS instead of Tailwind classes +
+   dynamic <style> tag), not a visual redesign. Do not "improve" these.
+   ========================================================================== */
+
+.snabbb-molar-experience .molar-cat-wrapper {
+  position: fixed;
+  z-index: 9990;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* Sprite ------------------------------------------------------------------ */
+
+.snabbb-molar-experience .molar-cat-sprite {
+  position: relative;
+  width: 80.64px; /* CAT_FRAME_WIDTH * CAT_SCALE = 192 * 0.42 */
+  height: 87.36px; /* CAT_FRAME_HEIGHT * CAT_SCALE = 208 * 0.42 */
+  background-image: var(--pet-spritesheet);
+  background-repeat: no-repeat;
+  background-size: 645.12px 786.24px; /* (192*8*0.42) x (208*9*0.42) */
+  background-position-y: calc(-1 * var(--sprite-row) * 87.36px);
+  image-rendering: pixelated;
+  pointer-events: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 5px 8px rgba(15, 23, 42, 0.1));
+  animation-duration: var(--sprite-duration);
+  animation-iteration-count: infinite;
+  animation-timing-function: steps(var(--sprite-frames));
+}
+
+.snabbb-molar-experience .molar-cat-sprite--idle,
+.snabbb-molar-experience .molar-cat-sprite--run-left,
+.snabbb-molar-experience .molar-cat-sprite--run-right,
+.snabbb-molar-experience .molar-cat-sprite--review {
+  animation-name: molar-cat-sprite-walk;
+}
+
+.snabbb-molar-experience .molar-cat-sprite--sleep {
+  animation-name: none;
+  background-position-x: calc(-1 * var(--sprite-frame) * 80.64px);
+}
+
+.snabbb-molar-experience .molar-cat-sprite--sleep::after {
+  content: 'Zzz...';
+  position: absolute;
+  left: 64%;
+  top: -5px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  animation: molar-cat-sleep-float 1.8s ease-in-out infinite;
+}
+
+@keyframes molar-cat-sprite-walk {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: calc(-1 * var(--sprite-frames) * 80.64px);
+  }
+}
+
+@keyframes molar-cat-sleep-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.65;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@keyframes molar-cat-sound-wave {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+.snabbb-molar-experience .molar-cat-sound-ring {
+  animation: molar-cat-sound-wave 0.6s ease-out forwards;
+}
+
+/* Dialogue / meow bubbles --------------------------------------------------- */
+
+.snabbb-molar-experience .molar-cat-bubble {
+  width: max-content;
+  flex-shrink: 0;
+  max-width: min(85vw, 340px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* slate-200 */
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  position: relative;
+  pointer-events: auto;
+  margin-bottom: 1rem;
+  margin-right: 0.25rem;
+  cursor: default;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__body {
+  padding: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.625;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+  background: #ffffff;
+  border-radius: 8px;
+  color: #334155; /* slate-700 */
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__text-row {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__text {
+  white-space: pre-wrap;
+  color: #334155;
+  margin: 0;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__footer {
+  padding-top: 1rem;
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__footer--sequence {
+  justify-content: space-between;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__footer--personalized {
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__btn--back {
+  color: #475569; /* slate-600 */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.snabbb-molar-experience .molar-cat-bubble__btn--back:hover {
+  color: #0f172a; /* slate-900 */
+}
+.snabbb-molar-experience .molar-cat-bubble__btn--back[disabled] {
+  visibility: hidden;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__btn--link {
+  color: var(--molar-brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.snabbb-molar-experience .molar-cat-bubble__btn--link:hover {
+  opacity: 0.8;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__btn--cta {
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--molar-brand);
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+}
+.snabbb-molar-experience .molar-cat-bubble__btn--cta:hover {
+  opacity: 0.9;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.snabbb-molar-experience .molar-cat-bubble__tail {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 0.08);
+  border-right: 1px solid #f1f5f9; /* slate-100 */
+  border-bottom: 1px solid #f1f5f9;
+  z-index: 0;
+}
+
+.snabbb-molar-experience .molar-cat-meow-bubble {
+  padding: 0.625rem 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  position: relative;
+  pointer-events: auto;
+  margin-bottom: 1rem;
+  margin-right: 0.25rem;
+  cursor: default;
+}
+
+.snabbb-molar-experience .molar-cat-meow-bubble__text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ==========================================================================
+   Molar AI presentation — ported verbatim from Content Studio's
+   MolarAIFloat.jsx / MolarChat.jsx. Values (colors, spacing, radii,
+   shadows, blur, breakpoints) are the exact Tailwind-utility-equivalent
+   values already in use there. Do not "improve" these.
+   ========================================================================== */
+
+/* Floating trigger --------------------------------------------------------- */
+
+.snabbb-molar-experience .molar-ai-trigger-wrapper {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.snabbb-molar-experience .molar-ai-trigger-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.snabbb-molar-experience .molar-ai-badge-slot {
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  pointer-events: none;
+}
+
+.snabbb-molar-experience .molar-ai-badge {
+  background: #ffffff;
+  color: #10b981;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  box-shadow: 0 10px 15px -3px rgb(16 185 129 / 0.2), 0 4px 6px -4px rgb(16 185 129 / 0.2);
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .snabbb-molar-experience .molar-ai-badge {
+    font-size: 12px;
+  }
+}
+
+.snabbb-molar-experience .molar-ai-trigger-btn {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 10px 15px -3px rgb(31 122 111 / 0.3), 0 4px 6px -4px rgb(31 122 111 / 0.3);
+  transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+  background: #1f7a6f;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  cursor: pointer;
+}
+.snabbb-molar-experience .molar-ai-trigger-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 20px 25px -5px rgb(31 122 111 / 0.3), 0 8px 10px -6px rgb(31 122 111 / 0.3);
+}
+.snabbb-molar-experience .molar-ai-trigger-btn--disabled {
+  background: #cbd5e1;
+  filter: grayscale(1);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.snabbb-molar-experience .molar-ai-trigger-btn--disabled:hover {
+  transform: none;
+}
+
+.snabbb-molar-experience .molar-ai-trigger-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.05));
+  transition: transform 0.3s;
+}
+.snabbb-molar-experience .molar-ai-trigger-icon--disabled {
+  filter: brightness(0.8);
+}
+
+/* Chat panel ---------------------------------------------------------------- */
+
+.snabbb-molar-experience .molar-chat-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(15 23 42 / 0.1);
+  backdrop-filter: blur(2px);
+  z-index: 9998;
+}
+@media (min-width: 768px) {
+  .snabbb-molar-experience .molar-chat-backdrop {
+    display: none;
+  }
+}
+
+.snabbb-molar-experience .molar-chat-panel {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  width: 90vw;
+  height: 70vh;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+  overflow: hidden;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgb(148 163 184 / 0.6);
+  border: 1px solid rgb(255 255 255 / 0.4);
+  background: rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(40px);
+  outline: 1px solid rgb(15 23 42 / 0.05);
+  outline-offset: -1px;
+  font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+@media (min-width: 768px) {
+  .snabbb-molar-experience .molar-chat-panel {
+    bottom: 1.5rem;
+    right: 1rem;
+    width: 400px;
+    height: 600px;
+  }
+}
+
+.snabbb-molar-experience .molar-chat-ambience {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.snabbb-molar-experience .molar-chat-ambience-blob {
+  position: absolute;
+  border-radius: 9999px;
+  mix-blend-mode: multiply;
+  animation: molar-chat-pulse-slow 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.snabbb-molar-experience .molar-chat-ambience-blob--a {
+  top: -10%;
+  right: -10%;
+  width: 350px;
+  height: 350px;
+  background: rgb(209 250 229 / 0.5);
+  filter: blur(80px);
+}
+.snabbb-molar-experience .molar-chat-ambience-blob--b {
+  bottom: -10%;
+  left: -10%;
+  width: 300px;
+  height: 300px;
+  background: rgb(204 251 241 / 0.5);
+  filter: blur(60px);
+  animation-delay: 1s;
+}
+@keyframes molar-chat-pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.snabbb-molar-experience .molar-chat-ambience-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.2;
+  mix-blend-mode: overlay;
+  /* Bundled equivalent of a subtle grain/noise overlay — an inline SVG
+     feTurbulence filter, replacing Content Studio's external
+     grainy-gradients.vercel.app/noise.svg dependency (this package must
+     never depend on a third-party network asset). Visually equivalent
+     (a fine noise texture), not a byte-identical copy of the removed
+     external file. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.snabbb-molar-experience .molar-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.25rem;
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+.snabbb-molar-experience .molar-chat-header-title {
+  display: flex;
+  align-items: center;
+}
+.snabbb-molar-experience .molar-chat-header-title-sn {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--molar-brand);
+  font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.snabbb-molar-experience .molar-chat-header-title-ai {
+  font-size: 22px;
+  font-weight: 800;
+  color: #000000;
+  font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.snabbb-molar-experience .molar-chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.snabbb-molar-experience .molar-chat-header-btn {
+  padding: 0.25rem;
+  color: #94a3b8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+  border-radius: 8px;
+}
+.snabbb-molar-experience .molar-chat-header-btn:hover {
+  color: #10b981;
+  background: #ecfdf5;
+}
+.snabbb-molar-experience .molar-chat-header-pet-emoji {
+  font-size: 1.25rem;
+}
+.snabbb-molar-experience .molar-chat-header-icon {
+  width: 20px;
+  height: 20px;
+}
+.snabbb-molar-experience .molar-chat-header-icon--close {
+  width: 24px;
+  height: 24px;
+}
+
+.snabbb-molar-experience .molar-chat-messages {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem 1rem;
+  scroll-behavior: smooth;
+  position: relative;
+  z-index: 10;
+}
+
+.snabbb-molar-experience .molar-chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding-top: 1.25rem;
+  padding-bottom: 3rem;
+}
+.snabbb-molar-experience .molar-chat-empty-title {
+  color: #334155;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  max-width: 280px;
+  line-height: 1.25;
+}
+.snabbb-molar-experience .molar-chat-empty-subtitle {
+  color: #475569;
+  font-size: 14px;
+  max-width: 320px;
+  line-height: 1.625;
+  margin-bottom: 1.5rem;
+  font-weight: 400;
+}
+.snabbb-molar-experience .molar-chat-empty-prompts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.625rem;
+  width: 100%;
+  max-width: 340px;
+}
+.snabbb-molar-experience .molar-chat-empty-prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  text-align: left;
+  cursor: pointer;
+}
+.snabbb-molar-experience .molar-chat-empty-prompt:hover {
+  border-color: #a7f3d0;
+  background: rgb(236 253 245 / 0.3);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+.snabbb-molar-experience .molar-chat-empty-prompt-icon-wrap {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 12px;
+  background: rgb(209 250 229 / 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid #ecfdf5;
+  flex-shrink: 0;
+}
+.snabbb-molar-experience .molar-chat-empty-prompt-icon {
+  width: 20px;
+  height: 20px;
+  color: #059669;
+}
+.snabbb-molar-experience .molar-chat-empty-prompt-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.snabbb-molar-experience .molar-chat-message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.snabbb-molar-experience .molar-chat-message-row {
+  display: flex;
+}
+.snabbb-molar-experience .molar-chat-message-row--user {
+  justify-content: flex-end;
+}
+.snabbb-molar-experience .molar-chat-message-row--model {
+  justify-content: flex-start;
+}
+.snabbb-molar-experience .molar-chat-bubble {
+  max-width: 100%;
+  padding: 0.5rem 1rem;
+  font-size: 14px;
+  line-height: 1.625;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid transparent;
+  overflow: hidden;
+}
+.snabbb-molar-experience .molar-chat-bubble--user {
+  background: #059669;
+  color: #ffffff;
+  border-radius: 1.2rem 1.2rem 0.125rem 1.2rem;
+  box-shadow: 0 4px 6px -1px rgb(16 185 129 / 0.2);
+}
+.snabbb-molar-experience .molar-chat-bubble--model {
+  background: rgb(241 245 249 / 0.7);
+  color: #334155;
+  border-color: rgb(226 232 240 / 0.8);
+  border-radius: 1.2rem 1.2rem 1.2rem 0.125rem;
+}
+
+.snabbb-molar-experience .molar-chat-loading-bubble {
+  padding: 0.875rem 1.25rem;
+  background: rgb(241 245 249 / 0.7);
+  border: 1px solid rgb(226 232 240 / 0.8);
+  border-radius: 1.2rem 1.2rem 1.2rem 0.125rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+.snabbb-molar-experience .molar-chat-loading-dot {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 9999px;
+  animation: molar-chat-small-bounce 1s infinite ease-in-out;
+}
+@keyframes molar-chat-small-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.snabbb-molar-experience .molar-chat-extra-footer {
+  padding: 0.75rem 0.75rem 0;
+  position: relative;
+  z-index: 20;
+}
+.snabbb-molar-experience .molar-chat-footer {
+  padding: 0.75rem;
+  position: relative;
+  z-index: 20;
+}
+.snabbb-molar-experience .molar-chat-input-form {
+  position: relative;
+  width: 100%;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+.snabbb-molar-experience .molar-chat-input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.375rem;
+  border-radius: 9999px;
+  transition: all 0.3s ease-out;
+  background: #f1f5f9;
+  box-shadow: inset 2px 2px 5px rgb(148 163 184 / 0.25), inset 0px -3px 6px rgb(148 163 184 / 0.15), inset -3px -3px 7px rgb(255 255 255 / 1);
+  outline: 1px solid rgb(255 255 255 / 0.6);
+  border: 1px solid rgb(203 213 225 / 0.7);
+}
+.snabbb-molar-experience .molar-chat-input-shell:focus-within {
+  box-shadow: inset 3px 3px 6px rgb(148 163 184 / 0.35), inset 0px -4px 8px rgb(148 163 184 / 0.25), inset -3px -3px 6px rgb(255 255 255 / 1);
+  outline: 2px solid rgb(16 185 129 / 0.2);
+  border-color: rgb(16 185 129 / 0.5);
+}
+.snabbb-molar-experience .molar-chat-input {
+  flex: 1 1 auto;
+  background: transparent;
+  border: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.snabbb-molar-experience .molar-chat-input:focus {
+  outline: none;
+}
+.snabbb-molar-experience .molar-chat-input::placeholder {
+  color: rgb(148 163 184 / 0.7);
+}
+.snabbb-molar-experience .molar-chat-send-btn {
+  padding: 0.625rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease-out;
+  border: none;
+}
+.snabbb-molar-experience .molar-chat-send-btn--active {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 3px 3px 6px rgb(16 185 129 / 0.4), -2px -2px 5px rgb(255 255 255 / 0.8);
+  cursor: pointer;
+}
+.snabbb-molar-experience .molar-chat-send-btn--active:hover {
+  transform: scale(1.05);
+  background: #34d399;
+}
+.snabbb-molar-experience .molar-chat-send-btn--active:active {
+  transform: scale(0.95);
+  box-shadow: inset 2px 2px 5px rgb(0 0 0 / 0.1);
+}
+.snabbb-molar-experience .molar-chat-send-btn--inactive {
+  background: rgb(226 232 240 / 0.5);
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.snabbb-molar-experience .molar-chat-send-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Markdown (message-bubble content) ----------------------------------------- */
+
+.snabbb-molar-experience .molar-chat-md-strong {
+  font-weight: 700;
+}
+.snabbb-molar-experience .molar-chat-md-strong--expired {
+  color: #be123c;
+}
+.snabbb-molar-experience .molar-chat-md-strong--soon {
+  color: #b45309;
+}
+.snabbb-molar-experience .molar-chat-md-strong--user {
+  color: #ffffff;
+}
+.snabbb-molar-experience .molar-chat-md-strong--model {
+  color: #0f172a;
+}
+.snabbb-molar-experience .molar-chat-md-table-wrap {
+  margin: 1rem 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: rgb(255 255 255 / 0.6);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  width: 100%;
+  max-width: 100%;
+}
+.snabbb-molar-experience .molar-chat-md-table-scroll {
+  overflow-x: auto;
+}
+.snabbb-molar-experience .molar-chat-md-table {
+  width: 100%;
+  text-align: left;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+.snabbb-molar-experience .molar-chat-md-thead {
+  background: rgb(248 250 252 / 0.8);
+  border-bottom: 1px solid #e2e8f0;
+}
+.snabbb-molar-experience .molar-chat-md-th {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+}
+.snabbb-molar-experience .molar-chat-md-tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.15s;
+}
+.snabbb-molar-experience .molar-chat-md-tr:last-child {
+  border-bottom: 0;
+}
+.snabbb-molar-experience .molar-chat-md-tr:hover {
+  background: rgb(248 250 252 / 0.5);
+}
+.snabbb-molar-experience .molar-chat-md-td {
+  padding: 0.75rem 1rem;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.snabbb-molar-experience .molar-chat-md-td--expired {
+  color: #e11d48;
+  font-weight: 700;
+}
+.snabbb-molar-experience .molar-chat-md-td--soon {
+  color: #d97706;
+  font-weight: 700;
+}
+.snabbb-molar-experience .molar-chat-md-td--user {
+  color: #ffffff;
+}
+.snabbb-molar-experience .molar-chat-md-td--model {
+  color: #475569;
+}
+.snabbb-molar-experience .molar-chat-md-p {
+  margin-bottom: 0.375rem;
+  line-height: 1.625;
+}
+.snabbb-molar-experience .molar-chat-md-p:last-child {
+  margin-bottom: 0;
+}
+.snabbb-molar-experience .molar-chat-md-p--user {
+  color: #ffffff;
+}
+.snabbb-molar-experience .molar-chat-md-p--model {
+  color: #334155;
+}
+.snabbb-molar-experience .molar-chat-md-ul {
+  list-style: disc;
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.snabbb-molar-experience .molar-chat-md-ul--user {
+  color: rgb(255 255 255 / 0.9);
+}
+.snabbb-molar-experience .molar-chat-md-ul--model {
+  color: #475569;
+}
+.snabbb-molar-experience .molar-chat-md-li {
+  padding-left: 0.25rem;
+}
+.snabbb-molar-experience .molar-chat-md-li--user::marker {
+  color: rgb(255 255 255 / 0.6);
+}
+.snabbb-molar-experience .molar-chat-md-li--model::marker {
+  color: #10b981;
+}
+
+/* ==========================================================================
+   Virtual Pet presentation — ported verbatim from Content Studio's
+   src/app/globals.css. Almost all of Virtual Pet's own visuals come from
+   inline Tailwind utility classNames (compiled separately — see
+   scripts/postbuild.mjs and src/pet/tailwind-entry.css); these are the
+   handful of custom (non-Tailwind) keyframes/classes those components
+   also reference directly, plus the `.pet-interface` typography/radius
+   overrides `SharedVirtualPet` applies to its whole subtree. Do not
+   "improve" these — values are the exact ones already in use.
+   ========================================================================== */
+
+.snabbb-molar-experience .pet-interface,
+.snabbb-molar-experience .pet-interface * {
+  font-family: 'Fredoka', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  letter-spacing: 0;
+}
+
+.snabbb-molar-experience .pet-interface {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.snabbb-molar-experience .pet-interface .rounded-sm {
+  border-radius: 0.125rem !important;
+}
+.snabbb-molar-experience .pet-interface .rounded-md {
+  border-radius: 0.375rem !important;
+}
+.snabbb-molar-experience .pet-interface .rounded-lg {
+  border-radius: 0.5rem !important;
+}
+.snabbb-molar-experience .pet-interface .rounded-xl {
+  border-radius: 0.75rem !important;
+}
+.snabbb-molar-experience .pet-interface .rounded-2xl {
+  border-radius: 1rem !important;
+}
+.snabbb-molar-experience .pet-interface .rounded-3xl {
+  border-radius: 1.5rem !important;
+}
+.snabbb-molar-experience .pet-interface .rounded-full {
+  border-radius: 9999px !important;
+}
+
+.snabbb-molar-experience .no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.snabbb-molar-experience .no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes molar-pet-breathe {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.02) translateY(-2px);
+  }
+}
+
+@keyframes molar-pet-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes molar-pet-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes molar-pet-poop-reward {
+  0% {
+    transform: translateY(8px) scale(0.92);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-34px) scale(1);
+    opacity: 0;
+  }
+}
+
+.snabbb-molar-experience .animate-breathe {
+  animation: molar-pet-breathe 3s infinite ease-in-out;
+}
+
+.snabbb-molar-experience .animate-bounce-custom {
+  animation: molar-pet-bounce 0.6s ease-in-out;
+}
+
+.snabbb-molar-experience .animate-float {
+  animation: molar-pet-float 4s infinite ease-in-out;
+}
+
+.snabbb-molar-experience .animate-poop-reward {
+  animation: molar-pet-poop-reward 1.6s ease-out forwards;
+}

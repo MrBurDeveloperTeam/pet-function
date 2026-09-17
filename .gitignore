@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+baseline.tar
+migration-backups/
+.env
+.env.*
+!.env.example

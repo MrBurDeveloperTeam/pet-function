@@ -1,0 +1,37 @@
+/**
+ * Build-time-only input for the scoped Tailwind utilities stylesheet the
+ * ported Virtual Pet components rely on.
+ *
+ * Content Studio's Virtual Pet source is built almost entirely from
+ * Tailwind utility classNames (responsive `sm:` variants, hover/active
+ * states, gradients, arbitrary values, etc — a far larger surface than
+ * Cat/AI had). Rather than hand-translating every className into a
+ * hand-authored BEM class (this package's convention for Cat/AI, see
+ * `src/styles/index.css`'s own header) — a large, detail-sensitive
+ * conversion that risks silent visual drift against this phase's own
+ * strict "Content Studio visual parity is the acceptance baseline, do NOT
+ * redesign" requirement — the ported pet components keep their Tailwind
+ * classNames byte-identical to Content Studio's current source. This file
+ * is what compiles those classes into real CSS as part of THIS package's
+ * own build (never the host's Tailwind config/content scanning).
+ *
+ * `scripts/postbuild.mjs` runs the Tailwind CLI against this file, then
+ * scopes every emitted selector under `.snabbb-molar-experience` (and
+ * rewrites `:root`/`:host` theme-variable declarations to that same
+ * class instead of the page root) via `postcss-prefix-selector`, before
+ * appending the result to `dist/styles.css`. No preflight/reset layer is
+ * imported — only `theme` (color/spacing tokens, scoped) and `utilities`
+ * (the actual utility classes) — so this can never reset a host's own
+ * `body`/`button`/`input`/etc, matching this package's existing "no
+ * unscoped globals" guarantee for the hand-authored CSS.
+ */
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+/* Content Studio's own `animate-in`/`fade-in`/`zoom-in-95`/`slide-in-from-*`
+   classes (used throughout the ported components) are NOT core Tailwind —
+   they come from this same plugin in Content Studio's own globals.css. */
+@import 'tw-animate-css';
+
+@source './internal/**/*.{ts,tsx}';
+@source './SharedVirtualPet.tsx';
+@source '../games/**/*.{ts,tsx}';
