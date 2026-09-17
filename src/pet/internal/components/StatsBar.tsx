@@ -62,10 +62,10 @@ const StatsBar: React.FC<StatsBarProps> = ({ stats }) => {
   return (
     <div className="absolute left-4 right-4 top-[72px] z-30 rounded-2xl border border-white/40 bg-white/30 px-3 py-2 shadow-xl backdrop-blur-md transition-all duration-300 sm:left-1/2 sm:right-auto sm:top-6 sm:w-72 sm:-translate-x-1/2 sm:rounded-3xl sm:px-5 sm:py-3">
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:gap-x-6 sm:gap-y-3">
-        <ProgressBar value={stats.hunger} color="bg-orange-400" icon={<IconHunger />} label="Hunger" />
-        <ProgressBar value={stats.energy} color="bg-blue-400" icon={<IconEnergy />} label="Energy" />
-        <ProgressBar value={stats.happiness} color="bg-pink-400" icon={<IconHappy />} label="Happy" />
-        <ProgressBar value={stats.hygiene} color="bg-cyan-400" icon={<IconClean />} label="Clean" />
+        <ProgressBar value={stats.hunger} color="bg-orange-400" icon={<IconHunger />} label="PF Hunger" />
+        <ProgressBar value={stats.energy} color="bg-blue-400" icon={<IconEnergy />} label="PF Energy" />
+        <ProgressBar value={stats.happiness} color="bg-pink-400" icon={<IconHappy />} label="PF Happy" />
+        <ProgressBar value={stats.hygiene} color="bg-cyan-400" icon={<IconClean />} label="PF Clean" />
       </div>
     </div>
   );

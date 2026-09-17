@@ -143,6 +143,9 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose }) => {
 
                 {/* Top UI Area */}
                 <div className="absolute top-6 right-6 z-50 flex flex-col items-end gap-2">
+                    <div className="rounded-full border border-emerald-300/40 bg-emerald-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-200 backdrop-blur-md">
+                        Pet Function Test
+                    </div>
                     <div className="flex items-center gap-3">
                         {/* Session Progress (Pending Coins) */}
                         {sessionCoins > 0 && (
@@ -177,7 +180,7 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose }) => {
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-900 z-10">
                             <div className="flex flex-col items-center gap-4">
                                 <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                                <span className="text-white/60 text-sm">Loading {config.title}...</span>
+                                <span className="text-white/60 text-sm">Loading {config.title} — PET FUNCTION TEST...</span>
                             </div>
                         </div>
                     )}

@@ -43,7 +43,8 @@
     "./resources": {
       "types": "./dist/resources.d.ts",
       "import": "./dist/resources.js"
-    }
+    },
+    "./vite-games": "./scripts/vite-games.mjs"
   },
   "files": [
     "dist",
@@ -52,6 +53,7 @@
   ],
   "scripts": {
     "build": "tsup && node scripts/postbuild.mjs",
+    "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs"
   },

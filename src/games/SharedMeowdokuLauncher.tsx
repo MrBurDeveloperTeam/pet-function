@@ -258,12 +258,15 @@ export function SharedMeowdokuLauncher({ isOpen, onClose, userId, repository, rp
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900 z-10">
             <div className="flex flex-col items-center gap-4">
               <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-              <span className="text-white/60 text-sm">Loading Meowdoku...</span>
+              <span className="text-white/60 text-sm">Loading Meowdoku — PET FUNCTION TEST...</span>
             </div>
           </div>
         )}
 
         <div className="absolute right-[calc(env(safe-area-inset-right)_+_1.5rem)] top-[calc(env(safe-area-inset-top)_+_1.5rem)] z-50 flex items-center gap-3">
+          <span className="rounded-full border border-emerald-300/40 bg-emerald-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-200 backdrop-blur-md">
+            Pet Function Test
+          </span>
           <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 shadow-lg text-white ring-1 ring-white/5">
             <span className="text-xl">💰</span>
             <span className="font-black text-lg tracking-widest min-w-[3ch] text-right">{coins}</span>

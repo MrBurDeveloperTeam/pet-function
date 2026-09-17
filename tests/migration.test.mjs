@@ -8,7 +8,7 @@ const workspace=resolve(root,'..');
 function files(dir){return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]);}
 test('Only E-learning uses the local shared dependency',()=>{
  const host=JSON.parse(readFileSync(join(workspace,'E-learning/package.json')));
- assert.equal(host.dependencies['pet-function'],'file:../pet-function');
+ assert.equal(host.dependencies['pet-function'],'github:MrBurDeveloperTeam/pet-function#main');
  for(const name of ['calculator','appointment','inventory','todo','Image-generator','snabb-superapp','aiboard','AI-Dashboard']){
   const json=JSON.parse(readFileSync(join(workspace,name,'package.json')));
   assert.notEqual(json.dependencies?.['pet-function'],'file:../pet-function',name);
