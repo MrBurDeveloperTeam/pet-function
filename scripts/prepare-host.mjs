@@ -1,12 +1,14 @@
 // Host delivery for both a sibling checkout and a Git-installed dependency.
-import { existsSync, readdirSync, mkdirSync, copyFileSync } from 'node:fs';
-import { dirname, join, resolve, relative, basename } from 'node:path';
+import { existsSync, readdirSync, mkdirSync, copyFileSync, readFileSync } from 'node:fs';
+import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const host = resolve(process.argv[2] || process.cwd());
-if (basename(host).toLowerCase() !== 'e-learning') {
-  throw new Error('pet-function pilot may only prepare the E-learning host: ' + host);
+let hostPkgName;
+try { hostPkgName = JSON.parse(readFileSync(join(host, 'package.json'), 'utf8')).name; } catch {}
+if (hostPkgName !== 'dental-learn') {
+  throw new Error('pet-function pilot may only prepare the E-learning host (package.json name "dental-learn"): ' + host + (hostPkgName ? ' (found "' + hostPkgName + '")' : ''));
 }
 if (!existsSync(join(root, 'dist', 'pet.js'))) {
   throw new Error('pet-function is not built. Reinstall the dependency or run npm run build in pet-function.');
