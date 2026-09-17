@@ -139,7 +139,7 @@ const BottomControls: React.FC<BottomControlsProps> = ({
                     strokeWidth={10}
                 />
                <span className="text-[8px] font-bold uppercase tracking-wider text-white sm:text-[11px] sm:tracking-widest">
-                    PF Shop
+                    Shop
                 </span>
             </button>
 
@@ -151,7 +151,7 @@ const BottomControls: React.FC<BottomControlsProps> = ({
                   title="Kitchen"
                 >
                    <IconKitchen className={getIconClass(currentRoom === RoomType.KITCHEN, 'text-orange-500')} />
-                   <span className={getLabelClass(currentRoom === RoomType.KITCHEN, 'text-orange-500')}>PF Kitchen</span>
+                   <span className={getLabelClass(currentRoom === RoomType.KITCHEN, 'text-orange-500')}>Kitchen</span>
                 </button>
 
                 <button
@@ -160,7 +160,7 @@ const BottomControls: React.FC<BottomControlsProps> = ({
                   title="Bathroom"
                 >
                    <IconBathroom className={getIconClass(currentRoom === RoomType.BATHROOM, 'text-cyan-500')} />
-                   <span className={getLabelClass(currentRoom === RoomType.BATHROOM, 'text-cyan-500')}>PF Bath</span>
+                   <span className={getLabelClass(currentRoom === RoomType.BATHROOM, 'text-cyan-500')}>Bathroom</span>
                 </button>
 
                 <button
@@ -169,7 +169,7 @@ const BottomControls: React.FC<BottomControlsProps> = ({
                   title="Playground"
                 >
                    <IconPlayground className={getIconClass(currentRoom === RoomType.PLAYROOM, 'text-pink-500')} />
-                   <span className={getLabelClass(currentRoom === RoomType.PLAYROOM, 'text-pink-500')}>PF Outside</span>
+                   <span className={getLabelClass(currentRoom === RoomType.PLAYROOM, 'text-pink-500')}>Outside</span>
                 </button>
 
                 <button
@@ -178,7 +178,7 @@ const BottomControls: React.FC<BottomControlsProps> = ({
                   title="Bedroom"
                 >
                    <IconBedroom className={getIconClass(currentRoom === RoomType.BEDROOM, 'text-indigo-500')} />
-                   <span className={getLabelClass(currentRoom === RoomType.BEDROOM, 'text-indigo-500')}>PF Bed</span>
+                   <span className={getLabelClass(currentRoom === RoomType.BEDROOM, 'text-indigo-500')}>Bedroom</span>
                 </button>
 
                 <button
@@ -187,7 +187,7 @@ const BottomControls: React.FC<BottomControlsProps> = ({
                   title="Games"
                 >
                    <IconGames className={getIconClass(currentRoom === RoomType.GAMES, 'text-violet-500')} />
-                   <span className={getLabelClass(currentRoom === RoomType.GAMES, 'text-violet-500')}>PF Games</span>
+                   <span className={getLabelClass(currentRoom === RoomType.GAMES, 'text-violet-500')}>Games</span>
                 </button>
 
             </div>
