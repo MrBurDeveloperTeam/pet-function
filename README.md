@@ -1,4 +1,4 @@
-# pet-function
+# @mrburdeveloperteam/pet-function
 
 **Status: skeleton/foundation only.** This package does not yet contain
 product UI and does not yet replace any of the seven Snabbb apps' existing
@@ -56,15 +56,34 @@ enforced by the contracts in this package:
    concrete Supabase-backed implementation is deliberately **not** included
    in this skeleton — see `src/pet/repository/README.md`.
 
+## Installing this package
+
+Published to GitHub Packages (not the public npm registry) under the
+`@mrburdeveloperteam` scope — see `.github/workflows/publish-package.yml`.
+A consuming app needs a `.npmrc` pointing that scope at GitHub Packages,
+plus a token with `read:packages` scope (a classic PAT for local dev, or
+the built-in `GITHUB_TOKEN` in CI):
+
+```
+@mrburdeveloperteam:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Then:
+
+```
+npm install @mrburdeveloperteam/pet-function
+```
+
 ## Public imports
 
 ```ts
-import { MolarExperienceProvider, MolarExperienceLayer } from 'pet-function';
-import { SharedCatMascot } from 'pet-function/cat';
-import { SharedMolarAI } from 'pet-function/ai';
-import { SharedVirtualPet } from 'pet-function/pet';
-import type { DialogueCandidate, PetStats, MolarExperienceConfig } from 'pet-function/contracts';
-import 'pet-function/styles.css';
+import { MolarExperienceProvider, MolarExperienceLayer } from '@mrburdeveloperteam/pet-function';
+import { SharedCatMascot } from '@mrburdeveloperteam/pet-function/cat';
+import { SharedMolarAI } from '@mrburdeveloperteam/pet-function/ai';
+import { SharedVirtualPet } from '@mrburdeveloperteam/pet-function/pet';
+import type { DialogueCandidate, PetStats, MolarExperienceConfig } from '@mrburdeveloperteam/pet-function/contracts';
+import '@mrburdeveloperteam/pet-function/styles.css';
 ```
 
 No other import path is supported — internal directories (`*/internal/`,
