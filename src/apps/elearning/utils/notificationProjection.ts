@@ -14,3 +14,25 @@ export interface ProjectedNotification {
    *  `notifications` table) only as a defensive fallback. */
   source: 'platform' | 'community';
 }
+
+import type { NotificationWithActor } from '../types';
+
+export function projectNotificationsForFollowedCreatorPosted(
+  notifications: NotificationWithActor[] | undefined
+): ProjectedNotification[] {
+  if (!Array.isArray(notifications)) return [];
+  return notifications.map((row) => {
+    const candidates = [row.profiles?.full_name, row.profiles?.username, row.profiles?.name];
+    const actorDisplayName = candidates.map((value) => value?.trim()).find(Boolean);
+    return {
+      id: row.id,
+      actorId: row.actor_id,
+      videoId: row.video_id,
+      createdAt: row.created_at,
+      type: row.type,
+      isRead: row.is_read,
+      source: row.source ?? 'platform',
+      ...(actorDisplayName ? { actorDisplayName } : {}),
+    };
+  });
+}
