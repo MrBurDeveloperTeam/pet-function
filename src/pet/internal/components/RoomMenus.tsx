@@ -181,7 +181,7 @@ export const GamesMenu: React.FC<GamesMenuProps> = ({ onStartGame, extraGames })
             >
                 <div
                     className="w-20 h-20 bg-cover bg-center rounded-2xl shadow-lg flex items-center justify-center text-3xl font-black text-white group-hover:-rotate-12 transition-transform duration-200 ease-out border-4 border-white/50"
-                    style={{ backgroundImage: "url('/games/flappy-cat/143.jpg')" }}
+                    style={{ backgroundImage: "url('/games/flappy-cat/143.jpg?v=0.9.21')" }}
                 />
                 <span className="text-[10px] font-black text-white mt-1.5 uppercase tracking-wide drop-shadow-md">Flappy</span>
             </button>
@@ -192,7 +192,7 @@ export const GamesMenu: React.FC<GamesMenuProps> = ({ onStartGame, extraGames })
             >
                 <div
                     className="w-20 h-20 bg-cover bg-center rounded-2xl shadow-lg flex items-center justify-center text-3xl font-black text-white group-hover:-rotate-12 transition-transform duration-200 ease-out border-4 border-white/50"
-                    style={{ backgroundImage: "url('/games/pac-cat/img/145.jpg')" }}
+                    style={{ backgroundImage: "url('/games/pac-cat/img/145.jpg?v=0.9.21')" }}
                 />
                 <span className="text-[10px] font-black text-white mt-1.5 uppercase tracking-wide drop-shadow-md">Pac-Cat</span>
             </button>
@@ -203,7 +203,7 @@ export const GamesMenu: React.FC<GamesMenuProps> = ({ onStartGame, extraGames })
             >
                 <div
                     className="w-20 h-20 bg-cover bg-center rounded-2xl shadow-lg flex items-center justify-center text-3xl font-black text-white group-hover:-rotate-12 transition-transform duration-200 ease-out border-4 border-white/50"
-                                    style={{ backgroundImage: "url('/games/tetris/144.jpg')" }}
+                                    style={{ backgroundImage: "url('/games/tetris/144.jpg?v=0.9.21')" }}
                 />
                 <span className="text-[10px] font-black text-white mt-1.5 uppercase tracking-wide drop-shadow-md">Tetris</span>
             </button>

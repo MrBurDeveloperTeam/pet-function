@@ -39,17 +39,22 @@ export const CAT_SPRITE_SHEET_URLS = PET_SPRITE_SHEET_URLS;
 /** For SharedMolarAI's `logoUrl` prop. */
 export const MOLAR_LOGO_URL = '/pet-function/ai/ai_logo.png';
 
+// A versioned query prevents browsers and edge caches from reusing an old
+// negative (404) response after a host starts shipping these shared assets.
+const PET_ASSET_REVISION = '0.9.21';
+const versionedPetAsset = (path: string) => `${path}?v=${PET_ASSET_REVISION}`;
+
 /** For SharedVirtualPet's `assetUrls` prop. */
 export const PET_ASSET_URLS = {
   spriteSheets: PET_SPRITE_SHEET_URLS,
   beds: {
-    grey: '/pet-function/pet/grey_bed.png',
-    red: '/pet-function/pet/red_bed.png',
-    purple: '/pet-function/pet/purple_bed.png',
+    grey: versionedPetAsset('/pet-function/pet/grey_bed.png'),
+    red: versionedPetAsset('/pet-function/pet/red_bed.png'),
+    purple: versionedPetAsset('/pet-function/pet/purple_bed.png'),
   },
   care: {
-    poop: '/pet-function/pet/poop.png',
-    shower: '/pet-function/pet/shower.png',
-    soap: '/pet-function/pet/soap.png',
+    poop: versionedPetAsset('/pet-function/pet/poop.png'),
+    shower: versionedPetAsset('/pet-function/pet/shower.png'),
+    soap: versionedPetAsset('/pet-function/pet/soap.png'),
   },
 };

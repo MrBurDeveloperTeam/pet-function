@@ -22,7 +22,7 @@ test('Cat identity cache is account-scoped and auth loading is distinct from gue
 });
 test('Inventory manifest targets the new shared GitHub release',()=>{
  const host=JSON.parse(readFileSync(join(workspace,'inventory/package.json')));
- assert.equal(host.dependencies['@mrburdeveloperteam/pet-function'],'github:mrburdeveloperteam/pet-function#v0.9.19');
+ assert.equal(host.dependencies['@mrburdeveloperteam/pet-function'],'github:mrburdeveloperteam/pet-function#v0.9.20');
 });
 for(const game of ['flappy-cat','pac-cat','tetris','meowdoku'])test(`${game}: canonical source and Inventory build output match`,()=>{
  // GitHub checkouts can normalize CRLF/LF. Compare the emitted files
