@@ -28,7 +28,7 @@ import prefixSelector from 'postcss-prefix-selector';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const distDir = join(root, 'dist');
 
-const CLIENT_ENTRIES = ['index.js', 'cat.js', 'ai.js', 'pet.js', 'inventory.js', 'appointment.js'];
+const CLIENT_ENTRIES = ['index.js', 'cat.js', 'ai.js', 'pet.js', 'inventory.js', 'appointment.js', 'image-generator.js'];
 const DIRECTIVE = '"use client";\n';
 
 for (const file of CLIENT_ENTRIES) {

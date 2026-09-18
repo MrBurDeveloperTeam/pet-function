@@ -54,3 +54,21 @@ the lockfile and replace the local installation before repeating verification/de
 Do not treat the existing node_modules or build output as proof of a published install.
 Publishing/committing/pushing is user-controlled.
 The source changes here introduce no new paid import operation, service or AI calls.
+# Image-generator local migration: v0.9.13 (release pending)
+
+The image-generator app-aware cat, AI orchestration, data chat, Dashboard contexts,
+proactive reminder hook and visit/currency behavior now live in
+`src/apps/image-generator/`. Pet persistence uses the existing shared repository factory.
+The host retains its authenticated client, server data/AI transports, pathname and
+navigation/account wiring. Its 30 original modules are archived as line comments,
+not deleted. Client factories are instantiated at host module scope.
+
+Validated: package/app production builds and typechecks, 38 shared tests (10 new
+image-generator parity/safety tests), 82 canonical game files and all 82 original
+game URLs on a local production server. No paid AI/live DB calls in the dialogue tests.
+No commit/push/tag/publish/deploy was performed.
+
+The app manifest targets GitHub v0.9.13, but its lockfile remains v0.9.10 until
+the user publishes the new tag. Local node_modules uses a packed validation tarball
+without a file: manifest dependency or a sibling symlink. Do not deploy before the
+official dependency installation/lockfile update and repeat verification.
