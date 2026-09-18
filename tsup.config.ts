@@ -10,6 +10,13 @@ import { defineConfig } from 'tsup';
 // directive shared/lost across a merged chunk.
 export default defineConfig({
   entry: {
+    apps: 'src/apps/index.ts',
+    inventory: 'src/apps/inventory/index.ts',
+    appointment: 'src/apps/appointment/index.ts',
+    todo: 'src/apps/todo/index.ts',
+    calculator: 'src/apps/calculator/index.ts',
+    elearning: 'src/apps/elearning/index.ts',
+    'image-generator': 'src/apps/image-generator/index.ts',
     index: 'src/index.ts',
     contracts: 'src/contracts/index.ts',
     cat: 'src/cat/index.ts',
@@ -30,6 +37,13 @@ export default defineConfig({
   // module declaration used only for that entry's asset import.
   dts: {
     entry: {
+      apps: 'src/apps/index.ts',
+      inventory: 'src/apps/inventory/index.ts',
+      appointment: 'src/apps/appointment/index.ts',
+      todo: 'src/apps/todo/index.ts',
+      calculator: 'src/apps/calculator/index.ts',
+      elearning: 'src/apps/elearning/index.ts',
+      'image-generator': 'src/apps/image-generator/index.ts',
       index: 'src/index.ts',
       contracts: 'src/contracts/index.ts',
       cat: 'src/cat/index.ts',

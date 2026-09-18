@@ -12,22 +12,17 @@ test('Package manifest and lockfile versions match',()=>{
  assert.equal(lock.version,manifest.version);
  assert.equal(lock.packages[''].version,manifest.version);
 });
-test('Only E-learning uses the local shared dependency',()=>{
- const host=JSON.parse(readFileSync(join(workspace,'E-learning/package.json')));
- assert.equal(host.dependencies['pet-function'],'file:../pet-function');
- for(const name of ['calculator','appointment','inventory','todo','Image-generator','snabb-superapp','aiboard','AI-Dashboard']){
-  const json=JSON.parse(readFileSync(join(workspace,name,'package.json')));
-  assert.notEqual(json.dependencies?.['pet-function'],'file:../pet-function',name);
- }
+test('Inventory manifest targets the new shared GitHub release',()=>{
+ const host=JSON.parse(readFileSync(join(workspace,'inventory/package.json')));
+ assert.equal(host.dependencies['@mrburdeveloperteam/pet-function'],'github:mrburdeveloperteam/pet-function#v0.9.11');
 });
-for(const game of ['flappy-cat','pac-cat','tetris','meowdoku'])test(`${game}: canonical source and E-learning build output match`,()=>{
+for(const game of ['flappy-cat','pac-cat','tetris','meowdoku'])test(`${game}: canonical source and Inventory build output match`,()=>{
  const folder=join(root,'public/games',game);
  const paths=files(folder);assert.ok(paths.length);
  for(const path of paths){
   const suffix=path.slice(folder.length+1);
   const canonical=readFileSync(path);
-  assert.deepEqual(readFileSync(join(workspace,'calculator/public/games',game,suffix)),canonical,suffix+' baseline');
-  assert.deepEqual(readFileSync(join(workspace,'E-learning/dist/games',game,suffix)),canonical,suffix+' build output');
+  assert.deepEqual(readFileSync(join(workspace,'inventory/dist/games',game,suffix)),canonical,suffix+' build output');
  }
 });
 test('Existing E-learning dialogue source remains local',()=>{
