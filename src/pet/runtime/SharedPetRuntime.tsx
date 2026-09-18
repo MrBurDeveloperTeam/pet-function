@@ -26,6 +26,7 @@ import { BED_ITEMS, INITIAL_STATS, XP_TO_LEVEL_UP, INITIAL_INVENTORY, FOOD_ITEMS
 import { DEFAULT_PET_ID, normalizePetId } from '../internal/petOptions';
 import type { PetRepository } from '../../contracts/petRepository';
 import type { PetSaveSnapshot } from '../../contracts/pet';
+import { confirmAdoptionIdentity } from './adoptionIdentity';
 
 const TOY_ITEM_IDS = TOY_ITEMS.map((toy) => toy.id);
 const ACTIVE_BED_KEY = 'pet_active_bed';
@@ -123,6 +124,8 @@ interface GameStateContextType {
     petName: string;
     setPetName: (name: string) => void;
     hasAdoptedPet: boolean;
+    adoptionLoadError: string | null;
+    retryAdoptionLoad: () => void;
     isPetAdoptionReady: boolean;
     adoptPet: (name: string) => Promise<boolean>;
     currentRoom: RoomType;
@@ -192,6 +195,17 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
     const [petName, _setPetName] = useState(DEFAULT_PET_ID);
     const [hasAdoptedPet, setHasAdoptedPet] = useState(false);
     const [isPetAdoptionReady, setIsPetAdoptionReady] = useState(false);
+    const [adoptionLoadError, setAdoptionLoadError] = useState<string | null>(null);
+    const [adoptionLoadAttempt, setAdoptionLoadAttempt] = useState(0);
+    const retryAdoptionLoad = () => setAdoptionLoadAttempt(value => value + 1);
+    const adoptionInFlight = useRef(false);
+    const mounted = useRef(true);
+    const owner = useRef(userId);
+    owner.current = userId;
+    useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; };
+    }, []);
     const setPetName = (name: string) => {
         if (!hasAdoptedPet) _setPetName(normalizePetId(name));
     };
@@ -505,6 +519,10 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
 
     // Initial data load
     useEffect(() => {
+        let active = true;
+        isHydrated.current = false;
+        setIsPetAdoptionReady(false);
+        setAdoptionLoadError(null);
         const init = async () => {
             // Load from localStorage as fallback — scoped to THIS provider
             // instance's own userId only (see `getPetStorageKey`'s doc
@@ -563,6 +581,8 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
                 try {
                     let shouldLoadPetInventory = false;
                     const petData = await repository.loadSnapshot(userId);
+                    if (!active) return;
+                    confirmAdoptionIdentity(petData?.identity.petName, savedName, savedPetAdoptionConfirmed);
 
                     if (!petData) {
                         const starterStats = createStarterStats();
@@ -639,6 +659,7 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
 
                     if (shouldLoadPetInventory) {
                         const invRows = await repository.loadInventoryRows(userId);
+                        if (!active) return;
                         const newInv: Record<string, number> = {};
                         invRows.forEach((row) => {
                             if (row.itemId === 'soap' || row.itemId === 'soap2') return;
@@ -670,7 +691,9 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
                     setIsPetAdoptionReady(true);
                     isHydrated.current = true;
                 } catch (err) {
+                    if (!active) return;
                     console.error('Failed to load from repository', err);
+                    setAdoptionLoadError('We could not confirm your saved cat. Your choice has not been reset.');
                 }
             } else {
                 // No authenticated user at all — this was always a fully
@@ -678,14 +701,23 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
                 // `SharedPetProviderProps.userId`'s own doc comment), so
                 // whatever the synchronous localStorage read above already
                 // established is already the complete, confirmed truth.
-                setIsPetAdoptionReady(true);
+                // Guest/default cats are visible, but adoption requires an authenticated owner.
+                setIsPetAdoptionReady(false);
                 isHydrated.current = true;
             }
         };
 
-        init();
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- ported unchanged: original ran once on mount
-    }, []);
+        void init().catch(error => {
+            if (!active) return;
+            console.error('Failed to initialize pet state', error);
+            setAdoptionLoadError('We could not load your cat. Please retry.');
+        });
+        return () => { active = false; };
+        // Rehydrate whenever the authenticated owner changes. This prevents
+        // a provider first mounted during auth restoration from remaining
+        // permanently bound to the guest/default identity.
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- repository factories are host-owned; identity is the hydration boundary
+    }, [userId, adoptionLoadAttempt]);
 
     // Sync to repository / LocalStorage — normal debounce lifecycle.
     //
@@ -835,7 +867,8 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
     };
 
     const adoptPet = async (name: string) => {
-        if (hasAdoptedPet) return false;
+        if (hasAdoptedPet || !userId || !isPetAdoptionReady || !isHydrated.current || adoptionInFlight.current) return false;
+        adoptionInFlight.current = true;
 
         const adoptedPet = normalizePetId(name);
         const starterStats = createStarterStats();
@@ -843,6 +876,23 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
         const savedAt = new Date().toISOString();
 
         try {
+            // Re-check immediately before saving: another tab/app may have adopted since hydration.
+            const existing = await repository.loadSnapshot(userId);
+            if (!mounted.current || owner.current !== userId) return false;
+            const existingName = confirmAdoptionIdentity(existing?.identity.petName, readPetStorage(userId, 'pet_name'), readPetStorage(userId, PET_ADOPTION_CONFIRMED_KEY) === 'true');
+            if (existingName) {
+                // Stop starter/default auto-saves while restoring the newly discovered existing pet.
+                isHydrated.current = false;
+                if (saveTimeout.current) clearTimeout(saveTimeout.current);
+                pendingSaveRef.current = false;
+                _setPetName(normalizePetId(existingName));
+                setHasAdoptedPet(true);
+                writePetStorage(userId, 'pet_name', normalizePetId(existingName));
+                writePetStorage(userId, PET_ADOPTION_CONFIRMED_KEY, 'true');
+                retryAdoptionLoad();
+                // Do not reset coins, inventory or stats for an already-adopted account.
+                return true;
+            }
             if (userId) {
                 const snapshot: PetSaveSnapshot = {
                     globalUserId: userId,
@@ -857,8 +907,11 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
                     updatedAt: savedAt,
                 };
                 await repository.saveSnapshot(snapshot);
+                if (!mounted.current || owner.current !== userId) return false;
                 await repository.saveInventory(userId, []);
             }
+
+            if (!mounted.current || owner.current !== userId) return false;
 
             clearPetLocalStorage(userId);
             setStats(starterStats);
@@ -881,6 +934,8 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
         } catch (err) {
             console.error('Failed to adopt pet', err);
             return false;
+        } finally {
+            adoptionInFlight.current = false;
         }
     };
 
@@ -932,6 +987,7 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             stats, setStats,
             petName, setPetName,
             hasAdoptedPet,
+            adoptionLoadError, retryAdoptionLoad,
             isPetAdoptionReady,
             adoptPet,
             currentRoom, setCurrentRoom,

@@ -23,6 +23,15 @@ by the user. Mini-app-specific dialogue/data selection and routing stay local.
 Runtime ownership: src/styles/index.css, src/pet/tailwind-entry.css and game CSS.
 scripts/postbuild.mjs compiles and scopes the pet utilities. Do not hand-edit dist.
 
+The shared UI is light-only, even when a host app or the operating system uses
+dark mode. Preserve the current light room gradients, white translucent HUD,
+sidebar, menus, shadows and existing cat/AI palette. No alternate dark palette.
+Runtime source styles remain canonical (Model B); postbuild generates a scoped
+`pet-function-light-lock` cascade layer with important paint declarations copied
+from those exact styles. This protects the shared UI from the seven hosts'
+unlayered dark-mode overrides without changing their own themes or shared
+geometry, drag positions and animation. Shared roots explicitly mark light mode.
+
 ## Typography
 
 Keep existing host inheritance and per-game typography. No new font services.

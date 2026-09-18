@@ -21,6 +21,8 @@ import LevelIndicator from './components/LevelIndicator';
 import CoinIndicator from './components/CoinIndicator';
 import { getPetOption } from './petOptions';
 import poopUrl from '../../assets/pet/poop.png';
+import { resolveBedImage } from './bedImages';
+import { BedImage } from './components/BedImage';
 
 const MAX_BUBBLES = 120;
 const RINSE_COMPLETE_THRESHOLD = Math.ceil(MAX_BUBBLES * 0.05);
@@ -218,15 +220,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
     const fallback = BED_ITEMS.find((bed) => bed.id === id);
     if (!shopBed && !fallback) return null;
 
-    const bedOverride =
-      id === 'bed_grey' ? assetUrls?.beds?.grey :
-      id === 'bed_red' ? assetUrls?.beds?.red :
-      id === 'bed_purple' ? assetUrls?.beds?.purple :
-      undefined;
-
     return {
       id,
-      src: shopBed?.imageSrc || bedOverride || fallback?.src || '',
+      src: resolveBedImage(id, shopBed?.imageSrc || fallback?.src, assetUrls?.beds),
       energyGain: shopBed?.energyGain || fallback?.energyGain || 1,
     };
   };
@@ -761,7 +757,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
             }}
           >
             {activeBed && (
-              <img
+              <BedImage
                 src={activeBed.src}
                 alt=""
                 draggable={false}

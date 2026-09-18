@@ -4,6 +4,7 @@
  */
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { PetStats, Bubble } from '../types';
+import { CAT_SPRITE_SHEET_URLS } from '../../../resources';
 
 export type PetPose = 'idle' | 'run-left' | 'run-right';
 
@@ -35,7 +36,7 @@ interface PetProps {
   onClick: () => void;
 }
 
-const DEFAULT_SPRITESHEET_URL = '/images/mallow-spritesheet.webp';
+const DEFAULT_SPRITESHEET_URL = CAT_SPRITE_SHEET_URLS.mallow;
 const FRAME_WIDTH = 192;
 const FRAME_HEIGHT = 208;
 const SHEET_COLUMNS = 8;

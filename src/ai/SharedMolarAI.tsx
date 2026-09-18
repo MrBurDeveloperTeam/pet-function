@@ -80,7 +80,7 @@ export function SharedMolarAI({ adapter, disabled = false, onPetToggle, emptySta
   const prompts = emptyState?.prompts ?? [];
 
   return (
-    <div className="snabbb-molar-experience">
+    <div className="snabbb-molar-experience" data-molar-theme="light">
       {!isOpen && (
         <div className="molar-ai-trigger-wrapper">
           <div className="molar-ai-trigger-inner">

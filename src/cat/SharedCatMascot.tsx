@@ -196,7 +196,7 @@ export function SharedCatMascot({
   };
 
   return (
-    <div className="snabbb-molar-experience">
+    <div className="snabbb-molar-experience" data-molar-theme="light">
     <div
       className="molar-cat-wrapper"
       style={{

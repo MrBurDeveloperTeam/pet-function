@@ -13,6 +13,7 @@
 import { existsSync, readdirSync, mkdirSync, copyFileSync } from 'node:fs';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { verifyPublicResources } from './verify-public-resources.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const host = resolve(process.argv[2] || process.cwd());
@@ -36,4 +37,5 @@ for (const source of files(publicDir)) {
   mkdirSync(dirname(target), { recursive: true });
   copyFileSync(source, target);
 }
+verifyPublicResources(root, host);
 console.log('[pet-function] public resources copied into ' + relative(process.cwd(), host));

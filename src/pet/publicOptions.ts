@@ -24,7 +24,7 @@ export const PET_OPTIONS: PetOption[] = [
   {
     id: 'mallow',
     label: 'Mallow',
-    spriteSheetUrl: '/images/mallow-spritesheet.webp',
+    spriteSheetUrl: '/pet-function/pets/mallow-spritesheet.webp',
     mouthPosition: { left: '46%', top: '46.5%' },
     idleFrames: 6,
     idleDuration: '1.1s',
@@ -40,7 +40,7 @@ export const PET_OPTIONS: PetOption[] = [
   {
     id: 'silverbelt',
     label: 'Silverbelt',
-    spriteSheetUrl: '/images/silverbelt-spritesheet.webp',
+    spriteSheetUrl: '/pet-function/pets/silverbelt-spritesheet.webp',
     mouthPosition: { left: '45.5%', top: '51%' },
     idleFrames: 6,
     idleDuration: '1.1s',
@@ -56,7 +56,7 @@ export const PET_OPTIONS: PetOption[] = [
   {
     id: 'fastrat',
     label: 'Fast Rat',
-    spriteSheetUrl: '/images/fastrat-spritesheet.webp',
+    spriteSheetUrl: '/pet-function/pets/fastrat-spritesheet.webp',
     mouthPosition: { left: '44%', top: '48%' },
     idleFrames: 2,
     idleDuration: '1.1s',
@@ -72,7 +72,7 @@ export const PET_OPTIONS: PetOption[] = [
   {
     id: 'gulu',
     label: 'Gulu',
-    spriteSheetUrl: '/images/gulu-spritesheet.webp',
+    spriteSheetUrl: '/pet-function/pets/gulu-spritesheet.webp',
     mouthPosition: { left: '56%', top: '44%' },
     idleFrames: 4,
     idleDuration: '1.1s',
@@ -88,7 +88,7 @@ export const PET_OPTIONS: PetOption[] = [
   {
     id: 'munchkin',
     label: 'Munchkin',
-    spriteSheetUrl: '/images/munchkinspritesheet.webp',
+    spriteSheetUrl: '/pet-function/pets/munchkin-spritesheet.webp',
     mouthPosition: { left: '64.5%', top: '53.5%' },
     idleFrames: 6,
     idleDuration: '1.1s',
@@ -104,7 +104,7 @@ export const PET_OPTIONS: PetOption[] = [
   {
     id: 'mochi',
     label: 'Mochi',
-    spriteSheetUrl: '/images/mochi-spritesheet.webp',
+    spriteSheetUrl: '/pet-function/pets/mochi-spritesheet.webp',
     mouthPosition: { left: '42%', top: '48.5%' },
     idleFrames: 6,
     idleDuration: '1.1s',

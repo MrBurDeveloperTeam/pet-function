@@ -22,7 +22,7 @@
 // parity is the acceptance gate for whether that specific behavioral
 // difference is acceptable.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SharedCatMascot, useSharedCatDialogueRuntime } from '../../cat';
+import { SharedCatMascot, useSharedCatDialogueRuntime, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
 import { usePersonalizedInsightBridge } from './petDialogue/PersonalizedInsightBridge';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
@@ -44,11 +44,14 @@ const introCompletedLocally = (uid) => {
   }
 };
 
-export default function CalculatorCatMascot({ supabase, onCatClick, disabled = false }) {
+export default function CalculatorCatMascot({ supabase, onCatClick, disabled = false, userId = null, authStatus }) {
   const [isPetSleeping, setIsPetSleeping] = useState(() => {
     try { return localStorage.getItem(PET_SLEEPING_KEY) === 'true'; } catch { return false; }
   });
-  const [selectedPetId, setSelectedPetId] = useState(() => normalizePetId(localStorage.getItem('pet_name')));
+  const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, userId);
+  const initialPetName = readSharedPetName(userId);
+  const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
+  const [isPetIdentityReady, setIsPetIdentityReady] = useState(() => resolvedAuthStatus === 'guest' || Boolean(initialPetName));
   const [currentUserId, setCurrentUserId] = useState(null);
 
   const [meowMsg, setMeowMsg] = useState(null);
@@ -126,7 +129,10 @@ export default function CalculatorCatMascot({ supabase, onCatClick, disabled = f
     };
 
     readLocalSleepState();
-    setSelectedPetId(normalizePetId(localStorage.getItem('pet_name')));
+    const cachedPetName = readSharedPetName(userId);
+    if (resolvedAuthStatus === 'guest') { setSelectedPetId(normalizePetId(null)); setIsPetIdentityReady(true); }
+    else if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
+    else { setSelectedPetId(null); setIsPetIdentityReady(false); }
 
     const handlePetSleepChange = (event) => {
       setIsPetSleeping(!!event.detail);
@@ -134,13 +140,15 @@ export default function CalculatorCatMascot({ supabase, onCatClick, disabled = f
 
     const handlePetSelectionChange = (event) => {
       setSelectedPetId(normalizePetId(event.detail));
+      writeSharedPetName(userId, event.detail);
+      setIsPetIdentityReady(true);
     };
 
     const handleStorage = (event) => {
       if (event.key === PET_SLEEPING_KEY) {
         setIsPetSleeping(event.newValue === 'true');
       }
-      if (event.key === 'pet_name') {
+      if (event.key === getSharedPetNameStorageKey(userId)) {
         setSelectedPetId(normalizePetId(event.newValue));
       }
     };
@@ -168,7 +176,12 @@ export default function CalculatorCatMascot({ supabase, onCatClick, disabled = f
           localStorage.setItem(PET_SLEEPING_KEY, String(nextSleeping));
           localStorage.setItem(PET_SLEEPING_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
           setSelectedPetId(normalizePetId(data.pet_name));
+          writeSharedPetName(session.user.id, data.pet_name);
+          setIsPetIdentityReady(true);
           updateStateFromStats(data, data.updated_at);
+        } else if (!error) {
+          setSelectedPetId(normalizePetId(null));
+          setIsPetIdentityReady(true);
         }
       } catch (err) {
         console.error('Error fetching pet stats:', err);
@@ -188,7 +201,7 @@ export default function CalculatorCatMascot({ supabase, onCatClick, disabled = f
       window.removeEventListener('virtual-pet-selection-change', handlePetSelectionChange);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [disabled]);
+  }, [disabled, userId, resolvedAuthStatus]);
 
   // --- Resolve current user id (needed by the shared dialogue runtime) ---
   useEffect(() => {
@@ -546,6 +559,8 @@ export default function CalculatorCatMascot({ supabase, onCatClick, disabled = f
     }
     if (!disabled && onCatClick) onCatClick();
   }, [disabled, closeActiveDialogue, onCatClick]);
+
+  if (!isPetIdentityReady || !selectedPetId) return null;
 
   return (
     <SharedCatMascot

@@ -20,7 +20,7 @@
 // Manual browser parity is the acceptance gate for whether that specific
 // behavioral difference is acceptable.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SharedCatMascot, useSharedCatDialogueRuntime } from '../../cat';
+import { SharedCatMascot, useSharedCatDialogueRuntime, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
 import { usePersonalizedInsightBridge } from './petDialogue/PersonalizedInsightBridge';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
@@ -66,9 +66,12 @@ const introCompletedLocally = (uid) => {
 // second independent `getSession()` lifecycle. `null` for the pre-login
 // `disabled` instance, where no account-sensitive cache should be touched.
 export function createTodoCatMascot(supabase) {
-return function TodoCatMascot({ onCatClick, disabled = false, userId = null }) {
+return function TodoCatMascot({ onCatClick, disabled = false, userId = null, authStatus }) {
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(userId, PET_SLEEPING_KEY) === 'true');
-  const [selectedPetId, setSelectedPetId] = useState(() => normalizePetId(readCatStorage(userId, 'pet_name')));
+  const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, userId);
+  const initialPetName = readSharedPetName(userId);
+  const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
+  const [isPetIdentityReady, setIsPetIdentityReady] = useState(() => resolvedAuthStatus === 'guest' || Boolean(initialPetName));
 
   const [meowMsg, setMeowMsg] = useState(null);
   const [petStates, setPetStates] = useState(['Normal']);
@@ -145,7 +148,10 @@ return function TodoCatMascot({ onCatClick, disabled = false, userId = null }) {
     };
 
     readLocalSleepState();
-    setSelectedPetId(normalizePetId(readCatStorage(userId, 'pet_name')));
+    const cachedPetName = readSharedPetName(userId);
+    if (resolvedAuthStatus === 'guest') { setSelectedPetId(normalizePetId(null)); setIsPetIdentityReady(true); }
+    else if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
+    else { setSelectedPetId(null); setIsPetIdentityReady(false); }
 
     const handlePetSleepChange = (event) => {
       setIsPetSleeping(!!event.detail);
@@ -153,6 +159,8 @@ return function TodoCatMascot({ onCatClick, disabled = false, userId = null }) {
 
     const handlePetSelectionChange = (event) => {
       setSelectedPetId(normalizePetId(event.detail));
+      writeSharedPetName(userId, event.detail);
+      setIsPetIdentityReady(true);
     };
 
     const handleStorage = (event) => {
@@ -162,7 +170,7 @@ return function TodoCatMascot({ onCatClick, disabled = false, userId = null }) {
       if (event.key === getCatStorageKey(userId, PET_SLEEPING_KEY)) {
         setIsPetSleeping(event.newValue === 'true');
       }
-      if (event.key === getCatStorageKey(userId, 'pet_name')) {
+      if (event.key === getSharedPetNameStorageKey(userId)) {
         setSelectedPetId(normalizePetId(event.newValue));
       }
     };
@@ -190,7 +198,12 @@ return function TodoCatMascot({ onCatClick, disabled = false, userId = null }) {
           writeCatStorage(userId, PET_SLEEPING_KEY, String(nextSleeping));
           writeCatStorage(userId, PET_SLEEPING_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
           setSelectedPetId(normalizePetId(data.pet_name));
+          writeSharedPetName(userId, data.pet_name);
+          setIsPetIdentityReady(true);
           updateStateFromStats(data, data.updated_at);
+        } else if (!error) {
+          setSelectedPetId(normalizePetId(null));
+          setIsPetIdentityReady(true);
         }
       } catch (err) {
         console.error('Error fetching pet stats:', err);
@@ -210,7 +223,7 @@ return function TodoCatMascot({ onCatClick, disabled = false, userId = null }) {
       window.removeEventListener('virtual-pet-selection-change', handlePetSelectionChange);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [disabled, userId]);
+  }, [disabled, userId, resolvedAuthStatus]);
 
   // --- Intro content (To-Do's own AIBoard config) ---
   const [introState, setIntroState] = useState({ status: 'not_ready' });
@@ -558,6 +571,8 @@ return function TodoCatMascot({ onCatClick, disabled = false, userId = null }) {
     }
     if (!disabled && onCatClick) onCatClick();
   }, [disabled, closeActiveDialogue, onCatClick]);
+
+  if (!isPetIdentityReady || !selectedPetId) return null;
 
   return (
     <SharedCatMascot

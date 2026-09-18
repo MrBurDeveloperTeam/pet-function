@@ -16,13 +16,19 @@ const PetAdoptionModal: React.FC = () => {
   // that supplies `assetUrls.spriteSheets` gets its override reflected
   // in the adoption previews too, with the package's own bundled
   // defaults remaining the fallback for hosts that don't.
-  const { hasAdoptedPet, isPetAdoptionReady, adoptPet, assetUrls } = useGameState();
+  const { userId, hasAdoptedPet, isPetAdoptionReady, adoptPet, assetUrls, adoptionLoadError, retryAdoptionLoad } = useGameState();
   const [selectedPetId, setSelectedPetId] = useState<PetId>('mallow');
   const [confirmPetId, setConfirmPetId] = useState<PetId | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  if (!isPetAdoptionReady || hasAdoptedPet) return null;
+  if (userId && adoptionLoadError) return (
+    <div className="absolute bottom-6 left-1/2 z-[90] w-80 -translate-x-1/2 rounded-2xl bg-white p-4 text-center shadow-lg" role="alert">
+      <p>{adoptionLoadError}</p>
+      <button type="button" onClick={retryAdoptionLoad} className="mt-3 rounded-lg bg-teal-700 px-4 py-2 text-white">Retry loading cat</button>
+    </div>
+  );
+  if (!userId || !isPetAdoptionReady || hasAdoptedPet) return null;
 
   const selectedPet = PET_OPTIONS.find((pet) => pet.id === selectedPetId) || PET_OPTIONS[0];
   const confirmPet = confirmPetId

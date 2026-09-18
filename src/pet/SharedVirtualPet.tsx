@@ -297,10 +297,10 @@ export function SharedVirtualPet({ isOpen, onClose, repository, userId, currency
   if (!isOpen) return null;
 
   return (
-    <div className="snabbb-molar-experience">
+    <div className="snabbb-molar-experience" data-molar-theme="light">
     <div className="fixed left-0 top-0 z-[1000] h-dvh w-screen bg-black animate-in fade-in duration-200">
       <div className="w-full h-full relative">
-        <SharedPetProvider repository={repository} userId={userId} currencyCode={currencyCode} assetUrls={assetUrls}>
+        <SharedPetProvider key={userId ?? 'guest'} repository={repository} userId={userId} currencyCode={currencyCode} assetUrls={assetUrls}>
           <VirtualPetContent onClose={onClose} extraGames={extraGames} />
         </SharedPetProvider>
       </div>

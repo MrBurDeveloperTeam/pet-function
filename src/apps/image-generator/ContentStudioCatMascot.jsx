@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { SharedCatMascot, useSharedCatDialogueRuntime } from '../../cat';
+import { SharedCatMascot, useSharedCatDialogueRuntime, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
 import { usePersonalizedInsightBridge } from './petDialogue/PersonalizedInsightBridge';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
@@ -32,7 +32,7 @@ const PET_SLEEPING_KEY = 'pet_is_sleeping';
 const PET_SLEEPING_UPDATED_AT_KEY = 'pet_is_sleeping_updated_at';
 const APP_ID = 'content-studio';
 
-export default function ContentStudioCatMascot({ supabase, onCatClick, disabled = false, initialPetName, initialIsSleeping }) {
+export default function ContentStudioCatMascot({ supabase, onCatClick, disabled = false, initialPetName, initialIsSleeping, userId = null }) {
   // initialIsSleeping comes from the server; fall back to localStorage.
   const [isPetSleeping, setIsPetSleeping] = useState(() => {
     if (initialIsSleeping) return true;
@@ -40,9 +40,9 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
   });
   // initialPetName comes from the server (layout.tsx) and is always correct;
   // fall back to localStorage for client-only apps (all other 6 apps).
-  const [selectedPetId, setSelectedPetId] = useState(() => (
-    normalizePetId(initialPetName ?? (typeof window === 'undefined' ? null : localStorage.getItem('pet_name')))
-  ));
+  const initialResolvedPetName = initialPetName ?? readSharedPetName(userId);
+  const [selectedPetId, setSelectedPetId] = useState(() => initialResolvedPetName ? normalizePetId(initialResolvedPetName) : null);
+  const [isPetIdentityReady, setIsPetIdentityReady] = useState(() => Boolean(initialResolvedPetName));
 
   const [currentUserId, setCurrentUserId] = useState(null);
   const userMetaRef = useRef(null);
@@ -279,7 +279,9 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
     };
 
     readLocalSleepState();
-    setSelectedPetId(normalizePetId(localStorage.getItem('pet_name')));
+    const cachedPetName = readSharedPetName(userId);
+    if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
+    else if (!initialPetName) { setSelectedPetId(null); setIsPetIdentityReady(false); }
 
     const handlePetSleepChange = (event) => {
       setIsPetSleeping(!!event.detail);
@@ -287,13 +289,15 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
 
     const handlePetSelectionChange = (event) => {
       setSelectedPetId(normalizePetId(event.detail));
+      writeSharedPetName(userId, event.detail);
+      setIsPetIdentityReady(true);
     };
 
     const handleStorage = (event) => {
       if (event.key === PET_SLEEPING_KEY) {
         setIsPetSleeping(event.newValue === 'true');
       }
-      if (event.key === 'pet_name') {
+      if (event.key === getSharedPetNameStorageKey(userId)) {
         setSelectedPetId(normalizePetId(event.newValue));
       }
     };
@@ -315,13 +319,19 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
           .eq('user_id', session.user.id)
           .maybeSingle();
 
-          if (data && !error) {
-          const nextSleeping = !!data.is_sleeping;
-          setIsPetSleeping(nextSleeping);
-          localStorage.setItem(PET_SLEEPING_KEY, String(nextSleeping));
-          localStorage.setItem(PET_SLEEPING_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
-          setSelectedPetId(normalizePetId(data.pet_name));
-          updateStateFromStats(data, data.updated_at);
+        if (!error) {
+          const nextSleeping = !!data?.is_sleeping;
+          if (data) {
+            setIsPetSleeping(nextSleeping);
+            localStorage.setItem(PET_SLEEPING_KEY, String(nextSleeping));
+            localStorage.setItem(PET_SLEEPING_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
+            setSelectedPetId(normalizePetId(data.pet_name));
+            writeSharedPetName(session.user.id, data.pet_name);
+            updateStateFromStats(data, data.updated_at);
+          } else {
+            setSelectedPetId(normalizePetId(null));
+          }
+          setIsPetIdentityReady(true);
         }
       } catch (err) {
         console.error('Error fetching pet stats:', err);
@@ -342,7 +352,7 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
       window.removeEventListener('virtual-pet-selection-change', handlePetSelectionChange);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [disabled]);
+  }, [disabled, userId, initialPetName]);
 
   useEffect(() => {
     if (disabled || dialogue.kind !== 'none') return;
@@ -502,6 +512,8 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
       if (audioLoopTimerRef.current) clearTimeout(audioLoopTimerRef.current);
     };
   }, [disabled]);
+
+  if (!isPetIdentityReady || !selectedPetId) return null;
 
   return (
     <SharedCatMascot

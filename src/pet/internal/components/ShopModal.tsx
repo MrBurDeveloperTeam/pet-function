@@ -25,6 +25,8 @@ import { FoodItem } from '../types';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import { TOY_ITEMS } from '../constants';
 import { AiOutlineShop } from 'react-icons/ai';
+import { BedImage } from './BedImage';
+import { resolveBedImage } from '../bedImages';
 
 interface ShopModalProps {
   isOpen: boolean;
@@ -120,7 +122,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
   onSelectToy,
   isLoading = false
 }) => {
-  const { currencyCode, currencyRate } = useGameState();
+  const { currencyCode, currencyRate, assetUrls } = useGameState();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const formatPrice = (baseUSD: number) => {
@@ -283,7 +285,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
                     )}
 
                     <div className="mt-2 flex h-20 items-center justify-center">
-                      <img src={bed.imageSrc} alt="" draggable={false} className="h-20 w-28 object-contain drop-shadow-md" />
+                      <BedImage src={resolveBedImage(bed.id, bed.imageSrc, assetUrls?.beds)} alt="" draggable={false} className="h-20 w-28 object-contain drop-shadow-md" />
                     </div>
                     <div className="mt-3 truncate text-base font-black text-slate-700">{bed.label}</div>
 

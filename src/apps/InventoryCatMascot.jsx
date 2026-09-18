@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 
 import { normalizePetId } from '../pet/publicOptions';
-import { useSharedCatDialogueRuntime, SharedCatMascot } from '../cat';
+import { useSharedCatDialogueRuntime, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../cat';
 import { CAT_SPRITE_SHEET_URLS } from '../resources';
 
 const PET_SLEEPING_KEY = 'pet_is_sleeping';
@@ -30,7 +30,7 @@ const writeCatStorage = (userId, key, value) => {
   try { localStorage.setItem(storageKey, value); } catch { /* ignore */ }
 };
 
-export default function InventoryCatMascot({ supabase, onCatClick, disabled = false, personalizedInsightState = null, catCacheOwnerId = null }) {
+export default function InventoryCatMascot({ supabase, onCatClick, disabled = false, personalizedInsightState = null, catCacheOwnerId = null, authStatus }) {
   // Presentation (sprite, position/walk animation, entry walk,
   // double-click-to-move, click-sound-wave affordance, and the three
   // dialogue bubble presentations) is now entirely owned by
@@ -59,7 +59,10 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
   // the Phase 7B user-key auth boundary and any React Strict-Mode-driven
   // remount) that requires explicit manual browser acceptance.
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(catCacheOwnerId, PET_SLEEPING_KEY) === 'true');
-  const [selectedPetId, setSelectedPetId] = useState(() => normalizePetId(readCatStorage(catCacheOwnerId, 'pet_name')));
+  const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, catCacheOwnerId);
+  const initialPetName = readSharedPetName(catCacheOwnerId);
+  const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
+  const [isPetIdentityReady, setIsPetIdentityReady] = useState(() => resolvedAuthStatus === 'guest' || Boolean(initialPetName));
 
   const [currentUserId, setCurrentUserId] = useState(null);
   // Content-only inputs fed into the shared dialogue runtime — this
@@ -287,7 +290,10 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
     };
 
     readLocalSleepState();
-    setSelectedPetId(normalizePetId(readCatStorage(catCacheOwnerId, 'pet_name')));
+    const cachedPetName = readSharedPetName(catCacheOwnerId);
+    if (resolvedAuthStatus === 'guest') { setSelectedPetId(normalizePetId(null)); setIsPetIdentityReady(true); }
+    else if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
+    else { setSelectedPetId(null); setIsPetIdentityReady(false); }
 
     const handlePetSleepChange = (event) => {
       setIsPetSleeping(!!event.detail);
@@ -295,13 +301,15 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
 
     const handlePetSelectionChange = (event) => {
       setSelectedPetId(normalizePetId(event.detail));
+      writeSharedPetName(catCacheOwnerId, event.detail);
+      setIsPetIdentityReady(true);
     };
 
     // Cross-tab sync: only ever react to a storage event for THIS owner's
     // exact scoped key — a foreign/other-account key (or an old orphaned
     // bare key) must never be able to update this tab's Cat presentation.
     const scopedSleepKey = getCatStorageKey(catCacheOwnerId, PET_SLEEPING_KEY);
-    const scopedNameKey = getCatStorageKey(catCacheOwnerId, 'pet_name');
+    const scopedNameKey = getSharedPetNameStorageKey(catCacheOwnerId);
     const handleStorage = (event) => {
       if (scopedSleepKey && event.key === scopedSleepKey) {
         setIsPetSleeping(event.newValue === 'true');
@@ -328,13 +336,18 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
           .eq('user_id', session.user.id)
           .maybeSingle();
 
-          if (data && !error) {
+        if (data && !error) {
           const nextSleeping = !!data.is_sleeping;
           setIsPetSleeping(nextSleeping);
           writeCatStorage(catCacheOwnerId, PET_SLEEPING_KEY, String(nextSleeping));
           writeCatStorage(catCacheOwnerId, PET_SLEEPING_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
           setSelectedPetId(normalizePetId(data.pet_name));
+          writeSharedPetName(catCacheOwnerId, data.pet_name);
+          setIsPetIdentityReady(true);
           updateStateFromStats(data, data.updated_at);
+        } else if (!error) {
+          setSelectedPetId(normalizePetId(null));
+          setIsPetIdentityReady(true);
         }
       } catch (err) {
         console.error('Error fetching pet stats:', err);
@@ -354,7 +367,7 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
       window.removeEventListener('virtual-pet-selection-change', handlePetSelectionChange);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [disabled, catCacheOwnerId]);
+  }, [disabled, catCacheOwnerId, resolvedAuthStatus]);
 
   useEffect(() => {
     const initDialog = async () => {
@@ -571,6 +584,8 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
     }
     onCatClick?.();
   };
+
+  if (!isPetIdentityReady || !selectedPetId) return null;
 
   return (
     <SharedCatMascot

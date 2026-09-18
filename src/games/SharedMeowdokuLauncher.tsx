@@ -252,7 +252,7 @@ export function SharedMeowdokuLauncher({ isOpen, onClose, userId, repository, rp
   if (!isOpen) return null;
 
   return (
-    <div className="snabbb-molar-experience"><div className="fixed inset-0 z-[1100] bg-black">
+    <div className="snabbb-molar-experience" data-molar-theme="light"><div className="fixed inset-0 z-[1100] bg-black">
       <div className="relative w-full h-full">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900 z-10">

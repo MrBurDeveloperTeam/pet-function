@@ -362,3 +362,27 @@ writeFileSync(
 console.log(
   `[postbuild] appended ${themeDecls.length} unlayered theme-compat custom propert${themeDecls.length === 1 ? 'y' : 'ies'} and ${utilityClones.length} unlayered utility-compat rule(s) to ${cssOut}`
 );
+
+// IMPORTANT declarations in a named layer outrank the hosts' unlayered
+// !important dark-mode overrides. Copy existing paint values, not a new
+// palette. Preserve hover/responsive wrappers and leave geometry/animation
+// alone so inline drag positions and game effects keep working.
+const lightLock = postcss.parse(themeCompatCss + utilityCompatCss);
+const paintProperty = /^(?:color|background(?:-.+)?|border(?:-(?:top|right|bottom|left))?-(?:color|style|width)|border-style|border-width|box-shadow|text-shadow|fill|stroke|color-scheme)$/;
+const paintVariable = /^(?:--(?:color-|molar-)|--tw-(?:gradient-|shadow|inset-shadow|ring|inset-ring|border-style))/;
+lightLock.walkDecls(decl => {
+  if (paintProperty.test(decl.prop) || paintVariable.test(decl.prop)) decl.important = true;
+  else decl.remove();
+});
+lightLock.walkRules(rule => { if (!rule.nodes.length) rule.remove(); });
+const foundationLock = postcss.parse(readFileSync(cssSrc, 'utf8'));
+foundationLock.walkAtRules(at => { if (at.name.includes('keyframes') || at.name === 'font-face') at.remove(); });
+foundationLock.walkRules(rule => {
+  if (!rule.selector.includes('.snabbb-molar-experience')) { rule.remove(); return; }
+  rule.walkDecls(decl => {
+    if (paintProperty.test(decl.prop) || decl.prop.startsWith('--molar-')) decl.important = true;
+    else decl.remove();
+  });
+  if (!rule.nodes.length) rule.remove();
+});
+writeFileSync(cssOut, readFileSync(cssOut, 'utf8') + `\n/* Generated light-only paint isolation; never targets host UI. */\n@layer pet-function-light-lock {\n${foundationLock.toString()}\n${lightLock.toString()}\n}\n`, 'utf8');

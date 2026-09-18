@@ -131,7 +131,7 @@ export function SharedHostedVirtualPet({ isOpen, onClose, userId, repository, cl
     let active = true;
     setResolvedId(undefined);
     let authChanged = false;
-    Promise.resolve(client.auth.getSession()).then(({ data }) => { if (active && !authChanged) setResolvedId(data.session?.user.id ?? null); }).catch(error => { console.error('[pet_function] Identity lookup failed', error); if (active && !authChanged) setResolvedId(null); });
+    Promise.resolve(client.auth.getSession()).then(({ data }) => { if (active && !authChanged) setResolvedId(data.session?.user.id ?? null); }).catch(error => { console.error('[pet_function] Identity lookup failed', error); });
     const { data } = client.auth.onAuthStateChange((_event, session) => { authChanged = true; if (active) setResolvedId(session?.user.id ?? null); });
     return () => { active = false; data.subscription.unsubscribe(); };
   }, [userId, client]);

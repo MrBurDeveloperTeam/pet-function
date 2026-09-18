@@ -24,22 +24,10 @@
   --molar-border: #e2e8f0;
 }
 
-@media (prefers-color-scheme: dark) {
-  .snabbb-molar-experience:not([data-molar-theme='light']) {
-    --molar-bg: #0f172a;
-    --molar-surface: #1e293b;
-    --molar-text-primary: #f8fafc;
-    --molar-text-secondary: #cbd5e1;
-    --molar-border: #334155;
-  }
-}
-
-.snabbb-molar-experience[data-molar-theme='dark'] {
-  --molar-bg: #0f172a;
-  --molar-surface: #1e293b;
-  --molar-text-primary: #f8fafc;
-  --molar-text-secondary: #cbd5e1;
-  --molar-border: #334155;
+/* Shared UI is intentionally light-only; host theme must not change its palette. */
+.snabbb-molar-experience {
+  color-scheme: light;
+  color: var(--molar-text-primary);
 }
 
 /* ==========================================================================

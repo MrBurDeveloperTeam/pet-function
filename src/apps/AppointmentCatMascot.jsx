@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useSharedCatDialogueRuntime, SharedCatMascot } from '../cat';
+import { useSharedCatDialogueRuntime, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../cat';
 
 import { normalizePetId } from '../pet/publicOptions';
 import { CAT_SPRITE_SHEET_URLS } from '../resources';
@@ -29,9 +29,12 @@ const writeCatStorage = (userId, key, value) => {
   try { localStorage.setItem(storageKey, value); } catch { /* ignore */ }
 };
 
-export default function AppointmentCatMascot({ supabase, onCatClick, disabled = false, personalizedInsightState = null, catCacheOwnerId = null }) {
+export default function AppointmentCatMascot({ supabase, onCatClick, disabled = false, personalizedInsightState = null, catCacheOwnerId = null, authStatus }) {
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(catCacheOwnerId, PET_SLEEPING_KEY) === 'true');
-  const [selectedPetId, setSelectedPetId] = useState(() => normalizePetId(readCatStorage(catCacheOwnerId, 'pet_name')));
+  const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, catCacheOwnerId);
+  const initialPetName = readSharedPetName(catCacheOwnerId);
+  const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
+  const [isPetIdentityReady, setIsPetIdentityReady] = useState(() => resolvedAuthStatus === 'guest' || Boolean(initialPetName));
 
   // ─── PHASE 8B: Shared Cat Dialogue Runtime ──────────────────────────────
   // The mechanics previously implemented locally here (mount-scoped shown
@@ -287,7 +290,10 @@ export default function AppointmentCatMascot({ supabase, onCatClick, disabled = 
     };
 
     readLocalSleepState();
-    setSelectedPetId(normalizePetId(readCatStorage(catCacheOwnerId, 'pet_name')));
+    const cachedPetName = readSharedPetName(catCacheOwnerId);
+    if (resolvedAuthStatus === 'guest') { setSelectedPetId(normalizePetId(null)); setIsPetIdentityReady(true); }
+    else if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
+    else { setSelectedPetId(null); setIsPetIdentityReady(false); }
 
     const handlePetSleepChange = (event) => {
       setIsPetSleeping(!!event.detail);
@@ -295,13 +301,15 @@ export default function AppointmentCatMascot({ supabase, onCatClick, disabled = 
 
     const handlePetSelectionChange = (event) => {
       setSelectedPetId(normalizePetId(event.detail));
+      writeSharedPetName(catCacheOwnerId, event.detail);
+      setIsPetIdentityReady(true);
     };
 
     // Cross-tab sync: only ever react to a storage event for THIS owner's
     // exact scoped key — a foreign/other-account key (or an old orphaned
     // bare key) must never be able to update this tab's Cat presentation.
     const scopedSleepKey = getCatStorageKey(catCacheOwnerId, PET_SLEEPING_KEY);
-    const scopedNameKey = getCatStorageKey(catCacheOwnerId, 'pet_name');
+    const scopedNameKey = getSharedPetNameStorageKey(catCacheOwnerId);
     const handleStorage = (event) => {
       if (scopedSleepKey && event.key === scopedSleepKey) {
         setIsPetSleeping(event.newValue === 'true');
@@ -328,13 +336,18 @@ export default function AppointmentCatMascot({ supabase, onCatClick, disabled = 
           .eq('user_id', session.user.id)
           .maybeSingle();
 
-          if (data && !error) {
+        if (data && !error) {
           const nextSleeping = !!data.is_sleeping;
           setIsPetSleeping(nextSleeping);
           writeCatStorage(catCacheOwnerId, PET_SLEEPING_KEY, String(nextSleeping));
           writeCatStorage(catCacheOwnerId, PET_SLEEPING_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
           setSelectedPetId(normalizePetId(data.pet_name));
+          writeSharedPetName(catCacheOwnerId, data.pet_name);
+          setIsPetIdentityReady(true);
           updateStateFromStats(data, data.updated_at);
+        } else if (!error) {
+          setSelectedPetId(normalizePetId(null));
+          setIsPetIdentityReady(true);
         }
       } catch (err) {
         console.error('Error fetching pet stats:', err);
@@ -354,7 +367,7 @@ export default function AppointmentCatMascot({ supabase, onCatClick, disabled = 
       window.removeEventListener('virtual-pet-selection-change', handlePetSelectionChange);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [disabled, catCacheOwnerId]);
+  }, [disabled, catCacheOwnerId, resolvedAuthStatus]);
 
   useEffect(() => {
     if (disabled || dialogue.kind !== 'none') return;
@@ -542,6 +555,8 @@ export default function AppointmentCatMascot({ supabase, onCatClick, disabled = 
     }
     if (!disabled && onCatClick) onCatClick();
   };
+
+  if (!isPetIdentityReady || !selectedPetId) return null;
 
   return (
     <SharedCatMascot

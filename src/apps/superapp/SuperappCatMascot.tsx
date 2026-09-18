@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SharedCatMascot } from '../../cat';
-import type { CatDialoguePresentation } from '../../cat';
+import { SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
+import type { CatDialoguePresentation, CatAuthStatus } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
 import { getSuperappHostDependencies } from './dependencies';
@@ -78,6 +78,7 @@ interface CatMascotProps {
    * raw `personalizedMatchedUserId` tri-state directly, unchanged.
    */
   catCacheOwnerId?: string | null;
+  authStatus?: CatAuthStatus;
   /** Internal (pushState-based) navigation, used by the profile-reminder action button. Only used when the feature flag is enabled. */
   onNavigateInternal?: (path: string) => void;
 }
@@ -89,11 +90,15 @@ export default function CatMascot({
   profileCompletionStatus = 'unknown',
   personalizedMatchedUserId,
   catCacheOwnerId = null,
+  authStatus,
   onNavigateInternal,
 }: CatMascotProps) {
   const { supabase } = getSuperappHostDependencies();
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(catCacheOwnerId, PET_SLEEPING_KEY) === 'true');
-  const [selectedPetId, setSelectedPetId] = useState(() => normalizePetId(readCatStorage(catCacheOwnerId, 'pet_name')));
+  const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, catCacheOwnerId);
+  const initialPetName = readSharedPetName(catCacheOwnerId);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
+  const [isPetIdentityReady, setIsPetIdentityReady] = useState(() => resolvedAuthStatus === 'guest' || Boolean(initialPetName));
 
   const [dialogStep, setDialogStep] = useState(0);
   const [isDialogActive, setIsDialogActive] = useState(false);
@@ -495,7 +500,10 @@ export default function CatMascot({
     };
 
     readLocalSleepState();
-    setSelectedPetId(normalizePetId(readCatStorage(catCacheOwnerId, 'pet_name')));
+    const cachedPetName = readSharedPetName(catCacheOwnerId);
+    if (resolvedAuthStatus === 'guest') { setSelectedPetId(normalizePetId(null)); setIsPetIdentityReady(true); }
+    else if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
+    else { setSelectedPetId(null); setIsPetIdentityReady(false); }
 
     const handlePetSleepChange = (event: any) => {
       setIsPetSleeping(!!event.detail);
@@ -503,6 +511,8 @@ export default function CatMascot({
 
     const handlePetSelectionChange = (event: any) => {
       setSelectedPetId(normalizePetId(event.detail));
+      writeSharedPetName(catCacheOwnerId, event.detail);
+      setIsPetIdentityReady(true);
     };
 
     const handleStorage = (event: StorageEvent) => {
@@ -512,7 +522,7 @@ export default function CatMascot({
       if (event.key === getCatStorageKey(catCacheOwnerId, PET_SLEEPING_KEY)) {
         setIsPetSleeping(event.newValue === 'true');
       }
-      if (event.key === getCatStorageKey(catCacheOwnerId, 'pet_name')) {
+      if (event.key === getSharedPetNameStorageKey(catCacheOwnerId)) {
         setSelectedPetId(normalizePetId(event.newValue));
       }
     };
@@ -539,7 +549,12 @@ export default function CatMascot({
           writeCatStorage(catCacheOwnerId, PET_SLEEPING_KEY, String(nextSleeping));
           writeCatStorage(catCacheOwnerId, PET_SLEEPING_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
           setSelectedPetId(normalizePetId(data.pet_name));
+          writeSharedPetName(catCacheOwnerId, data.pet_name);
+          setIsPetIdentityReady(true);
           updateStateFromStats(data, data.updated_at);
+        } else if (!error) {
+          setSelectedPetId(normalizePetId(null));
+          setIsPetIdentityReady(true);
         }
       } catch (err) {
         console.error('Error fetching pet stats:', err);
@@ -559,7 +574,7 @@ export default function CatMascot({
       window.removeEventListener('virtual-pet-selection-change', handlePetSelectionChange);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [disabled, catCacheOwnerId]);
+  }, [disabled, catCacheOwnerId, resolvedAuthStatus]);
 
   // ─── Dialog init (legacy Intro / Welcome Back) ──────────────────────────────
   // When the Phase 1A personalized-dialogue flag is enabled, the effect above
@@ -960,6 +975,8 @@ export default function CatMascot({
     isEntryWalkComplete.current = true;
     tryActivateDialog();
   };
+
+  if (!isPetIdentityReady || !selectedPetId) return null;
 
   return (
     <SharedCatMascot

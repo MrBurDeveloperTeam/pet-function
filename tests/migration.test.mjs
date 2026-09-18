@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {getSharedPetNameStorageKey,resolveCatAuthStatus} from '../dist/cat.js';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const workspace=resolve(root,'..');
 function files(dir){return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]);}
@@ -12,9 +13,16 @@ test('Package manifest and lockfile versions match',()=>{
  assert.equal(lock.version,manifest.version);
  assert.equal(lock.packages[''].version,manifest.version);
 });
+test('Cat identity cache is account-scoped and auth loading is distinct from guest',()=>{
+ assert.equal(getSharedPetNameStorageKey('user-123'),'snabbb_pet:user-123:pet_name');
+ assert.equal(getSharedPetNameStorageKey(null),null);
+ assert.equal(resolveCatAuthStatus(undefined,true,null),'guest');
+ assert.equal(resolveCatAuthStatus(undefined,false,null),'loading');
+ assert.equal(resolveCatAuthStatus(undefined,false,'user-123'),'authenticated');
+});
 test('Inventory manifest targets the new shared GitHub release',()=>{
  const host=JSON.parse(readFileSync(join(workspace,'inventory/package.json')));
- assert.equal(host.dependencies['@mrburdeveloperteam/pet-function'],'github:mrburdeveloperteam/pet-function#v0.9.11');
+ assert.equal(host.dependencies['@mrburdeveloperteam/pet-function'],'github:mrburdeveloperteam/pet-function#v0.9.18');
 });
 for(const game of ['flappy-cat','pac-cat','tetris','meowdoku'])test(`${game}: canonical source and Inventory build output match`,()=>{
  // GitHub checkouts can normalize CRLF/LF. Compare the emitted files

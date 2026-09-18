@@ -3,14 +3,14 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { normalizePetId } from '../../pet/publicOptions';
 import { usePersonalizedInsightBridge } from './petDialogue/PersonalizedInsightBridge';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
-import { useSharedCatDialogueRuntime, SharedCatMascot } from '../../cat';
+import { useSharedCatDialogueRuntime, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
 
 const PET_SLEEPING_KEY = 'pet_is_sleeping';
 const PET_SLEEPING_UPDATED_AT_KEY = 'pet_is_sleeping_updated_at';
 const DEFAULT_WELCOME_BACK_AUTO_CLOSE_MS = 6000;
 
 export function createElearningCatMascot(supabase) {
-return function ElearningCatMascot({ onCatClick, disabled = false }) {
+return function ElearningCatMascot({ onCatClick, disabled = false, userId = null, authStatus }) {
   // Presentation (sprite, position/walk animation, entry walk,
   // double-click-to-move, click-sound-wave affordance, and the three
   // dialogue bubble presentations) is now entirely owned by
@@ -22,7 +22,10 @@ return function ElearningCatMascot({ onCatClick, disabled = false }) {
   const [isPetSleeping, setIsPetSleeping] = useState(() => {
     try { return localStorage.getItem(PET_SLEEPING_KEY) === 'true'; } catch { return false; }
   });
-  const [selectedPetId, setSelectedPetId] = useState(() => normalizePetId(localStorage.getItem('pet_name')));
+  const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, userId);
+  const initialPetName = readSharedPetName(userId);
+  const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
+  const [isPetIdentityReady, setIsPetIdentityReady] = useState(() => resolvedAuthStatus === 'guest' || Boolean(initialPetName));
 
   const [currentUserId, setCurrentUserId] = useState(null);
   // Content-only inputs fed into the shared dialogue runtime — this
@@ -249,7 +252,10 @@ return function ElearningCatMascot({ onCatClick, disabled = false }) {
     };
 
     readLocalSleepState();
-    setSelectedPetId(normalizePetId(localStorage.getItem('pet_name')));
+    const cachedPetName = readSharedPetName(userId);
+    if (resolvedAuthStatus === 'guest') { setSelectedPetId(normalizePetId(null)); setIsPetIdentityReady(true); }
+    else if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
+    else { setSelectedPetId(null); setIsPetIdentityReady(false); }
 
     const handlePetSleepChange = (event) => {
       setIsPetSleeping(!!event.detail);
@@ -257,13 +263,15 @@ return function ElearningCatMascot({ onCatClick, disabled = false }) {
 
     const handlePetSelectionChange = (event) => {
       setSelectedPetId(normalizePetId(event.detail));
+      writeSharedPetName(userId, event.detail);
+      setIsPetIdentityReady(true);
     };
 
     const handleStorage = (event) => {
       if (event.key === PET_SLEEPING_KEY) {
         setIsPetSleeping(event.newValue === 'true');
       }
-      if (event.key === 'pet_name') {
+      if (event.key === getSharedPetNameStorageKey(userId)) {
         setSelectedPetId(normalizePetId(event.newValue));
       }
     };
@@ -291,7 +299,12 @@ return function ElearningCatMascot({ onCatClick, disabled = false }) {
           localStorage.setItem(PET_SLEEPING_KEY, String(nextSleeping));
           localStorage.setItem(PET_SLEEPING_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
           setSelectedPetId(normalizePetId(data.pet_name));
+          writeSharedPetName(session.user.id, data.pet_name);
+          setIsPetIdentityReady(true);
           updateStateFromStats(data, data.updated_at);
+        } else if (!error) {
+          setSelectedPetId(normalizePetId(null));
+          setIsPetIdentityReady(true);
         }
       } catch (err) {
         console.error('Error fetching pet stats:', err);
@@ -311,7 +324,7 @@ return function ElearningCatMascot({ onCatClick, disabled = false }) {
       window.removeEventListener('virtual-pet-selection-change', handlePetSelectionChange);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [disabled]);
+  }, [disabled, userId, resolvedAuthStatus]);
 
   useEffect(() => {
     const initDialog = async () => {
@@ -526,6 +539,8 @@ return function ElearningCatMascot({ onCatClick, disabled = false }) {
     }
     onCatClick?.();
   };
+
+  if (!isPetIdentityReady || !selectedPetId) return null;
 
   return (
     <SharedCatMascot
