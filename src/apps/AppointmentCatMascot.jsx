@@ -516,13 +516,13 @@ export default function AppointmentCatMascot({ supabase, onCatClick, disabled = 
   }, [disabled]);
 
   // Click sound stays host-owned — SharedCatMascot bundles no audio asset
-  // (see its own doc: Content Studio's original `/images/cat-meow.mp3`
+  // using the shared pet-function click-audio resource
   // click-sound reference already had no matching public/ file, so this
   // preserves that exact non-behavior for every extracted app). Created
   // once per mount, same as the pre-8C entry-walk effect used to do.
   const audioRef = useRef(null);
   useEffect(() => {
-    audioRef.current = new Audio('/images/cat-meow.mp3');
+    audioRef.current = new Audio('/pet-function/audio/cat-meow.mp3');
   }, []);
 
   // Host `onCatClick`: SharedCatMascot already owns the click-meow

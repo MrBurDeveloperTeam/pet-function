@@ -6,7 +6,7 @@
 // opaque-hash asset paths (e.g. `./mallow-spritesheet-<hash>.webp`),
 // which are not guaranteed portable across bundlers/hosts.
 //
-// Byte source: the exact files copied into public/molar-experience/ were
+// Byte source: the exact files copied into public/pet-function/ were
 // verified via SHA-256 against node_modules/@mrburdeveloperteam/
 // molar-experience/dist/*'s own shipped assets for the installed 0.6.1
 // version — see the Phase 2B verification report for the 13/13 match.
@@ -25,31 +25,31 @@
 // interface name is not.
 
 const PET_SPRITE_SHEET_URLS = {
-  mallow: '/molar-experience/pets/mallow-spritesheet.webp',
-  silverbelt: '/molar-experience/pets/silverbelt-spritesheet.webp',
-  fastrat: '/molar-experience/pets/fastrat-spritesheet.webp',
-  gulu: '/molar-experience/pets/gulu-spritesheet.webp',
-  munchkin: '/molar-experience/pets/munchkin-spritesheet.webp',
-  mochi: '/molar-experience/pets/mochi-spritesheet.webp',
+  mallow: '/pet-function/pets/mallow-spritesheet.webp',
+  silverbelt: '/pet-function/pets/silverbelt-spritesheet.webp',
+  fastrat: '/pet-function/pets/fastrat-spritesheet.webp',
+  gulu: '/pet-function/pets/gulu-spritesheet.webp',
+  munchkin: '/pet-function/pets/munchkin-spritesheet.webp',
+  mochi: '/pet-function/pets/mochi-spritesheet.webp',
 } as const;
 
 /** For SharedCatMascot's `spriteSheetUrls` prop. */
 export const CAT_SPRITE_SHEET_URLS = PET_SPRITE_SHEET_URLS;
 
 /** For SharedMolarAI's `logoUrl` prop. */
-export const MOLAR_LOGO_URL = '/molar-experience/ai/ai_logo.png';
+export const MOLAR_LOGO_URL = '/pet-function/ai/ai_logo.png';
 
 /** For SharedVirtualPet's `assetUrls` prop. */
 export const PET_ASSET_URLS = {
   spriteSheets: PET_SPRITE_SHEET_URLS,
   beds: {
-    grey: '/molar-experience/pet/grey_bed.png',
-    red: '/molar-experience/pet/red_bed.png',
-    purple: '/molar-experience/pet/purple_bed.png',
+    grey: '/pet-function/pet/grey_bed.png',
+    red: '/pet-function/pet/red_bed.png',
+    purple: '/pet-function/pet/purple_bed.png',
   },
   care: {
-    poop: '/molar-experience/pet/poop.png',
-    shower: '/molar-experience/pet/shower.png',
-    soap: '/molar-experience/pet/soap.png',
+    poop: '/pet-function/pet/poop.png',
+    shower: '/pet-function/pet/shower.png',
+    soap: '/pet-function/pet/soap.png',
   },
 };

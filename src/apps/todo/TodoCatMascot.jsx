@@ -542,7 +542,7 @@ return function TodoCatMascot({ onCatClick, disabled = false, userId = null }) {
 
   // --- Click-meow sound + Virtual Pet open — preserved exactly, host-side ---
   useEffect(() => {
-    audioRef.current = new Audio('/images/cat-meow.mp3');
+    audioRef.current = new Audio('/pet-function/audio/cat-meow.mp3');
   }, []);
 
   const handleCatClick = useCallback(() => {

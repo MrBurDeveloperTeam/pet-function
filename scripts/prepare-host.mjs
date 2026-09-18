@@ -21,7 +21,9 @@ function files(dir) {
 }
 for (const source of files(join(root, 'public'))) {
   const name = relative(join(root, 'public'), source);
-  if (name.split(/[\\/]/)[0] === 'games') continue;
+  const parts = name.split(/[\\/]/);
+  if (parts[0] === 'games' || parts[0] === 'pets') continue;
+  if (parts[0] === 'images' && parts.at(-1) !== 'cat-meow.mp3') continue;
   const target = join(host, 'public', name);
   mkdirSync(dirname(target), { recursive: true });
   copyFileSync(source, target);

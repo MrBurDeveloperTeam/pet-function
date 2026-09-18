@@ -43,17 +43,8 @@ const MASCOT_CLICK_IGNORE_SELECTOR = [
  * `dialogue`/`meowMessage`/`petId`/`isSleeping` and passes them down as
  * already-resolved presentation props.
  *
- * NOTE ON CLICK SOUND: Content Studio's current CatMascot.jsx references
- * `/images/cat-meow.mp3` for a click sound, but that file does not
- * currently exist in Content Studio's `public/` directory (confirmed by
- * direct inspection before this extraction) — the existing `Audio(...)
- * .play().catch(() => {})` call already fails silently every time in the
- * app being extracted from. This component preserves that exact
- * (non-)behavior: the click wave/talking animation still plays, but no
- * audio asset is bundled, since none exists in the source to copy. If a
- * real click-sound asset is added to Content Studio later, it should be
- * copied into this package's `src/assets/cat/` the same way the
- * spritesheets were.
+ * Shared click audio is delivered from this package's
+ * `/pet-function/audio/cat-meow.mp3` public resource.
  */
 export function SharedCatMascot({
   disabled = false,

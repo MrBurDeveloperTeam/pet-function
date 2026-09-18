@@ -27,8 +27,9 @@ for(const game of ['flappy-cat','pac-cat','tetris','meowdoku'])test(`${game}: ca
   assert.deepEqual(readFileSync(join(workspace,'inventory/dist/games',game,suffix)),canonical,suffix+' build output');
  }
 });
-test('E-learning keeps the old implementation archived and executes the shared adapter',()=>{
+test('E-learning removes the old implementation and executes only the shared adapter',()=>{
  const source=readFileSync(join(workspace,'E-learning/src/components/CatMascot.jsx'),'utf8');
- assert.match(source,/PET_FUNCTION_ARCHIVE_BEGIN/);
+ assert.doesNotMatch(source,/PET_FUNCTION_ARCHIVE_BEGIN/);
  assert.match(source,/createElearningCatMascot/);
+ assert.match(source,/@mrburdeveloperteam\/pet-function\/apps\/elearning/);
 });

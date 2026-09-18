@@ -508,11 +508,11 @@ return function ElearningCatMascot({ onCatClick, disabled = false }) {
   // `if (!disabled && onCatClick) onCatClick();` used), but it does NOT
   // bundle or play any audio asset (see SharedCatMascotProps' own doc:
   // "no audio asset is bundled"). The click-sound stays host-owned here,
-  // using the exact same '/images/cat-meow.mp3' path the pre-migration
+  // using the shared pet-function click-audio resource
   // component used.
   const audioRef = useRef(null);
   useEffect(() => {
-    audioRef.current = new Audio('/images/cat-meow.mp3');
+    audioRef.current = new Audio('/pet-function/audio/cat-meow.mp3');
   }, []);
 
   // Preserves the original ordering: close whatever dialogue is active,
@@ -540,4 +540,3 @@ return function ElearningCatMascot({ onCatClick, disabled = false }) {
   );
 };
 }
-

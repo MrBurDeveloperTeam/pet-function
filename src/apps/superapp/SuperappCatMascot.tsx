@@ -892,7 +892,7 @@ export default function CatMascot({
   // existing behavior with zero visual/semantic loss.
   const audioRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
-    audioRef.current = new Audio('/images/cat-meow.mp3');
+    audioRef.current = new Audio('/pet-function/audio/cat-meow.mp3');
   }, []);
 
   const dialoguePresentation: CatDialoguePresentation = useMemo(() => {
