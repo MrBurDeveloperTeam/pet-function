@@ -8,6 +8,7 @@ import type { SharedMolarAIProps } from './presentation';
 import { DynamicIcon } from './internal/DynamicIcon';
 import { MolarMarkdown } from './internal/MolarMarkdown';
 import molarAiLogo from '../assets/ai/ai_logo.png';
+import { SharedSNAISupportCard } from './SharedSNAISupportCard';
 
 const ERROR_TEXT = 'SNAI Error: Unable to process request.';
 
@@ -189,14 +190,14 @@ export function SharedMolarAI({ adapter, disabled = false, onPetToggle, emptySta
               </div>
             </div>
 
-            {footerContent && (
+            {footerContent !== null && (
               <div className="molar-chat-extra-footer">
-                {footerContent}
+                {footerContent ?? <SharedSNAISupportCard />}
               </div>
             )}
 
             <div className="molar-chat-footer">
-              <form onSubmit={handleSendMessage} className="molar-chat-input-form">
+              <form noValidate onSubmit={handleSendMessage} className="molar-chat-input-form">
                 <div className="molar-chat-input-shell">
                   <input
                     ref={inputRef}

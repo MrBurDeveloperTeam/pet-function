@@ -33,3 +33,4 @@ export * from './dataChat/resolver/resolveAppointmentDataQuery';
 export * from './dataChat/providers/nextAppointmentDataProvider';
 export * from './dataChat/semantic/matchAppointmentCapability';
 export * from './dataChat/providers/appointmentSoonDataProvider';
+export { createAppointmentSNAIService } from './snaiService';

@@ -32,3 +32,4 @@ export * from './petDialogue/PersonalizedInsightBridge';
 export * from './TodoMolarAIFloat';
 export * from './TodoVirtualPet';
 export { createTodoCatMascot } from './TodoCatMascot';
+export { createTodoSNAIService } from './snaiService';

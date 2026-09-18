@@ -1,6 +1,6 @@
 "use client";
+import { createElearningSNAIService } from './snaiService';
 import { useEffect, useMemo, useState } from 'react';
-import { Mail } from 'lucide-react';
 import { SharedMolarAI } from '../../ai';
 import { createElearningMolarAdapter } from './elearningMolarAdapter';
 import { MOLAR_LOGO_URL } from '../../resources';
@@ -13,31 +13,7 @@ import { MOLAR_LOGO_URL } from '../../resources';
 // the composer) instead of as a separate floating element — same
 // markup/CSS classes (src/index.css) as the pre-migration original.
 export function createElearningMolarAIFloat({ supabase, useElearningDataChatSources, ...services }) {
-function ElearningSupportCard() {
-  return (
-    <div className="elearning-support-region relative z-20">
-      <a
-        href="https://mail.google.com/mail/?view=cm&fs=1&to=support%40snabbb.com&su=Customer%20Inquiry"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Email support at support@snabbb.com"
-        className="elearning-support-link group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200 focus-visible:outline-none active:scale-[0.99]"
-      >
-        <span className="elearning-support-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105">
-          <Mail className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="elearning-support-title block text-sm font-semibold">
-            Email Support
-          </span>
-          <span className="elearning-support-meta block truncate text-xs">
-            Contact support@snabbb.com
-          </span>
-        </span>
-      </a>
-    </div>
-  );
-}
+  services = { ...createElearningSNAIService(supabase), ...services };
 
 const DEFAULT_EMPTY_STATE = {
   title: 'E-learning Simulator',
@@ -122,10 +98,8 @@ function ElearningMolarAIFloat({ userContext, disabled = false, onPetToggle }) {
       onPetToggle={onPetToggle}
       emptyState={emptyState}
       logoUrl={MOLAR_LOGO_URL}
-      footerContent={<ElearningSupportCard />}
     />
   );
 }
 return ElearningMolarAIFloat;
 }
-

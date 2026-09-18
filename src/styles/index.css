@@ -399,7 +399,7 @@
   border-radius: 24px;
   box-shadow: 0 25px 50px -12px rgb(148 163 184 / 0.6);
   border: 1px solid rgb(255 255 255 / 0.4);
-  background: rgb(255 255 255 / 0.8);
+  background: #ffffff;
   backdrop-filter: blur(40px);
   outline: 1px solid rgb(15 23 42 / 0.05);
   outline-offset: -1px;
@@ -622,6 +622,8 @@
   justify-content: flex-start;
 }
 .snabbb-molar-experience .molar-chat-bubble {
+  user-select: text;
+  -webkit-user-select: text;
   max-width: 100%;
   padding: 0.5rem 1rem;
   font-size: 14px;
@@ -708,6 +710,7 @@
 .snabbb-molar-experience .molar-chat-input {
   flex: 1 1 auto;
   background: transparent;
+  box-shadow: none;
   border: 0;
   padding: 0.5rem 0.75rem;
   font-size: 14px;
@@ -977,4 +980,37 @@
 
 .snabbb-molar-experience .animate-poop-reward {
   animation: molar-pet-poop-reward 1.6s ease-out forwards;
+}
+.snabbb-molar-experience .snai-support-link {
+  display: flex; width: 100%; align-items: center; gap: 12px;
+  padding: 10px 12px; border: 1px solid #334155;
+  border-color: #334155; border-radius: 16px;
+  background: #334155; color: #e2e8f0;
+  box-shadow: none;
+  text-decoration: none; text-align: left; cursor: pointer;
+  transition: background-color 200ms, border-color 200ms, box-shadow 200ms;
+}
+.snabbb-molar-experience .snai-support-link:hover {
+  border-color: #10b981; background: #3f4e63;
+}
+.snabbb-molar-experience .snai-support-link:focus-visible {
+  outline: 2px solid #10b981; outline-offset: 2px;
+}
+.snabbb-molar-experience .snai-support-link:active { transform: scale(0.99); }
+.snabbb-molar-experience .snai-support-icon {
+  display: flex; width: 36px; height: 36px; flex-shrink: 0;
+  align-items: center; justify-content: center; border: 1px solid #a7f3d0;
+  border-color: #065f46; border-radius: 12px; background: #022c22; color: #10b981;
+}
+.snabbb-molar-experience .snai-support-copy { min-width: 0; flex: 1; }
+.snabbb-molar-experience .snai-support-title {
+  display: block; font-size: 14px; font-weight: 600; line-height: 20px; color: #e2e8f0;
+}
+.snabbb-molar-experience .snai-support-meta {
+  display: block; font-size: 12px; line-height: 16px; color: #aeb8c6;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.snabbb-molar-experience .snai-support-link:hover .snai-support-title { color: #ffffff; }
+@media (prefers-reduced-motion: reduce) {
+  .snabbb-molar-experience .snai-support-link { transition: none; }
 }

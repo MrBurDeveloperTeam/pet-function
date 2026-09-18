@@ -368,7 +368,7 @@ console.log(
 // palette. Preserve hover/responsive wrappers and leave geometry/animation
 // alone so inline drag positions and game effects keep working.
 const lightLock = postcss.parse(themeCompatCss + utilityCompatCss);
-const paintProperty = /^(?:color|background(?:-.+)?|border(?:-(?:top|right|bottom|left))?-(?:color|style|width)|border-style|border-width|box-shadow|text-shadow|fill|stroke|color-scheme)$/;
+const paintProperty = /^(?:color|background(?:-.+)?|border|border(?:-(?:top|right|bottom|left))?-(?:color|style|width)|border-style|border-width|outline(?:-.+)?|box-shadow|text-shadow|fill|stroke|color-scheme)$/;
 const paintVariable = /^(?:--(?:color-|molar-)|--tw-(?:gradient-|shadow|inset-shadow|ring|inset-ring|border-style))/;
 lightLock.walkDecls(decl => {
   if (paintProperty.test(decl.prop) || paintVariable.test(decl.prop)) decl.important = true;

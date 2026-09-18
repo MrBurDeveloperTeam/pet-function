@@ -1,39 +1,18 @@
 "use client";
+import { createCalculatorSNAIService } from './snaiService';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SharedMolarAI } from '../../ai';
 import { createProfitCalculatorMolarAdapter } from './profitCalculatorMolarAdapter';
 import { createGroundedContextStore } from './dataChat/context/groundedConversationContext';
 import { MOLAR_LOGO_URL } from '../../resources';
 
-const SUPPORT_MAILTO_URL = 'https://mail.google.com/mail/?view=cm&fs=1&to=support%40snabbb.com&su=Customer%20Inquiry';
 
 /** Email Support affordance rendered inside the Molar panel via
  *  molar-experience 0.9.6's `footerContent` — same pattern already
  *  shipped for Inventory/Appointment/Todo. Plain inline SVG (no new icon
  *  package dependency, kept self-contained the same way as the others). */
 export function createCalculatorMolarAIFloat({ supabase, useCalculator, useAuth, ...services }) {
-function MolarSupportFooter() {
-  return (
-    <a
-      href={SUPPORT_MAILTO_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Email support at support@snabbb.com"
-      className="flex w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-2.5 text-left text-slate-700 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/50 active:scale-[0.99] dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:border-emerald-800"
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="2" y="4" width="20" height="16" rx="2" />
-          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-        </svg>
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">Email Support</span>
-        <span className="block truncate text-xs opacity-70">Contact support@snabbb.com</span>
-      </span>
-    </a>
-  );
-}
+  services = { ...createCalculatorSNAIService(supabase), ...services };
 
 // PHASE 4D NOTE (Molar AI extraction): this file is now a LOCAL adapter
 // only — the floating button, chat panel, message rendering, markdown,
@@ -150,7 +129,6 @@ function MolarAIFloat({ userContext, disabled = false, onPetToggle }) {
       onPetToggle={onPetToggle}
       emptyState={emptyState}
       logoUrl={MOLAR_LOGO_URL}
-      footerContent={<MolarSupportFooter />}
     />
   );
 }

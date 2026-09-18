@@ -29,3 +29,4 @@ export * from './petDialogue/PersonalizedInsightBridge';
 export * from './ElearningMolarAIFloat';
 export * from './ElearningVirtualPet';
 export { createElearningCatMascot } from './ElearningCatMascot';
+export { createElearningSNAIService } from './snaiService';

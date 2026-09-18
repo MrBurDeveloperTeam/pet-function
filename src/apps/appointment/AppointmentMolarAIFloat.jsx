@@ -1,6 +1,6 @@
 'use client';
+import { createAppointmentSNAIService } from './snaiService';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Mail } from 'lucide-react';
 import { SharedMolarAI } from '../../ai';
 
 import { createAppointmentsMolarAdapter } from './appointmentsMolarAdapter';
@@ -8,32 +8,13 @@ import { createGroundedContextStore } from './dataChat/context/groundedConversat
 import { MOLAR_LOGO_URL } from '../../resources';
 
 export function createAppointmentMolarAIFloat({supabase, ...services}) {
-const SUPPORT_MAILTO_URL = 'https://mail.google.com/mail/?view=cm&fs=1&to=support%40snabbb.com&su=Customer%20Inquiry';
+  services = { ...createAppointmentSNAIService(supabase), ...services };
 
 /** Restores the "Persistent support shortcut" already live in production's
  *  legacy MolarChat.jsx (PR #66, "add ticket link in AI button") — same
  *  Gmail-compose target/copy, now rendered via molar-experience 0.9.5's
  *  `footerContent` instead of bespoke markup inside the old chat panel.
  *  Distinct from the separate Header ticketing-SSO link — both survive. */
-function MolarSupportFooter() {
-  return (
-    <a
-      href={SUPPORT_MAILTO_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Email support at support@snabbb.com"
-      className="appointment-support-link group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200 focus-visible:outline-none active:scale-[0.99]"
-    >
-      <span className="appointment-support-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105">
-        <Mail className="h-5 w-5" aria-hidden="true" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="appointment-support-title block text-sm font-semibold">Email Support</span>
-        <span className="appointment-support-meta block truncate text-xs">Contact support@snabbb.com</span>
-      </span>
-    </a>
-  );
-}
 
 // PHASE 8D (Molar AI migration): thin host wrapper around
 // `@mrburdeveloperteam/pet-function/ai`'s <SharedMolarAI>. Generic chat
@@ -148,7 +129,6 @@ function MolarAIFloat({
       onPetToggle={onPetToggle}
       emptyState={emptyState}
       logoUrl={MOLAR_LOGO_URL}
-      footerContent={<MolarSupportFooter />}
     />
   );
 }

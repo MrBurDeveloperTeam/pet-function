@@ -32,3 +32,4 @@ export * from './dataChat/resolver/resolveInventoryDataQuery';
 export { default as InventoryCatMascot } from '../InventoryCatMascot';
 export { createInventoryVirtualPet } from './InventoryVirtualPet';
 export { createInventoryMolarAIFloat } from './InventoryMolarAIFloat';
+export { createInventorySNAIService } from './snaiService';

@@ -41,7 +41,7 @@ const CLARIFICATION_LABEL: Record<InventoryDataIntent, string> = {
   inventory_summary: 'an inventory summary',
 };
 
-export interface CreateInventoryMolarAdapterDeps extends InventoryChatServices {
+export interface CreateInventoryMolarAdapterDeps extends Partial<InventoryChatServices> {
   supabase: PetDatabaseClient;
   rooms: Room[];
   history: PurchaseHistory[];
@@ -97,7 +97,11 @@ function toGeminiHistory(history: AIMessage[]) {
 export function createInventoryMolarAdapter(deps: CreateInventoryMolarAdapterDeps): AIAdapter {
   const { rooms, history, logs, isLoadingMain, onProposeAction, receiveStock, removeStock, moveItem, groundedContextStore } = deps;
   void receiveStock; void removeStock; void moveItem;
-  const { supabase, chatWithGemini, chatWithGroundedInventoryFacts, routeInventoryCapability } = deps;
+  const { supabase } = deps;
+  const defaults = createInventorySNAIService(supabase);
+  const chatWithGemini = deps.chatWithGemini ?? defaults.chatWithGemini;
+  const chatWithGroundedInventoryFacts = deps.chatWithGroundedInventoryFacts ?? defaults.chatWithGroundedInventoryFacts;
+  const routeInventoryCapability = deps.routeInventoryCapability ?? defaults.routeInventoryCapability;
   const matchInventoryCapabilityLLM = createInventoryCapabilityMatcher(routeInventoryCapability);
 async function getPredefinedChatResponse(message: string): Promise<string | null> {
   const normalizedMessage = message.toLowerCase();
@@ -367,3 +371,4 @@ async function getPredefinedChatResponse(message: string): Promise<string | null
     },
   };
 }
+import { createInventorySNAIService } from './snaiService';

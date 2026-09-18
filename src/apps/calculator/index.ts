@@ -25,3 +25,4 @@ export { default as CalculatorCatMascot } from './CalculatorCatMascot';
 export * from './CalculatorMolarAIFloat';
 export * from './CalculatorVirtualPet';
 export * from './transport';
+export { createCalculatorSNAIService } from './snaiService';

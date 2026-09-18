@@ -1,6 +1,6 @@
 "use client";
+import { createContentStudioSNAIService } from './snaiService';
 import { useEffect, useMemo, useState } from 'react';
-import { Mail } from 'lucide-react';
 import { SharedMolarAI } from '../../ai';
 import { useContentStudioDataChatContext } from './ContentStudioDataChatProvider';
 import { createContentStudioAIAdapter } from './contentStudioMolarAdapter';
@@ -14,31 +14,7 @@ import { MOLAR_LOGO_URL } from '../../resources';
 // the composer) instead of as a separate floating element — same
 // markup/design-token classes as the pre-migration original.
 export function createContentStudioMolarAIFloat({ supabase, ...services }) {
-function ContentStudioSupportCard() {
-  return (
-    <div className="px-3 pt-1 relative z-20">
-      <a
-        href="https://mail.google.com/mail/?view=cm&fs=1&to=support%40snabbb.com&su=Customer%20Inquiry"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Email support at support@snabbb.com"
-        className="group flex w-full items-center gap-3 rounded-2xl border border-[var(--cp-border)] bg-[var(--cp-card-solid)] px-3 py-2.5 text-left shadow-sm transition-all duration-200 hover:border-[var(--cp-border-strong)] hover:bg-[var(--cp-brand-light)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cp-brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cp-bg)] active:scale-[0.99] dark:bg-[var(--cp-card)]"
-      >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--cp-border-strong)] bg-[var(--cp-brand-light)] text-[var(--cp-brand-hover)] transition-transform duration-200 group-hover:scale-105 dark:text-[var(--cp-ice)]">
-          <Mail className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-[var(--cp-text-primary)]">
-            Email Support
-          </span>
-          <span className="block truncate text-xs text-[var(--cp-text-secondary)]">
-            Contact support@snabbb.com
-          </span>
-        </span>
-      </a>
-    </div>
-  );
-}
+  services = { ...createContentStudioSNAIService(supabase), ...services };
 
 // PHASE 3C NOTE (Molar AI extraction): this file is now a LOCAL adapter
 // only — the floating button, chat panel, message rendering, markdown,
@@ -127,7 +103,6 @@ function MolarAIFloat({ userContext, disabled = false, onPetToggle, contentStudi
       onPetToggle={onPetToggle}
       emptyState={emptyState}
       logoUrl={MOLAR_LOGO_URL}
-      footerContent={<ContentStudioSupportCard />}
     />
   );
 }

@@ -16,7 +16,8 @@ omitted:
 
 This is a behavior-preserving extraction, not a redesign. Calculator's v0.9.6
 shared core and calculator/public/games are the canonical baseline authorized
-by the user. Mini-app-specific dialogue/data selection and routing stay local.
+by the user. Mini-app-specific dialogue/data selection and SNAI routing live
+under src/apps in this package; hosts provide current clients, data and routes.
 
 ## Colors
 
@@ -51,9 +52,11 @@ Existing component classes are the shape token source.
 
 ## Components
 
-SharedCatMascot owns visual display; local dialogue controllers own content.
+SharedCatMascot owns visual display; shared app dialogue controllers own content.
 SharedVirtualPet owns pet rooms/runtime. SharedMeowdokuLauncher owns the game bridge.
-Database clients, identities and repository adapters remain host-owned.
+Database clients, identities and business action executors remain host-owned.
+SNAI services, adapters, welcome content, UI and fixed light styling are shared.
+Server endpoints remain deployed per app; frontend sharing never bundles secrets.
 
 ## Do's and Don'ts
 
@@ -61,3 +64,12 @@ Database clients, identities and repository adapters remain host-owned.
 - Never add paid import services or move secrets into the shared package.
 - Never infer a guest is a signed-in user or call database mutations during tests.
 - Keep rollback sources until runtime verification is complete.
+SNAI support shortcut: src/ai/SharedSNAISupportCard.tsx is the single owner.
+SharedMolarAI renders it by default; all seven hosts omit bespoke footer cards.
+The user's superapp screenshot is the SNAI color reference: white panel with
+existing mint ambience, slate support card (#334155), emerald icon on deep green,
+light slate composer and transparent input. This is one fixed palette, not a
+dark-mode variant. src/styles/index.css owns these values under molar-chat-*
+and snai-support-* selectors, included in the generated light-lock layer.
+The panel must be opaque so dark host backgrounds cannot change its paint.
+Preserve the Gmail compose target, copy, keyboard focus and hover behavior.

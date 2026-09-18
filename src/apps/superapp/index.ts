@@ -8,3 +8,5 @@ export type { SuperappHostDependencies } from './dependencies';
 export type { ProfileCompletionStatus } from './petDialogue/types';
 export { isPersonalizedPetDialogueEnabled } from './petDialogue/dialogueFlag';
 export * from './petDialogue/types';
+export { createSuperappSNAIService } from './snaiService';
+export { SuperappMolarAIFloat } from './SuperappMolarAIFloat';

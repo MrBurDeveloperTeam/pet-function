@@ -30,3 +30,4 @@ export * from './ContentStudioMolarAIFloat';
 export * from './ContentStudioDataChatProvider';
 export * from './ContentStudioVirtualPet';
 export * from './transport';
+export { createContentStudioSNAIService } from './snaiService';
