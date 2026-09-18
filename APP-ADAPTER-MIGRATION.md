@@ -1,5 +1,20 @@
 # App-aware pet migration — local 0.9.11 pilot
 
+## Appointment extension — unpublished 0.9.12
+
+Appointment now has full app-aware dialogue/runtime wiring, data-chat orchestration,
+the existing proactive clock hook, simulator config, mascot and visit/currency logic
+in src/apps/appointment/ and src/apps/AppointmentCatMascot.jsx. Its 35 old host modules
+are comments plus thin wiring. Existing patient-local answers, mutation refusal,
+account/clinic boundaries and host server transports are preserved.
+
+The host manifest targets GitHub v0.9.12 (no file: dependency). This tag does not
+exist yet; its lockfile still uses v0.9.10. Local verification used a temporary npm
+pack installation without writing a local dependency or changing its lockfile.
+Publish the new source/tag, then npm install in Appointment and reverify before deployment.
+Local build/typecheck, 78 host tests, 28 package tests and 82 game comparisons passed.
+The historical 0.9.11 status below describes the preceding Inventory phase.
+
 The package knows each migrated app's pet database mapping through explicit factories
 in `src/apps/repositories/`. Supply the app's existing authenticated Supabase client;
 do not put credentials or service-role keys in this package. Existing per-app account

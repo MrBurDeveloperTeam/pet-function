@@ -17,7 +17,9 @@ test('Inventory manifest targets the new shared GitHub release',()=>{
  assert.equal(host.dependencies['@mrburdeveloperteam/pet-function'],'github:mrburdeveloperteam/pet-function#v0.9.11');
 });
 for(const game of ['flappy-cat','pac-cat','tetris','meowdoku'])test(`${game}: canonical source and Inventory build output match`,()=>{
- const folder=join(root,'public/games',game);
+ // GitHub checkouts can normalize CRLF/LF. Compare the emitted files
+ // against the package actually installed by this host, byte for byte.
+ const folder=join(workspace,'inventory/node_modules/@mrburdeveloperteam/pet-function/public/games',game);
  const paths=files(folder);assert.ok(paths.length);
  for(const path of paths){
   const suffix=path.slice(folder.length+1);
