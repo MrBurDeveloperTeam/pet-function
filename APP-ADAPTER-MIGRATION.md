@@ -72,3 +72,15 @@ The app manifest targets GitHub v0.9.13, but its lockfile remains v0.9.10 until
 the user publishes the new tag. Local node_modules uses a packed validation tarball
 without a file: manifest dependency or a sibling symlink. Do not deploy before the
 official dependency installation/lockfile update and repeat verification.
+# Calculator local migration: v0.9.14 (release pending)
+
+Calculator app-aware cat/dialogue, cost and saved-plan data chat, reminder hook,
+AI orchestration, support presentation and visit/currency behavior now live in
+`src/apps/calculator/`. The host retains its auth/database client, Calculator/Auth
+contexts, AI transport and navigation/action wiring. All 27 former host modules are
+preserved as line comments and end in thin imports/factory wiring.
+
+Validated locally with package/app builds and type checks, shared parity/privacy
+tests and all 82 canonical game files. The app manifest targets v0.9.14 while its
+lockfile remains v0.9.10 pending user publication. No file: dependency, commit,
+push, tag, publish or deployment was performed.
