@@ -117,6 +117,10 @@ window.onload = function () {
     highScoreValueEl = document.getElementById("highscore-value");
     highScore = Number(localStorage.getItem("flappy-highscore") || 0);
     if (highScoreValueEl) highScoreValueEl.textContent = highScore;
+    window.parent.postMessage({
+        type: 'SHARED_GAME_PROGRESS_READY',
+        progress: { highscore: highScore }
+    }, window.location.origin);
     // load sfx
     sfxDie = new Audio("./sfx_die.wav");
     sfxHit = new Audio("./sfx_hit.wav");
@@ -649,6 +653,10 @@ function endGame() {
     if (score > highScore) {
         highScore = score;
         localStorage.setItem("flappy-highscore", highScore);
+        window.parent.postMessage({
+            type: 'SHARED_GAME_PROGRESS_SAVE',
+            progress: { highscore: highScore }
+        }, window.location.origin);
     }
 
     if (scoreValueEl) scoreValueEl.textContent = score;
@@ -665,6 +673,15 @@ function endGame() {
         pipeInterval = null;
     }
 }
+
+window.addEventListener('message', function (event) {
+    if (event.origin !== window.location.origin) return;
+    if (event.data && event.data.type === 'SHARED_GAME_PROGRESS') {
+        highScore = Math.max(highScore, Number(event.data.progress?.highscore) || 0);
+        localStorage.setItem('flappy-highscore', String(highScore));
+        if (highScoreValueEl) highScoreValueEl.textContent = highScore;
+    }
+});
 
 function playSfx(audioEl) {
     if (!audioEl) return;

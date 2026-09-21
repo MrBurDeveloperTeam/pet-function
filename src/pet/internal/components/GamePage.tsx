@@ -15,6 +15,7 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import { useGameState } from '../../runtime/SharedPetRuntime';
+import type { GameProgressClient } from '../../SharedVirtualPet';
 
 const GAME_CONFIG: Record<string, { title: string; url: string; icon: string; gradient: string }> = {
     flappy: {
@@ -81,16 +82,40 @@ const AnimatedCounter: React.FC<{ value: number }> = ({ value }) => {
 interface GamePageProps {
     gameId: string;
     onClose: () => void;
+    gameProgressClient?: GameProgressClient;
+    userId: string | null;
 }
 
-export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose }) => {
+export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, gameProgressClient, userId }) => {
     const [isLoading, setIsLoading] = useState(true);
     const { stats, setStats, addCoins } = useGameState();
     const [sessionCoins, setSessionCoins] = useState(0);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+
+    const syncGameProgress = async (progress: unknown) => {
+        if (!gameProgressClient || !userId) {
+            iframeRef.current?.contentWindow?.postMessage({ type: 'SHARED_GAME_PROGRESS_LOCAL_ONLY' }, window.location.origin);
+            return;
+        }
+        const { data, error } = await gameProgressClient.rpc('pet_game_progress_sync', {
+            p_game_id: gameId,
+            p_progress: progress && typeof progress === 'object' ? progress as Record<string, unknown> : {},
+        });
+        if (error) {
+            console.error('[GamePage] Unable to sync game progress:', error);
+            iframeRef.current?.contentWindow?.postMessage({ type: 'SHARED_GAME_PROGRESS_ERROR' }, window.location.origin);
+            return;
+        }
+        iframeRef.current?.contentWindow?.postMessage({ type: 'SHARED_GAME_PROGRESS', progress: data ?? {} }, window.location.origin);
+    };
 
     // Sync score from games
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
+            if (event.origin !== window.location.origin || event.source !== iframeRef.current?.contentWindow) return;
+            if (event.data?.type === 'SHARED_GAME_PROGRESS_READY' || event.data?.type === 'SHARED_GAME_PROGRESS_SAVE') {
+                void syncGameProgress(event.data.progress);
+            }
             // Update temporary display score
             if (event.data?.type === 'GAME_SCORE_UPDATE') {
                 const totalScore = event.data.score || 0;
@@ -119,7 +144,7 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose }) => {
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [setStats, addCoins]);
+    }, [setStats, addCoins, gameId, userId, gameProgressClient]);
 
     // Prevent scroll when game is open
     useEffect(() => {
@@ -183,6 +208,7 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose }) => {
                     )}
 
                     <iframe
+                        ref={iframeRef}
                         src={config.url}
                         className="w-full h-full border-0 block"
                         title={config.title}

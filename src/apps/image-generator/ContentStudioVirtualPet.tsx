@@ -162,6 +162,7 @@ function ContentStudioVirtualPet({ isOpen, onClose, userId, extraGames }: Conten
       currencyCode={detectedCurrency}
       assetUrls={PET_ASSET_URLS}
       extraGames={extraGames}
+      gameProgressClient={supabase}
     />
   );
 }

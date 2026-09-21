@@ -278,6 +278,10 @@ function loadHighscore() {
     }
     document.getElementById('highscore').innerText = gameState.highscore;
     updateLeaderboardUI();
+    window.parent.postMessage({
+        type: 'SHARED_GAME_PROGRESS_READY',
+        progress: { highscore: gameState.highscore, leaderboard: gameState.leaderboard }
+    }, window.location.origin);
 }
 
 /**
@@ -302,12 +306,33 @@ function saveHighscore() {
             timestamp: Date.now()
         };
         localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
+        window.parent.postMessage({
+            type: 'SHARED_GAME_PROGRESS_SAVE',
+            progress: data
+        }, window.location.origin);
     } catch (e) {
         console.error('Error saving highscore:', e);
     }
     document.getElementById('highscore').innerText = gameState.highscore;
     updateLeaderboardUI();
 }
+
+window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.data?.type !== 'SHARED_GAME_PROGRESS') return;
+    const progress = event.data.progress || {};
+    gameState.highscore = sanitizeNumber(progress.highscore, gameState.highscore, 0, 999999999);
+    gameState.leaderboard = Array.isArray(progress.leaderboard)
+        ? progress.leaderboard.map(value => sanitizeNumber(value, 0, 0, 999999999)).slice(0, 3)
+        : [gameState.highscore];
+    localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify({
+        highscore: gameState.highscore,
+        leaderboard: gameState.leaderboard,
+        timestamp: Date.now()
+    }));
+    document.getElementById('highscore').innerText = gameState.highscore;
+    updateLeaderboardUI();
+});
 
 /**
  * Update leaderboard UI

@@ -263,19 +263,19 @@ export function SharedMeowdokuLauncher({ isOpen, onClose, userId, repository, rp
           </div>
         )}
 
-        <div className="absolute right-[calc(env(safe-area-inset-right)_+_1.5rem)] top-[calc(env(safe-area-inset-top)_+_1.5rem)] z-50 flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 shadow-lg text-white ring-1 ring-white/5">
-            <span className="text-xl">💰</span>
-            <span className="font-black text-lg tracking-widest min-w-[3ch] text-right">{coins}</span>
+        <div className="meowdoku-shared-chrome absolute right-[calc(env(safe-area-inset-right)_+_1.5rem)] top-[calc(env(safe-area-inset-top)_+_1.5rem)] z-50 flex items-center gap-3">
+          <div className="meowdoku-shared-wallet flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 shadow-lg text-white ring-1 ring-white/5">
+            <span className="meowdoku-shared-wallet-icon text-xl" aria-hidden="true">💰</span>
+            <span className="meowdoku-shared-wallet-value font-black text-lg tracking-widest min-w-[3ch] text-right">{coins}</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/80 text-white/70 hover:text-white border-2 border-white/10 backdrop-blur-sm transition-all hover:scale-110 active:scale-95 shadow-lg"
+            className="meowdoku-shared-close w-12 h-12 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/80 text-white/70 hover:text-white border-2 border-white/10 backdrop-blur-sm transition-all hover:scale-110 active:scale-95 shadow-lg"
             title="Exit Meowdoku"
             aria-label="Exit Meowdoku"
           >
-            <span className="text-2xl font-bold leading-none mb-1">×</span>
+            <span className="meowdoku-shared-close-glyph text-2xl font-bold leading-none" aria-hidden="true">×</span>
           </button>
         </div>
 

@@ -218,6 +218,7 @@ export default function AppGalleryVirtualPet({ isOpen, onClose, userId, extraGam
       currencyCode={detectedCurrency}
       assetUrls={PET_ASSET_URLS}
       extraGames={extraGames}
+      gameProgressClient={supabase}
     />
   );
 }

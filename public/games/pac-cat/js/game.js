@@ -3,6 +3,19 @@ var PAUSE = false;
 var LOCK = false;
 
 var HIGHSCORE = 0;
+
+window.addEventListener('message', function (event) {
+	if (event.origin !== window.location.origin) return;
+	if (event.data && event.data.type === 'SHARED_GAME_PROGRESS') {
+		HIGHSCORE = Math.max(HIGHSCORE, Number(event.data.progress && event.data.progress.highscore) || 0);
+		$('#highscore span').html(HIGHSCORE === 0 ? '00' : HIGHSCORE);
+	}
+});
+
+window.parent.postMessage({
+	type: 'SHARED_GAME_PROGRESS_READY',
+	progress: { highscore: HIGHSCORE }
+}, window.location.origin);
 var SCORE = 0;
 var SCORE_BUBBLE = 10;
 var SCORE_SUPER_BUBBLE = 50;
@@ -288,6 +301,10 @@ function gameover() {
 		score: SCORE,
 		level: LEVEL
 	}, '*');
+	window.parent.postMessage({
+		type: 'SHARED_GAME_PROGRESS_SAVE',
+		progress: { highscore: HIGHSCORE }
+	}, window.location.origin);
 
 	erasePacman();
 	eraseGhosts();

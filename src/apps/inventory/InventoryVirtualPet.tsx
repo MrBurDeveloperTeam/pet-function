@@ -167,6 +167,7 @@ function InventoryVirtualPet({ isOpen, onClose, userId, extraGames }: InventoryV
       currencyCode={detectedCurrency}
       assetUrls={PET_ASSET_URLS}
       extraGames={extraGames}
+      gameProgressClient={supabase}
     />
   );
 }

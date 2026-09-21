@@ -130,7 +130,14 @@ canvas#tetris {
     color: #ffffff;
     text-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
     text-align: center;
-    width: 100%;
+    /* The overlay is inside the 310px center game column. A 100% flex
+       item let this unbreakable title overflow only to the right. Let the
+       title use its real width so align-items:center distributes overflow
+       evenly around the actual screen centre. */
+    width: max-content;
+    max-width: none;
+    flex: none;
+    align-self: center;
     white-space: nowrap;
 }
 

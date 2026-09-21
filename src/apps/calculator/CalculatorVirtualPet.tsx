@@ -154,6 +154,7 @@ function CalculatorVirtualPet({ isOpen, onClose, userId, extraGames }: Calculato
       currencyCode={detectedCurrency}
       assetUrls={PET_ASSET_URLS}
       extraGames={extraGames}
+      gameProgressClient={supabase}
     />
   );
 }

@@ -183,6 +183,7 @@ return function TodoVirtualPet({ isOpen, onClose, userId, extraGames }: TodoVirt
       currencyCode={detectedCurrency}
       assetUrls={PET_ASSET_URLS}
       extraGames={extraGames}
+      gameProgressClient={supabase}
     />
   );
 };

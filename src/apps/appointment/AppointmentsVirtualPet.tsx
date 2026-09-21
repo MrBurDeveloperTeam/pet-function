@@ -166,6 +166,7 @@ function AppointmentsVirtualPet({ isOpen, onClose, userId, extraGames }: Appoint
       currencyCode={detectedCurrency}
       assetUrls={PET_ASSET_URLS}
       extraGames={extraGames}
+      gameProgressClient={supabase}
     />
   );
 }

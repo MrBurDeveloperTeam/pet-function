@@ -66,9 +66,15 @@ type WebkitFullscreenDocument = Document & {
 interface VirtualPetContentProps {
   onClose: () => void;
   extraGames?: ExtraGame[];
+  gameProgressClient?: GameProgressClient;
+  userId: string | null;
 }
 
-const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGames }) => {
+export interface GameProgressClient {
+  rpc(name: string, args?: Record<string, unknown>): PromiseLike<{ data: any; error: { message?: string } | null }>;
+}
+
+const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGames, gameProgressClient, userId }) => {
   const [view, setView] = useState<'ROOM' | 'GAME'>('ROOM');
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
   const [showRotateNotice, setShowRotateNotice] = useState(false);
@@ -202,7 +208,12 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
         <PetRoom onNavigateToGame={handleNavigateToGame} extraGames={extraGames} />
       ) : (
         <>
-          <GamePage gameId={activeGameId || ''} onClose={handleCloseGame} />
+          <GamePage
+            gameId={activeGameId || ''}
+            onClose={handleCloseGame}
+            gameProgressClient={gameProgressClient}
+            userId={userId}
+          />
 
           {requiresLandscapeMode(activeGameId) && showRotateNotice && (
             <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 px-6 text-white">
@@ -263,6 +274,9 @@ export interface SharedVirtualPetProps {
    *  `ExtraGame`'s own doc. Omitted entirely reproduces exact 0.9.4
    *  behavior (only the 3 built-in games shown). */
   extraGames?: ExtraGame[];
+  /** Authenticated database client used by the built-in games to keep
+   * progress identical across every Snabbb origin. */
+  gameProgressClient?: GameProgressClient;
 }
 
 /**
@@ -278,7 +292,7 @@ export interface SharedVirtualPetProps {
  * Phase 2 skeleton assumed before this phase's code was written) avoids
  * requiring a host to introduce a provider it doesn't otherwise need.
  */
-export function SharedVirtualPet({ isOpen, onClose, repository, userId, currencyCode, assetUrls, extraGames }: SharedVirtualPetProps) {
+export function SharedVirtualPet({ isOpen, onClose, repository, userId, currencyCode, assetUrls, extraGames, gameProgressClient }: SharedVirtualPetProps) {
   useEffect(() => {
     const root = document.documentElement;
     if (isOpen) {
@@ -301,7 +315,7 @@ export function SharedVirtualPet({ isOpen, onClose, repository, userId, currency
     <div className="fixed left-0 top-0 z-[1000] h-dvh w-screen bg-black animate-in fade-in duration-200">
       <div className="w-full h-full relative">
         <SharedPetProvider key={userId ?? 'guest'} repository={repository} userId={userId} currencyCode={currencyCode} assetUrls={assetUrls}>
-          <VirtualPetContent onClose={onClose} extraGames={extraGames} />
+          <VirtualPetContent onClose={onClose} extraGames={extraGames} gameProgressClient={gameProgressClient} userId={userId} />
         </SharedPetProvider>
       </div>
     </div>

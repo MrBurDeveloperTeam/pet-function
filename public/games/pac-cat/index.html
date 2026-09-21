@@ -30,19 +30,19 @@
 	<link
 		rel="stylesheet"
 		type="text/css"
-		href="css/pacman.css"
+		href="css/pacman.css?v=20260921-help-dismiss-1"
 	/>
 
 	<link
 		rel="stylesheet"
 		type="text/css"
-		href="css/pacman-home.css"
+		href="css/pacman-home.css?v=20260921-help-dismiss-1"
 	/>
 
 	<link
     rel="stylesheet"
     type="text/css"
-    href="css/mobile-controls-v2.css"
+    href="css/mobile-controls-v2.css?v=20260921-help-dismiss-1"
 	/>
 
 	<script type="text/javascript" src="js/jquery.js"></script>
@@ -215,19 +215,40 @@
 				}
 			});
 
-			$(".help-button, #help").click(function (e) {
+			var helpPausedGame = false;
+
+			function closeHelp() {
+				if ($('#help').css("display") === "none") return;
+				$('#help').stop(true, true).fadeOut("slow").attr('aria-hidden', 'true');
+				$('#help-backdrop').stop(true, true).fadeOut("slow");
+				$(".help-button").show();
+				if (helpPausedGame && PAUSE && !PACMAN_DEAD && !LOCK && !GAMEOVER) {
+					resumeGame();
+				}
+				helpPausedGame = false;
+			}
+
+			$(".help-button").click(function (e) {
 				e.stopPropagation();
-				if (!PACMAN_DEAD && !LOCK && !GAMEOVER) {
-					if ($('#help').css("display") === "none") {
-						$('#help').fadeIn("slow");
-						$(".help-button").hide();
-						if ($("#panel").css("display") !== "none") {
-							pauseGame();
-						}
-					} else {
-						$('#help').fadeOut("slow");
-						$(".help-button").show();
-					}
+				if (!PACMAN_DEAD && !LOCK && !GAMEOVER && $('#help').css("display") === "none") {
+					helpPausedGame = $("#panel").css("display") !== "none" && !PAUSE;
+					$('#help-backdrop').stop(true, true).fadeIn("slow");
+					$('#help').stop(true, true).fadeIn("slow").attr('aria-hidden', 'false');
+					$(".help-button").hide();
+					if (helpPausedGame) pauseGame();
+				}
+			});
+
+			$("#help, #help-backdrop").click(function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				closeHelp();
+			});
+
+			$(document).keydown(function (e) {
+				if (e.key === 'Escape' && $('#help').css("display") !== "none") {
+					e.preventDefault();
+					closeHelp();
 				}
 			});
 
@@ -322,8 +343,9 @@
 
 	<div id="sound"></div>
 
-	<div id="help">
-		<h2>Help</h2>
+	<button id="help-backdrop" type="button" aria-label="Close help"></button>
+	<div id="help" role="dialog" aria-modal="true" aria-labelledby="help-title" aria-hidden="true">
+		<h2 id="help-title">Help</h2>
 		<table align="center" border="0" cellPadding="2" cellSpacing="0">
 			<tbody>
 				<tr>

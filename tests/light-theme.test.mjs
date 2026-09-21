@@ -8,6 +8,17 @@ test('Shared theme is light-only; dark OS cannot change its tokens', () => {
   assert.equal(source.includes("data-molar-theme='dark'"), false);
   for (const name of ['pet/SharedVirtualPet.tsx','cat/SharedCatMascot.tsx','ai/SharedMolarAI.tsx','games/SharedMeowdokuLauncher.tsx']) assert.ok(readFileSync('src/'+name,'utf8').includes('data-molar-theme="light"'));
 });
+test('Meowdoku host chrome owns its typography, geometry and close-glyph centering', () => {
+  const component = readFileSync('src/games/SharedMeowdokuLauncher.tsx', 'utf8');
+  const styles = readFileSync('src/styles/index.css', 'utf8');
+  for (const className of ['meowdoku-shared-chrome','meowdoku-shared-wallet','meowdoku-shared-wallet-value','meowdoku-shared-close','meowdoku-shared-close-glyph']) {
+    assert.ok(component.includes(className), `${className} must be present in the shared launcher`);
+    assert.ok(styles.includes(`.${className}`), `${className} must be styled by the shared package`);
+  }
+  assert.match(styles, /\.meowdoku-shared-chrome\s*\{[\s\S]*?font-family:[^;]+!important/);
+  assert.match(styles, /button\.meowdoku-shared-close\s*\{[\s\S]*?width:\s*48px\s*!important[\s\S]*?height:\s*48px\s*!important[\s\S]*?padding:\s*0\s*!important/);
+  assert.match(styles, /\.meowdoku-shared-close-glyph\s*\{[\s\S]*?inset:\s*0\s*!important[\s\S]*?place-items:\s*center\s*!important/);
+});
 test('Generated isolation owns existing light paint, not host geometry', () => {
   const root = postcss.parse(readFileSync('dist/styles.css','utf8'));
   const layer = root.nodes.find(node => node.type === 'atrule' && node.name === 'layer' && node.params === 'pet-function-light-lock');

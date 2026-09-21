@@ -98,12 +98,15 @@
     const cloud=normalizedSave({
       unlocked:remote?.unlocked_level,
       completed:remote?.completed_modes
-    }),
-      local=normalizedSave(state.save);
+    });
 
     state.save={
-      unlocked:Math.max(cloud.unlocked,local.unlocked),
-      completed:{...cloud.completed,...local.completed}
+      // Authenticated cloud progress is authoritative across every mini
+      // app origin. Local storage is only a guest/offline fallback; letting
+      // it overwrite cloud values caused each domain to show a different
+      // challenge count for the same user.
+      unlocked:cloud.unlocked,
+      completed:cloud.completed
     };
 
     state.progressReady=true;

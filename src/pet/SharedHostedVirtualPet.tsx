@@ -7,6 +7,7 @@ import { PET_ASSET_URLS } from '../resources';
 // Host injects its existing client; no client or credentials are created here.
 export interface PetHostClient {
   from(name: string): any;
+  rpc(name: string, args?: Record<string, unknown>): PromiseLike<{ data: any; error: { message?: string } | null }>;
   auth: {
     getSession(): PromiseLike<{ data: { session: { user: { id: string } } | null } }>;
     onAuthStateChange(callback: (event: any, session: { user: { id: string } } | null) => void): { data: { subscription: { unsubscribe(): void } } };
@@ -145,5 +146,5 @@ export function SharedHostedVirtualPet({ isOpen, onClose, userId, repository, cl
     return () => { active = false; };
   }, [isOpen, effectiveId, client]);
   if (!effectiveId) return null;
-  return <SharedVirtualPet key={effectiveId ?? 'guest'} isOpen={isOpen} onClose={onClose} userId={effectiveId} repository={repository} currencyCode={currencyCode} assetUrls={PET_ASSET_URLS} extraGames={extraGames} />;
+  return <SharedVirtualPet key={effectiveId ?? 'guest'} isOpen={isOpen} onClose={onClose} userId={effectiveId} repository={repository} currencyCode={currencyCode} assetUrls={PET_ASSET_URLS} extraGames={extraGames} gameProgressClient={client} />;
 }
