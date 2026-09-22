@@ -13,26 +13,31 @@
 // (currency is a current-global setting, not snapshotted per plan, so no
 // monetary value from an old plan is ever read here).
 
-import type { ProjectedSavedPlan, LatestSavedPlanSelection } from '../../utils/savedPlanProjection';
+import {
+  isSavedPlanTimeframe,
+  type ProjectedSavedPlan,
+  type LatestSavedPlanSelection,
+} from '../../utils/savedPlanProjection';
 import type { SavedPlan } from '../../types';
 
 export interface LatestSavedPlanDataFacts {
   planId: string;
   timeframe: SavedPlan['timeframe'];
   isProfitable: boolean;
-  /** Present only when the persisted count is a valid finite
-   *  non-negative number — never fabricated. */
+  /** Present only when the persisted count is a non-negative integer —
+   *  never fabricated. */
   totalProcedures?: number;
 }
 
 function factsFromPlan(plan: ProjectedSavedPlan): LatestSavedPlanDataFacts | null {
   if (typeof plan.isProfitable !== 'boolean') return null;
-  const hasValidCount = Number.isFinite(plan.totalProcedures) && plan.totalProcedures >= 0;
+  if (!isSavedPlanTimeframe(plan.timeframe)) return null;
+  const hasValidCount = Number.isInteger(plan.totalProcedures) && (plan.totalProcedures as number) >= 0;
   return {
     planId: plan.id,
     timeframe: plan.timeframe,
     isProfitable: plan.isProfitable,
-    ...(hasValidCount ? { totalProcedures: plan.totalProcedures } : {}),
+    ...(hasValidCount ? { totalProcedures: plan.totalProcedures as number } : {}),
   };
 }
 

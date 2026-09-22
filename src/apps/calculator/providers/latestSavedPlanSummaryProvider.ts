@@ -13,7 +13,7 @@
 // rule as the Not Profitable provider — see that file's header for the
 // full rationale.
 
-import type { ProjectedSavedPlan } from '../utils/savedPlanProjection';
+import { isSavedPlanTimeframe, type ProjectedSavedPlan } from '../utils/savedPlanProjection';
 import type { InsightCandidate } from '../contracts/insightCandidate';
 import type { SavedPlan } from '../types';
 
@@ -57,9 +57,10 @@ export function evaluateLatestSavedPlanSummary(
   // Strict boolean check — never truthiness.
   if (typeof latest.isProfitable !== 'boolean') return null;
   if (latest.isProfitable !== true) return null;
+  if (!isSavedPlanTimeframe(latest.timeframe)) return null;
 
-  const hasValidCount = Number.isFinite(latest.totalProcedures) && latest.totalProcedures >= 0;
-  const totalProcedures = hasValidCount ? latest.totalProcedures : undefined;
+  const hasValidCount = Number.isInteger(latest.totalProcedures) && (latest.totalProcedures as number) >= 0;
+  const totalProcedures = hasValidCount ? latest.totalProcedures as number : undefined;
 
   const facts: LatestSavedPlanSummaryFacts = {
     planId: latest.id,

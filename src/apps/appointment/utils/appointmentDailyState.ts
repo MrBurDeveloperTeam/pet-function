@@ -30,6 +30,8 @@ export interface OccupiedRoom {
    *  UI fallback — that's a display-layer convenience for a labeled
    *  chip, not a truthful fact about which room this is. */
   roomName: string | null;
+  /** Clinic-device-local appointment end represented as an ISO instant. */
+  endAt: string;
 }
 
 export interface AppointmentDailyState {
@@ -94,7 +96,7 @@ export function computeAppointmentDailyState(
       occupiedRoomIds.add(roomId);
       const room = rooms.find((r) => r.id === roomId);
       const roomName = room && typeof room.name === 'string' && room.name.trim() ? room.name : null;
-      occupiedRooms.push({ roomId, roomName });
+      occupiedRooms.push({ roomId, roomName, endAt: end.toISOString() });
     }
   }
 

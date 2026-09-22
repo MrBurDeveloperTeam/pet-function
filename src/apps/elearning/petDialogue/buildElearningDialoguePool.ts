@@ -84,7 +84,12 @@ export function buildElearningDialoguePool(
   if (latestVideoPerformance) pool.push(latestVideoPerformance);
 
   const mostViewedVideo = evaluateMostViewedVideo(ownVideoAnalytics?.mostViewed ?? null);
-  if (mostViewedVideo) pool.push(mostViewedVideo);
+  // The latest video can also be the all-time most viewed video. Both
+  // labels are true, but showing the same backing video twice after one
+  // candidate is dismissed is repetitive rather than a new insight.
+  if (mostViewedVideo && mostViewedVideo.sourceRecordId !== latestVideoPerformance?.sourceRecordId) {
+    pool.push(mostViewedVideo);
+  }
 
   return pool;
 }

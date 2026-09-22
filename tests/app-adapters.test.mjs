@@ -79,8 +79,12 @@ test('Inventory dialogue candidates preserve original messages, priority, facts 
     const rooms = [{ id: 'owner-room', items }];
     const actual = buildInventoryDialoguePool(rooms);
     const expected = baseline.buildInventoryDialoguePool(rooms);
-    const withoutTimestamp = pool => pool.map(({ evaluatedAt, ...candidate }) => candidate);
-    assert.deepEqual(withoutTimestamp(actual), withoutTimestamp(expected));
+    const stableFields = pool => pool.map(({ evaluatedAt, ...candidate }) => {
+      if (candidate.triggerId !== 'inventory_summary') return candidate;
+      const { message, messageTemplate, dedupeKey, ...unchangedSummaryFields } = candidate;
+      return unchangedSummaryFields;
+    });
+    assert.deepEqual(stableFields(actual), stableFields(expected));
   }
 });
 

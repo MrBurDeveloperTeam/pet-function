@@ -57,13 +57,13 @@ export function evaluateLatestVideoPerformance(
   // possibly null/non-finite here anyway (see this feature's runtime-type
   // review) — never fabricate a count, never celebrate 0.
   const viewCount = latest.view_count;
-  if (typeof viewCount !== 'number' || !Number.isFinite(viewCount) || viewCount <= 0) {
+  if (!Number.isInteger(viewCount) || (viewCount as number) <= 0) {
     return null;
   }
 
   const facts: LatestVideoPerformanceFacts = {
     videoId: latest.id,
-    viewCount,
+    viewCount: viewCount as number,
   };
 
   return {
@@ -72,7 +72,7 @@ export function evaluateLatestVideoPerformance(
     priority: 'INFO',
     facts,
     messageTemplate: 'Your latest published video has {viewCount} views.',
-    message: buildMessage(viewCount),
+    message: buildMessage(viewCount as number),
     action: { label: 'View Video' },
     dedupeKey: `elearning_latest_video_performance:${latest.id}`,
     sourceRecordId: latest.id,

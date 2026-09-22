@@ -12,9 +12,10 @@
 // HIGH for the whole local day regardless of any time-of-day value.
 
 import type { TaskItem } from '../types';
-import { todayStr } from '../dateUtils';
+import { isValidLocalDateStr, todayStr } from '../dateUtils';
 import type { InsightCandidate } from '../contracts/insightCandidate';
 import { sanitizeTaskTitle } from '../sanitizeTaskTitle';
+import { isTaskLikeType } from './normalTasksTodayProvider';
 
 export interface HighTaskTodayFacts {
   taskId: string;
@@ -31,7 +32,9 @@ function compareForSelection(a: TaskItem, b: TaskItem): number {
 }
 
 function qualifyingHighToday(tasks: TaskItem[], today: string): TaskItem[] {
-  return tasks.filter((t) => !t.done && t.priority === 'high' && t.date === today);
+  return tasks.filter((t) =>
+    !t.done && isTaskLikeType(t.type) && t.priority === 'high' && isValidLocalDateStr(t.date) && t.date === today
+  );
 }
 
 function buildCandidateFromTask(winner: TaskItem): InsightCandidate<HighTaskTodayFacts> {
@@ -61,8 +64,8 @@ function buildCandidateFromTask(winner: TaskItem): InsightCandidate<HighTaskToda
   };
 }
 
-export function evaluateHighTaskToday(tasks: TaskItem[]): InsightCandidate<HighTaskTodayFacts> | null {
-  const qualifying = qualifyingHighToday(tasks, todayStr());
+export function evaluateHighTaskToday(tasks: TaskItem[], now: Date = new Date()): InsightCandidate<HighTaskTodayFacts> | null {
+  const qualifying = qualifyingHighToday(tasks, todayStr(now));
   if (qualifying.length === 0) return null;
 
   const winner = [...qualifying].sort(compareForSelection)[0];
@@ -73,6 +76,6 @@ export function evaluateHighTaskToday(tasks: TaskItem[]): InsightCandidate<HighT
  *  evaluateOverdueHighTaskCandidates for the same design intent.
  *  `evaluateHighTaskTodayCandidates(tasks)[0]` is always identical to
  *  `evaluateHighTaskToday(tasks)`. */
-export function evaluateHighTaskTodayCandidates(tasks: TaskItem[]): InsightCandidate<HighTaskTodayFacts>[] {
-  return [...qualifyingHighToday(tasks, todayStr())].sort(compareForSelection).map(buildCandidateFromTask);
+export function evaluateHighTaskTodayCandidates(tasks: TaskItem[], now: Date = new Date()): InsightCandidate<HighTaskTodayFacts>[] {
+  return [...qualifyingHighToday(tasks, todayStr(now))].sort(compareForSelection).map(buildCandidateFromTask);
 }

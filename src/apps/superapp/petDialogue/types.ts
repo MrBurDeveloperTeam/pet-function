@@ -1,8 +1,8 @@
 // Phase 1A/1C/1D/1E dialogue candidate contract.
 //
 // Shape follows the AI-Personalized Pet Dialogue System engineering
-// reference. Priority order (approved 1E revision): P0 > P1 > incomplete
-// profile > P2 > legacy post-login intro > fallback — see PRIORITY_RANK in
+// reference. Priority order: incomplete profile > P0 > P1 > P2 >
+// legacy post-login intro > fallback — see PRIORITY_RANK in
 // resolveDialogue.ts for the authoritative numeric ranking.
 //
 // AI Experience Phase 1: `DialogueCandidate` below is now a direct alias of

@@ -22,34 +22,10 @@ import {
 
 const DEFAULT_FALLBACK_AUTO_CLOSE_MS = 6000;
 
-/** See providers/expiredInventoryProvider.ts's ExpiredInventoryFacts for the
- *  same design intent. `messageSource` is included because it has a real
- *  architectural purpose: distinguishing an admin-configured AIBoard message
- *  from the emergency hardcoded one is exactly the kind of provenance a
- *  future Landing Insight/Data-Driven Chat consumer would need to decide
- *  whether the wording is safe to reuse/rephrase elsewhere. */
 export interface WelcomeFallbackFacts {
   userId: string;
   firstName: string | null;
-  messageSource: 'aiboard' | 'hardcoded_fallback';
-}
-
-// Existing, source-proven placeholder convention for `welcome_back_text` —
-// reused verbatim from CatMascot.tsx's legacy (flag-disabled) `initDialog()`
-// welcomeBack path, which already implements this exact `[name]` substitution
-// against this exact column. Not a new placeholder syntax: this mirrors that
-// code's regex and graceful-strip-when-no-name behavior so an admin-authored
-// `[name]` works identically regardless of which code path is active.
-function applyNamePlaceholder(text: string, firstName: string | null): string {
-  if (!/\[name\]/i.test(text)) return text;
-  return firstName
-    ? text.replace(/\[name\]/gi, firstName)
-    : text
-        .replace(/,\s*\[name\]/gi, '')
-        .replace(/\[name\],\s*/gi, '')
-        .replace(/\[name\]/gi, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
+  messageSource: 'hardcoded_fallback';
 }
 
 interface UsePersonalizedPetDialogueOptions {
@@ -87,41 +63,15 @@ function buildFallbackCandidate(params: {
   metaName?: string | null;
   email?: string | null;
   autoCloseMs: number;
-  /**
-   * Raw `aiboard_simulator_configs.welcome_back_text` for this evaluation,
-   * as resolved by fetchLegacyIntroCandidate — `undefined` when that fetch
-   * failed/found no config row, `null` when the row exists but the column
-   * is null, a string for any stored value (including empty/whitespace).
-   * This is the ONLY thing that decides whether AIBoard or the hardcoded
-   * text is authoritative for this candidate — see the eligibility check
-   * below (non-empty after trim).
-   */
-  configuredWelcomeBackText?: string | null;
 }): InsightCandidate<WelcomeFallbackFacts> {
   const firstName = resolveSafeFirstName(params);
-
-  const trimmedConfigured = params.configuredWelcomeBackText?.trim() ?? '';
-  const useAiboardText = trimmedConfigured.length > 0;
-
-  // Emergency hardcoded path — byte-for-byte identical to before this
-  // change whenever AIBoard's config is missing/null/blank/whitespace-only
-  // or the config fetch itself failed. Never reached when useAiboardText.
-  const hardcodedMessage = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
-  const hardcodedMessageTemplate = 'Welcome back, {firstName}!';
-
-  // AIBoard path — the raw, untrimmed, un-rewritten admin text is the
-  // canonical template; `message` is that same text with the existing
-  // `[name]` placeholder (if present) resolved, and nothing else changed —
-  // no prepended/appended sentence, no punctuation/wording changes.
-  const configuredRaw = params.configuredWelcomeBackText as string; // only read when useAiboardText
-  const message = useAiboardText ? applyNamePlaceholder(configuredRaw, firstName) : hardcodedMessage;
-  const messageTemplate = useAiboardText ? configuredRaw : hardcodedMessageTemplate;
+  const message = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
 
   const evaluatedAt = new Date().toISOString();
   const facts: WelcomeFallbackFacts = {
     userId: params.userId,
     firstName,
-    messageSource: useAiboardText ? 'aiboard' : 'hardcoded_fallback',
+    messageSource: 'hardcoded_fallback',
   };
 
   return {
@@ -130,7 +80,7 @@ function buildFallbackCandidate(params: {
     app: 'system',
     triggerId: DIALOGUE_ID.WELCOME_FALLBACK,
     facts,
-    messageTemplate,
+    messageTemplate: 'Welcome back, {firstName}!',
     sourceRecordId: params.userId,
     evaluatedAt,
     userState: 'GENERAL_USER_NO_URGENT',
@@ -361,19 +311,35 @@ export function usePersonalizedPetDialogue({
           metaName,
           email,
           autoCloseMs: DEFAULT_FALLBACK_AUTO_CLOSE_MS,
-          // Reuses the same aiboard_simulator_configs row fetchLegacyIntroCandidate
-          // already resolved above (Promise.all) — no second config query.
-          // Independent of inventory/todo/appointment's own success/failure
-          // below: this fallback should still use the configured AIBoard
-          // wording even when one of those three providers failed.
-          configuredWelcomeBackText: introResult.welcomeBackText,
         });
+
+        // Profile completion is the first decision in the main-page Pet
+        // specification. Wait for the authoritative Odoo result; do not let
+        // an urgent candidate (or a failing mini-app query) bypass a known
+        // incomplete profile. Unknown is not evidence of incompleteness.
+        if (profileStatus === 'loading') return;
+        if (profileStatus === 'unknown') {
+          if (isStale()) return;
+          setLifecycle('failed');
+          setSelection({ candidate: fallback, introSteps: [] });
+          return;
+        }
+        const profileCandidateRaw = buildProfileCandidate(profileStatus, capturedUserId);
+        const profileCandidate = isDialogueIneligible(capturedUserId, profileCandidateRaw?.dedupeKey ?? '')
+          ? null
+          : profileCandidateRaw;
+        if (profileCandidate) {
+          if (isStale()) return;
+          setLifecycle('ready');
+          setSelection({ candidate: profileCandidate, introSteps: [] });
+          return;
+        }
 
         if (inventoryResult.status === 'failed' || todoResult.status === 'failed' || appointmentResult.status === 'failed') {
           // A provider failure is never "no urgent inventory/tasks/
           // appointments exist" — it's unknown. With three independent
           // urgent-data providers now in play, any one failing must fail
-          // the whole evaluation closed: never show Profile/P1/P2/Intro
+          // the whole evaluation closed: never show P0/P1/P2/Intro
           // while a real P0/P1 could be hidden behind another provider's
           // failure. Go straight to the neutral fallback (no timeout/error
           // wording — buildFallbackCandidate's message is identical
@@ -418,8 +384,8 @@ export function usePersonalizedPetDialogue({
         const p0 = unhandledExpired ?? unhandledOverdueTask;
 
         if (p0) {
-          // A real P0 candidate always wins immediately — never wait on
-          // profile status.
+          // Profile is already resolved above; P0 wins over every remaining
+          // candidate family.
           if (isStale()) return;
           setLifecycle('ready');
           setSelection({ candidate: p0, introSteps: [] });
@@ -436,27 +402,12 @@ export function usePersonalizedPetDialogue({
         const p1 = unhandledAppointmentSoon ?? unhandledHighTaskToday;
 
         if (p1) {
-          // Per the approved priority order, P1 (Appointment Soon / High
-          // Task Today) also always wins immediately — it outranks Profile,
-          // so it must never wait on profile status either.
+          // P1 wins after Profile and P0 have both been ruled out.
           if (isStale()) return;
           setLifecycle('ready');
           setSelection({ candidate: p1, introSteps: [] });
           return;
         }
-
-        // No selectable P0 or P1. Wait for profile completeness before
-        // deciding among Profile / P2 / Intro / Fallback — an "incomplete"
-        // result must still outrank P2 and the legacy intro. The effect
-        // re-runs when profileStatus changes.
-        if (profileStatus === 'loading') {
-          return;
-        }
-
-        const profileCandidateRaw = buildProfileCandidate(profileStatus, capturedUserId);
-        const profileCandidate = isDialogueIneligible(capturedUserId, profileCandidateRaw?.dedupeKey ?? '')
-          ? null
-          : profileCandidateRaw;
 
         // Dismissal dedupe is applied independently to each P2 subtype before
         // choosing between them — a handled Low Stock must not block an
@@ -471,11 +422,9 @@ export function usePersonalizedPetDialogue({
         // quantity-based candidate (no eventTime) against an expiry date.
         const p2 = unhandledLowStock ?? unhandledExpiringSoon;
 
-        // Priority ordering (PROFILE > P2 > LEGACY_INTRO > FALLBACK) lives
-        // entirely in resolveDialogue.ts's PRIORITY_RANK — passing all
-        // remaining candidates here rather than branching on profileStatus
-        // ourselves keeps that ranking the single source of truth.
-        const resolved = resolvePersonalizedDialogue([profileCandidate, p2, introResult.candidate], fallback);
+        // Priority ordering (P2 > LEGACY_INTRO > FALLBACK) lives
+        // entirely in resolveDialogue.ts's PRIORITY_RANK.
+        const resolved = resolvePersonalizedDialogue([p2, introResult.candidate], fallback);
 
         if (isStale()) return;
         setLifecycle('ready');
@@ -504,8 +453,8 @@ export function usePersonalizedPetDialogue({
       controller.abort();
     };
     // profileStatus is intentionally a dependency: while it's 'loading' the
-    // run above returns early without resolving, and must re-run once a real
-    // status arrives so PROFILE can still outrank LEGACY_INTRO/FALLBACK.
+    // run above returns early, then re-runs once the authoritative status
+    // arrives so PROFILE can outrank every urgent candidate.
     // matchedUserId is intentionally a dependency: it's the sole identity
     // signal this effect restarts on — see the hook-level comment above for
     // why active/profileStatus alone are not sufficient, and why this hook

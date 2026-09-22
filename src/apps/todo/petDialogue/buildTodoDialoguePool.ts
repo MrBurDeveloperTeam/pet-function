@@ -60,16 +60,16 @@ import type { TaskItem } from '../types';
  * "eligible" aggregate entries in practice, and never changes either
  * provider's own eligibility decision.
  */
-export function buildTodoDialoguePool(tasks: TaskItem[]): InsightCandidate<unknown>[] {
+export function buildTodoDialoguePool(tasks: TaskItem[], now: Date = new Date()): InsightCandidate<unknown>[] {
   const pool: InsightCandidate<unknown>[] = [
-    ...evaluateOverdueHighTaskCandidates(tasks),
-    ...evaluateHighTaskTodayCandidates(tasks),
+    ...evaluateOverdueHighTaskCandidates(tasks, now),
+    ...evaluateHighTaskTodayCandidates(tasks, now),
   ];
 
-  const normalToday = evaluateNormalTasksToday(tasks);
+  const normalToday = evaluateNormalTasksToday(tasks, now);
   if (normalToday) pool.push(normalToday);
 
-  const nothingToday = evaluateNothingToday(tasks);
+  const nothingToday = evaluateNothingToday(tasks, now);
   if (nothingToday) pool.push(nothingToday);
 
   return pool;

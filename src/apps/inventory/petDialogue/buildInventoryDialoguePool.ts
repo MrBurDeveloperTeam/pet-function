@@ -56,17 +56,17 @@ import type { Room } from '../types';
  * guard), so this never fabricates a summary that provider wouldn't
  * otherwise produce.
  */
-export function buildInventoryDialoguePool(rooms: Room[]): InsightCandidate<unknown>[] {
-  const snapshot = buildInventorySnapshot(rooms);
+export function buildInventoryDialoguePool(rooms: Room[], now: Date = new Date()): InsightCandidate<unknown>[] {
+  const snapshot = buildInventorySnapshot(rooms, now);
 
   const pool: InsightCandidate<unknown>[] = [
     ...evaluateExpiredInventoryCandidates(snapshot),
     ...evaluateOutOfStockCandidates(snapshot),
     ...evaluateLowStockCandidates(snapshot),
-    ...evaluateExpiringSoonCandidates(snapshot),
+    ...evaluateExpiringSoonCandidates(snapshot, now),
   ];
 
-  const summary = evaluateInventorySummary(snapshot);
+  const summary = evaluateInventorySummary(snapshot, now);
   if (summary) pool.push(summary);
 
   return pool;

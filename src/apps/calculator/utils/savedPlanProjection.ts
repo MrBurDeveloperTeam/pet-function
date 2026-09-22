@@ -15,19 +15,30 @@ import type { SavedPlan } from '../types';
 export interface ProjectedSavedPlan {
   id: string;
   date: string;
-  timeframe: SavedPlan['timeframe'];
-  isProfitable: boolean;
-  totalProcedures: number;
+  /** Kept unknown until a provider validates the persisted runtime value. */
+  timeframe: unknown;
+  /** Kept unknown until a provider validates the persisted runtime value. */
+  isProfitable: unknown;
+  /** Kept unknown until a provider validates this as a non-negative integer. */
+  totalProcedures: unknown;
 }
 
 export function projectSavedPlansForInsight(savedPlans: SavedPlan[]): ProjectedSavedPlan[] {
-  return savedPlans.map((plan) => ({
-    id: plan.id,
-    date: plan.date,
-    timeframe: plan.timeframe,
-    isProfitable: plan.results.isProfitable,
-    totalProcedures: plan.results.totalProcedures,
-  }));
+  return savedPlans.map((plan) => {
+    // Supabase/local persisted data is a runtime boundary: an older or
+    // partially-written row may not contain `results`. Optional access
+    // keeps one damaged historical row from suppressing every otherwise
+    // valid plan dialogue. Providers remain responsible for validating
+    // the two unknown values before making a claim.
+    const results = (plan as SavedPlan | null | undefined)?.results;
+    return {
+      id: (plan as SavedPlan | null | undefined)?.id ?? '',
+      date: (plan as SavedPlan | null | undefined)?.date ?? '',
+      timeframe: (plan as SavedPlan | null | undefined)?.timeframe,
+      isProfitable: results?.isProfitable,
+      totalProcedures: results?.totalProcedures,
+    };
+  });
 }
 
 /**
@@ -55,6 +66,12 @@ export type LatestSavedPlanSelection =
   | { state: 'unknown' }
   | { state: 'selected'; plan: ProjectedSavedPlan };
 
+const SAVED_PLAN_TIMEFRAMES = new Set(['daily', 'weekly', 'monthly', 'quarterly', 'yearly']);
+
+export function isSavedPlanTimeframe(value: unknown): value is SavedPlan['timeframe'] {
+  return typeof value === 'string' && SAVED_PLAN_TIMEFRAMES.has(value);
+}
+
 /**
  * Deterministic "latest saved plan" selection. Business ordering is by
  * `SavedPlan.date` — NOT the database's `created_at` — because `date` is
@@ -78,7 +95,9 @@ export function selectLatestSavedPlan(plans: ProjectedSavedPlan[]): LatestSavedP
 
   const valid = plans
     .map((plan) => ({ plan, ms: Date.parse(plan.date) }))
-    .filter((entry): entry is { plan: ProjectedSavedPlan; ms: number } => Number.isFinite(entry.ms));
+    .filter((entry): entry is { plan: ProjectedSavedPlan; ms: number } =>
+      Number.isFinite(entry.ms) && typeof entry.plan.id === 'string' && entry.plan.id.trim().length > 0
+    );
 
   if (valid.length === 0) return { state: 'unknown' };
 

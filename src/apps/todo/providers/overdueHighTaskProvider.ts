@@ -18,9 +18,10 @@
 // already-normalized `TaskItem` shape, not raw Supabase columns.
 
 import type { TaskItem } from '../types';
-import { todayStr } from '../dateUtils';
+import { isValidLocalDateStr, todayStr } from '../dateUtils';
 import type { InsightCandidate } from '../contracts/insightCandidate';
 import { sanitizeTaskTitle } from '../sanitizeTaskTitle';
+import { isTaskLikeType } from './normalTasksTodayProvider';
 
 export interface OverdueHighTaskFacts {
   taskId: string;
@@ -39,7 +40,9 @@ function compareForSelection(a: TaskItem, b: TaskItem): number {
 }
 
 function qualifyingOverdueHigh(tasks: TaskItem[], today: string): TaskItem[] {
-  return tasks.filter((t) => !t.done && t.priority === 'high' && !!t.date && t.date < today);
+  return tasks.filter((t) =>
+    !t.done && isTaskLikeType(t.type) && t.priority === 'high' && isValidLocalDateStr(t.date) && t.date < today
+  );
 }
 
 function buildCandidateFromTask(winner: TaskItem): InsightCandidate<OverdueHighTaskFacts> {
@@ -67,8 +70,8 @@ function buildCandidateFromTask(winner: TaskItem): InsightCandidate<OverdueHighT
   };
 }
 
-export function evaluateOverdueHighTask(tasks: TaskItem[]): InsightCandidate<OverdueHighTaskFacts> | null {
-  const qualifying = qualifyingOverdueHigh(tasks, todayStr());
+export function evaluateOverdueHighTask(tasks: TaskItem[], now: Date = new Date()): InsightCandidate<OverdueHighTaskFacts> | null {
+  const qualifying = qualifyingOverdueHigh(tasks, todayStr(now));
   if (qualifying.length === 0) return null;
 
   const winner = [...qualifying].sort(compareForSelection)[0];
@@ -85,6 +88,6 @@ export function evaluateOverdueHighTask(tasks: TaskItem[]): InsightCandidate<Ove
  * silently disappearing — the inline PersonalizedInsight banner keeps using
  * evaluateOverdueHighTask above, unaffected.
  */
-export function evaluateOverdueHighTaskCandidates(tasks: TaskItem[]): InsightCandidate<OverdueHighTaskFacts>[] {
-  return [...qualifyingOverdueHigh(tasks, todayStr())].sort(compareForSelection).map(buildCandidateFromTask);
+export function evaluateOverdueHighTaskCandidates(tasks: TaskItem[], now: Date = new Date()): InsightCandidate<OverdueHighTaskFacts>[] {
+  return [...qualifyingOverdueHigh(tasks, todayStr(now))].sort(compareForSelection).map(buildCandidateFromTask);
 }

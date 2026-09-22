@@ -46,6 +46,6 @@ export function evaluateNoAppointmentsToday(
     // "create appointment" flow is part of this approved feature scope.
     dedupeKey: `appointment_none_today:${state.date}`,
     sourceRecordId: null,
-    evaluatedAt: new Date().toISOString(),
+    evaluatedAt: now.toISOString(),
   };
 }

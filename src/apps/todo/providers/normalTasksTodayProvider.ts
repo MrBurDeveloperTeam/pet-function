@@ -25,7 +25,7 @@
 // correction's own scope.
 
 import type { TaskItem } from '../types';
-import { todayStr } from '../dateUtils';
+import { isValidLocalDateStr, todayStr } from '../dateUtils';
 import type { InsightCandidate } from '../contracts/insightCandidate';
 
 export interface NormalTasksTodayFacts {
@@ -41,10 +41,12 @@ export function isTaskLikeType(type: TaskItem['type'] | null | undefined): boole
   return type === 'task';
 }
 
-export function evaluateNormalTasksToday(tasks: TaskItem[]): InsightCandidate<NormalTasksTodayFacts> | null {
-  const today = todayStr();
+export function evaluateNormalTasksToday(tasks: TaskItem[], now: Date = new Date()): InsightCandidate<NormalTasksTodayFacts> | null {
+  const today = todayStr(now);
 
-  const qualifying = tasks.filter((t) => !t.done && isTaskLikeType(t.type) && t.date === today);
+  const qualifying = tasks.filter((t) =>
+    !t.done && isTaskLikeType(t.type) && isValidLocalDateStr(t.date) && t.date === today
+  );
   if (qualifying.length === 0) return null;
 
   const count = qualifying.length;

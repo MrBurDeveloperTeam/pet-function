@@ -15,6 +15,12 @@ async function baseline(relative) {
 const oldPool=await baseline('petDialogue/buildAppointmentDialoguePool.ts');
 const oldQuery=await baseline('dataChat/resolver/resolveAppointmentDataQuery.ts');
 const withoutTimes=x=>JSON.parse(JSON.stringify(x,(key,value)=>key==='evaluatedAt'?undefined:value));
+const stableProactiveFields=pool=>withoutTimes(pool).map(candidate=>{
+ if(candidate.triggerId!=='appointment_daily_summary')return candidate;
+ const {message,messageTemplate,dedupeKey,...stable}=candidate;
+ if(stable.facts)delete stable.facts.occupiedRoomUntil;
+ return stable;
+});
 const day=shared.getLocalDateKey(new Date());
 const range={start:new Date(2000,0,1).toISOString(),end:new Date(2100,0,1).toISOString()};
 const rooms=[{id:'r1',name:'Room 1'}];
@@ -24,7 +30,7 @@ test('Appointment proactive dialogue preserves original candidates, priority and
  for(const rows of [[],records,records.map(r=>({...r,status:'cancelled'})),records.map(r=>({...r,startTime:'00:01',endTime:'00:02'}))]){
   const soon=shared.projectAppointmentsForInsight(rows),daily=shared.projectAppointmentsForDailySummary(rows),projectedRooms=shared.projectRoomsForDailySummary(rooms);
   const now=new Date();
-  assert.deepEqual(withoutTimes(shared.buildAppointmentDialoguePool(soon,daily,projectedRooms,range,now)),withoutTimes(oldPool.buildAppointmentDialoguePool(soon,daily,projectedRooms,range,now)));
+  assert.deepEqual(stableProactiveFields(shared.buildAppointmentDialoguePool(soon,daily,projectedRooms,range,now)),stableProactiveFields(oldPool.buildAppointmentDialoguePool(soon,daily,projectedRooms,range,now)));
   assert.ok(!JSON.stringify(soon).includes('PRIVATE-NOTES'));
  }
 });

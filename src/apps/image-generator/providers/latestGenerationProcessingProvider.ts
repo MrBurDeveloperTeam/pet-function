@@ -2,19 +2,12 @@
 // ../utils/generationProjection.ts's `selectLatestGeneration`). No
 // Supabase query here.
 //
-// Only `status === 'processing'` qualifies — NOT `'pending'`. Source
-// inspection (both `src/app/api/generate/image/route.ts` and
-// `.../video/route.ts`) shows the generation row is inserted with
-// `status: "processing"` directly; neither route ever writes `"pending"`
-// anywhere. `'pending'` exists in the `Generation['status']` type union
-// and in `GenerationCard`'s display logic (`isLoading = status ===
-// 'pending' || status === 'processing'`) but is not actually produced by
-// the current generation flow — there is no evidence it represents a
-// genuinely active, currently-used generation state in this repo today.
-// Treating it as equivalent to `'processing'` here would be a guess this
-// slice deliberately does not make; if `'pending'` becomes real later,
-// this is a one-line, explicit product decision to revisit, not a
-// silent scope expansion now.
+// Both `pending` and `processing` qualify. The current API routes create
+// rows as `processing`, while the shared Generation contract and the
+// dashboard's own loading UI explicitly recognize `pending` as the
+// earlier active state. Treating both as "still processing" prevents the
+// pet from falling through to a lower-priority plan message while a real
+// generation is waiting to start.
 //
 // CURRENT-STATE REFLECTION ONLY, no polling: this simply stops being
 // true once the latest generation's status changes on the next page
@@ -27,7 +20,7 @@ import type { InsightCandidate } from '../contracts/insightCandidate';
 export interface LatestGenerationProcessingFacts {
   generationId: string;
   generationType: 'image' | 'video';
-  status: 'processing';
+  status: 'pending' | 'processing';
 }
 
 /** See LatestGenerationFailedCandidate's doc comment
@@ -48,13 +41,13 @@ export function evaluateLatestGenerationProcessing(
   latest: ProjectedGeneration | null
 ): LatestGenerationProcessingCandidate | null {
   if (!latest) return null;
-  if (latest.status !== 'processing') return null;
+  if (latest.status !== 'pending' && latest.status !== 'processing') return null;
   if (latest.type !== 'image' && latest.type !== 'video') return null;
 
   const facts: LatestGenerationProcessingFacts = {
     generationId: latest.id,
     generationType: latest.type,
-    status: 'processing',
+    status: latest.status,
   };
 
   return {

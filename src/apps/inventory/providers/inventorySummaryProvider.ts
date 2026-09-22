@@ -116,7 +116,7 @@ export function evaluateInventorySummary(
   if (anomalyCount > 0) return null;
 
   const itemCount = snapshot.length;
-  const message = `Inventory is up to date across ${itemCount} tracked item${itemCount === 1 ? '' : 's'}.`;
+  const message = `You currently have ${totalQuantity} unit${totalQuantity === 1 ? '' : 's'} across ${itemCount} tracked item${itemCount === 1 ? '' : 's'}.`;
 
   const facts: InventorySummaryFacts = {
     itemCount,
@@ -133,10 +133,10 @@ export function evaluateInventorySummary(
     triggerId: 'inventory_summary',
     priority: 'INFO',
     facts,
-    messageTemplate: 'Inventory is up to date across {itemCount} tracked items.',
+    messageTemplate: 'You currently have {totalQuantity} units across {itemCount} tracked items.',
     message,
     action: { label: 'View Inventory', view: 'inventory' },
-    dedupeKey: `inventory_summary:${todayKey}:count:${itemCount}`,
+    dedupeKey: `inventory_summary:${todayKey}:count:${itemCount}:quantity:${totalQuantity}`,
     // Aggregate — no single backing record.
     sourceRecordId: null,
     evaluatedAt: new Date().toISOString(),

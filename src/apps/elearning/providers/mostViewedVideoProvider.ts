@@ -46,13 +46,13 @@ export function evaluateMostViewedVideo(
   if (!mostViewed.id) return null;
 
   const viewCount = mostViewed.view_count;
-  if (typeof viewCount !== 'number' || !Number.isFinite(viewCount) || viewCount <= 0) {
+  if (!Number.isInteger(viewCount) || (viewCount as number) <= 0) {
     return null;
   }
 
   const facts: MostViewedVideoFacts = {
     videoId: mostViewed.id,
-    viewCount,
+    viewCount: viewCount as number,
   };
 
   return {
@@ -61,7 +61,7 @@ export function evaluateMostViewedVideo(
     priority: 'INFO',
     facts,
     messageTemplate: 'Your most viewed video has {viewCount} views.',
-    message: buildMessage(viewCount),
+    message: buildMessage(viewCount as number),
     action: { label: 'View Video' },
     dedupeKey: `elearning_most_viewed_video:${mostViewed.id}`,
     sourceRecordId: mostViewed.id,

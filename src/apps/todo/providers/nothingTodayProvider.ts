@@ -25,17 +25,19 @@
 // incomplete tasks exist.
 
 import type { TaskItem } from '../types';
-import { todayStr } from '../dateUtils';
+import { isValidLocalDateStr, todayStr } from '../dateUtils';
 import type { InsightCandidate } from '../contracts/insightCandidate';
 
 export interface NothingTodayFacts {
   date: string;
 }
 
-export function evaluateNothingToday(tasks: TaskItem[]): InsightCandidate<NothingTodayFacts> | null {
-  const today = todayStr();
+export function evaluateNothingToday(tasks: TaskItem[], now: Date = new Date()): InsightCandidate<NothingTodayFacts> | null {
+  const today = todayStr(now);
 
-  const hasUnresolvedDatedWork = tasks.some((t) => !t.done && !!t.date && t.date <= today);
+  const hasUnresolvedDatedWork = tasks.some((t) =>
+    !t.done && isValidLocalDateStr(t.date) && t.date <= today
+  );
   if (hasUnresolvedDatedWork) return null;
 
   const facts: NothingTodayFacts = { date: today };

@@ -1,4 +1,5 @@
 export * from './utils/notificationProjection';
+export * from './sanitizeCreatorDisplayName';
 export * from './resolver/resolveElearningInsight';
 export * from './providers/mostViewedVideoProvider';
 export * from './providers/latestVideoPerformanceProvider';

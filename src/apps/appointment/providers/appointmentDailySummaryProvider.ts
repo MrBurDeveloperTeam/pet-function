@@ -32,6 +32,9 @@ export interface AppointmentDailySummaryFacts {
    *  occupied but its room row is missing (see buildMessage below for
    *  that case's wording, which falls back to a count-only sentence). */
   occupiedRoomName?: string;
+  /** Present with the single occupied room so the message can state when
+   *  that known booking releases the room. */
+  occupiedRoomUntil?: string;
 }
 
 function pluralize(n: number, noun: string): string {
@@ -42,13 +45,31 @@ function pluralize(n: number, noun: string): string {
  *  — `null` there means that one room's name couldn't be resolved (room
  *  row missing from the loaded projection), which still produces a
  *  truthful count-only sentence rather than a fabricated name. */
-function buildMessage(count: number, occupiedRoomCount: number, singleKnownRoomName: string | null): string {
+function formatTime(iso: string | null): string | null {
+  if (!iso) return null;
+  const value = new Date(iso);
+  if (Number.isNaN(value.getTime())) return null;
+  try {
+    return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(value) || null;
+  } catch {
+    return null;
+  }
+}
+
+function buildMessage(
+  count: number,
+  occupiedRoomCount: number,
+  singleKnownRoomName: string | null,
+  singleRoomEndAt: string | null
+): string {
   const base = `You have ${pluralize(count, 'appointment')} today.`;
   if (occupiedRoomCount === 0) return base;
   if (occupiedRoomCount === 1) {
-    return singleKnownRoomName
-      ? `${base} ${singleKnownRoomName} is currently in use.`
-      : `${base} 1 room is currently in use.`;
+    const until = formatTime(singleRoomEndAt);
+    if (singleKnownRoomName) {
+      return `${base} ${singleKnownRoomName} is currently in use${until ? ` until ${until}` : ''}.`;
+    }
+    return `${base} 1 room is currently in use${until ? ` until ${until}` : ''}.`;
   }
   return `${base} ${pluralize(occupiedRoomCount, 'room')} are currently in use.`;
 }
@@ -66,12 +87,14 @@ export function evaluateAppointmentDailySummary(
 
   const occupiedRoomCount = state.occupiedRooms.length;
   const singleKnownRoomName = occupiedRoomCount === 1 ? state.occupiedRooms[0].roomName : null;
+  const singleRoomEndAt = occupiedRoomCount === 1 ? state.occupiedRooms[0].endAt : null;
 
   const facts: AppointmentDailySummaryFacts = {
     date: state.date,
     appointmentCount: state.count,
     occupiedRoomCount,
     ...(singleKnownRoomName ? { occupiedRoomName: singleKnownRoomName } : {}),
+    ...(singleRoomEndAt ? { occupiedRoomUntil: singleRoomEndAt } : {}),
   };
 
   return {
@@ -79,14 +102,22 @@ export function evaluateAppointmentDailySummary(
     triggerId: 'appointment_daily_summary',
     priority: 'MEDIUM',
     facts,
-    messageTemplate: 'You have {appointmentCount} appointments today.',
-    message: buildMessage(state.count, occupiedRoomCount, singleKnownRoomName),
+    messageTemplate: occupiedRoomCount === 0
+      ? 'You have {appointmentCount} appointments today.'
+      : occupiedRoomCount === 1
+        ? singleKnownRoomName
+          ? 'You have {appointmentCount} appointments today. {occupiedRoomName} is currently in use until {occupiedRoomUntil}.'
+          : 'You have {appointmentCount} appointments today. 1 room is currently in use until {occupiedRoomUntil}.'
+        : 'You have {appointmentCount} appointments today. {occupiedRoomCount} rooms are currently in use.',
+    message: buildMessage(state.count, occupiedRoomCount, singleKnownRoomName, singleRoomEndAt),
     // No action: the user is already on the calendar surface this
     // candidate renders on — nothing further to navigate to.
-    dedupeKey: `appointment_daily_summary:${state.date}`,
+    dedupeKey: `appointment_daily_summary:${state.date}:count:${state.count}:rooms:${state.occupiedRooms
+      .map((room) => `${room.roomId}@${room.endAt}`)
+      .join(',') || 'none'}`,
     // No single backing record — this is an aggregate over today's
     // appointments, matching the contract's nullable sourceRecordId.
     sourceRecordId: null,
-    evaluatedAt: new Date().toISOString(),
+    evaluatedAt: now.toISOString(),
   };
 }

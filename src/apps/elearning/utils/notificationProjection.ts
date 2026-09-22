@@ -16,14 +16,22 @@ export interface ProjectedNotification {
 }
 
 import type { NotificationWithActor } from '../types';
+import { sanitizeCreatorDisplayName } from '../sanitizeCreatorDisplayName';
 
 export function projectNotificationsForFollowedCreatorPosted(
   notifications: NotificationWithActor[] | undefined
 ): ProjectedNotification[] {
   if (!Array.isArray(notifications)) return [];
-  return notifications.map((row) => {
+  return notifications.flatMap((row) => {
+    if (!row || typeof row !== 'object') return [];
     const candidates = [row.profiles?.full_name, row.profiles?.username, row.profiles?.name];
-    const actorDisplayName = candidates.map((value) => value?.trim()).find(Boolean);
+    const actorDisplayName = candidates.map(sanitizeCreatorDisplayName).find(Boolean);
+    const source = row.source === undefined || row.source === 'platform'
+      ? 'platform'
+      : row.source === 'community'
+        ? 'community'
+        : null;
+    if (!source) return [];
     return {
       id: row.id,
       actorId: row.actor_id,
@@ -31,8 +39,8 @@ export function projectNotificationsForFollowedCreatorPosted(
       createdAt: row.created_at,
       type: row.type,
       isRead: row.is_read,
-      source: row.source ?? 'platform',
+      source,
       ...(actorDisplayName ? { actorDisplayName } : {}),
-    };
+    } satisfies ProjectedNotification;
   });
 }
