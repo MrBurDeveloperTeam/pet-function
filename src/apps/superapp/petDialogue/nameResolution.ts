@@ -25,3 +25,8 @@ export function resolveSafeFirstName(input: DisplayNameSources): string | null {
   const first = full.trim().split(/\s+/)[0];
   return first || null;
 }
+
+export function buildSuperappWelcomeBackMessage(input: DisplayNameSources): string {
+  const displayName = resolveSafeDisplayName(input);
+  return displayName ? `Welcome back, ${displayName}! 👋` : 'Welcome back! 👋';
+}

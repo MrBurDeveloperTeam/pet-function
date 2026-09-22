@@ -50,6 +50,7 @@ test('risk alerts retain priority over the factual inventory summary', () => {
     'inventory_expiring_soon', 'inventory_summary',
   ]);
   assert.equal(pool[3].message, 'soon expires in 1 day.');
+  assert.ok(pool.every((candidate) => candidate.action === undefined));
 });
 
 test('empty or anomalous inventory never produces a positive summary', () => {

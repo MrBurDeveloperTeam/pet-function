@@ -69,5 +69,8 @@ export function buildInventoryDialoguePool(rooms: Room[], now: Date = new Date()
   const summary = evaluateInventorySummary(snapshot, now);
   if (summary) pool.push(summary);
 
-  return pool;
+  // The Cat is already inside Inventory. Its navigation CTAs do not help
+  // here, so keep the underlying insight facts/actions for other surfaces
+  // and remove actions only from the Cat's presentation candidates.
+  return pool.map(({ action: _action, ...candidate }) => candidate);
 }

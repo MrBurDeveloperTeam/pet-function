@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { normalizePetId } from '../pet/publicOptions';
 import { useSharedCatDialogueRuntime, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../cat';
 import { CAT_SPRITE_SHEET_URLS } from '../resources';
+import { formatInventoryWelcomeBack } from './inventory/petDialogue/inventoryWelcomeBack';
 
 const PET_SLEEPING_KEY = 'pet_is_sleeping';
 const PET_SLEEPING_UPDATED_AT_KEY = 'pet_is_sleeping_updated_at';
@@ -182,11 +183,11 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
         .limit(1)
         .maybeSingle();
 
-      let welcomeText = !error ? config?.welcome_back_text : null;
+      const configuredText = !error ? config?.welcome_back_text : null;
       const autoCloseMs = (!error && config?.welcome_back_auto_close_ms) || DEFAULT_WELCOME_BACK_AUTO_CLOSE_MS;
 
-      if (welcomeText && /\[name\]/i.test(welcomeText)) {
-        let displayName = null;
+      let displayName = null;
+      if (typeof configuredText !== 'string' || !configuredText.trim() || /\[name\]/i.test(configuredText)) {
         try {
           const { data: profile } = await supabase
             .from('profiles')
@@ -197,24 +198,22 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
         } catch (err) {
           console.error("Error fetching profile for welcome back name:", err);
         }
-        if (!displayName) displayName = userMeta?.name || null;
-        if (!displayName && userEmail) displayName = userEmail.split('@')[0];
-        // Never show a raw email address, even if it came from profiles.name/full_name.
-        if (displayName && displayName.includes('@')) displayName = displayName.split('@')[0];
-
-        welcomeText = displayName
-          ? welcomeText.replace(/\[name\]/gi, displayName)
-          : welcomeText
-              .replace(/,\s*\[name\]/gi, '')
-              .replace(/\[name\],\s*/gi, '')
-              .replace(/\[name\]/gi, '')
-              .replace(/\s{2,}/g, ' ')
-              .trim();
       }
+      if (!displayName) displayName = userMeta?.name || null;
+      if (!displayName) displayName = userEmail;
 
-      setWelcomeBackInput({ status: 'ready', message: welcomeText || null, autoCloseMs });
+      setWelcomeBackInput({
+        status: 'ready',
+        message: formatInventoryWelcomeBack(configuredText, displayName),
+        autoCloseMs,
+      });
     } catch (err) {
       console.error("Error fetching welcome back message:", err);
+      setWelcomeBackInput({
+        status: 'ready',
+        message: formatInventoryWelcomeBack(null, userMeta?.name || userEmail),
+        autoCloseMs: DEFAULT_WELCOME_BACK_AUTO_CLOSE_MS,
+      });
     }
   };
 

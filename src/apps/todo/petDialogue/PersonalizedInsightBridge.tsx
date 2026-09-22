@@ -75,12 +75,12 @@ export function PersonalizedInsightBridgeProvider({ children }: { children: Reac
  *  change, reverts to `null` (publisher absent) on unmount. */
 export function usePublishPersonalizedInsight(state: PersonalizedInsightBridgeState): void {
   const ctx = useContext(PersonalizedInsightBridgeContext);
+  const publish = ctx?.publish;
   useEffect(() => {
-    if (!ctx) return;
-    ctx.publish(state);
-    return () => ctx.publish(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, state]);
+    if (!publish) return;
+    publish(state);
+    return () => publish(null);
+  }, [publish, state]);
 }
 
 /** CatMascot calls this — read-only, never publishes. `null` = no
@@ -89,4 +89,3 @@ export function usePersonalizedInsightBridge(): PersonalizedInsightBridgeState |
   const ctx = useContext(PersonalizedInsightBridgeContext);
   return ctx?.entry ?? null;
 }
-

@@ -21,9 +21,8 @@ export interface DialogueRuntimeInput<
   TCandidate extends DialogueCandidate = DialogueCandidate
 > {
   appId: string;
-  /** The host's own local user identity (NOT the Global Pet
-   *  `globalUserId` — dialogue dismissal state is intentionally
-   *  per-app, see contracts/identity.ts). `null` while unresolved. */
+  /** The host's own local user identity (not the Global Pet user id).
+   *  `null` while unresolved. */
   userId: string | null;
   disabled?: boolean;
   /** Omit entirely if the host has no Intro concept. */
@@ -39,8 +38,7 @@ export interface DialogueRuntimeInput<
 export interface DialogueRuntimeResult {
   /** Feed directly into <SharedCatMascot dialogue={...} />. */
   dialogue: import('./presentation').CatDialoguePresentation;
-  /** Closes whatever dialogue is currently active (persisting dismissal
-   *  exactly as an explicit Close would). The host composes this with its
+  /** Closes the current dialogue and advances this visit's round. The host composes this with its
    *  own onCatClick prop — e.g. `onCatClick={() => { closeActiveDialogue();
    *  openVirtualPet(); }}` — matching the pre-extraction behavior where a
    *  Cat click while a dialogue is open also dismisses it. */

@@ -6,7 +6,7 @@ import { fetchTodoDialogueEvaluation } from './providers/todoSnapshotProvider';
 import { fetchAppointmentDialogueEvaluation } from './providers/appointmentSnapshotProvider';
 import { buildProfileCandidate } from './providers/profileProvider';
 import { fetchLegacyIntroCandidate } from './providers/legacyIntroProvider';
-import { resolveSafeFirstName } from './nameResolution';
+import { buildSuperappWelcomeBackMessage, resolveSafeDisplayName } from './nameResolution';
 import { isDialogueIneligible, markDialogueDismissed, markDialogueSeenThisSession } from './sessionDedupe';
 import { selectFirstEligibleDialogueCandidate } from './selectDialogueCandidate';
 import { getInventoryAppRoute, getTodoAppRoute, getAppointmentAppRoute, getProfileSettingsRoute } from './knownRoutes';
@@ -24,7 +24,7 @@ const DEFAULT_FALLBACK_AUTO_CLOSE_MS = 6000;
 
 export interface WelcomeFallbackFacts {
   userId: string;
-  firstName: string | null;
+  displayName: string | null;
   messageSource: 'hardcoded_fallback';
 }
 
@@ -64,13 +64,13 @@ function buildFallbackCandidate(params: {
   email?: string | null;
   autoCloseMs: number;
 }): InsightCandidate<WelcomeFallbackFacts> {
-  const firstName = resolveSafeFirstName(params);
-  const message = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
+  const displayName = resolveSafeDisplayName(params);
+  const message = buildSuperappWelcomeBackMessage(params);
 
   const evaluatedAt = new Date().toISOString();
   const facts: WelcomeFallbackFacts = {
     userId: params.userId,
-    firstName,
+    displayName,
     messageSource: 'hardcoded_fallback',
   };
 
@@ -80,7 +80,7 @@ function buildFallbackCandidate(params: {
     app: 'system',
     triggerId: DIALOGUE_ID.WELCOME_FALLBACK,
     facts,
-    messageTemplate: 'Welcome back, {firstName}!',
+    messageTemplate: 'Welcome back, {displayName}! 👋',
     sourceRecordId: params.userId,
     evaluatedAt,
     userState: 'GENERAL_USER_NO_URGENT',
@@ -484,6 +484,8 @@ export function usePersonalizedPetDialogue({
     }
   }, []);
 
+  const advanceRound = useCallback(() => setRefreshTick((tick) => tick + 1), []);
+
   const runAction = useCallback(
     async (candidate: DialogueCandidate) => {
       // CTA = explicit user action: write the cross-tab dismissal FIRST,
@@ -572,5 +574,5 @@ export function usePersonalizedPetDialogue({
     [onNavigateInternal, createAppLink]
   );
 
-  return { lifecycle, selection, userId, markShown, runAction };
+  return { lifecycle, selection, userId, markShown, runAction, advanceRound };
 }

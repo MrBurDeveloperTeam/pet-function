@@ -6,7 +6,7 @@ import { CAT_SPRITE_SHEET_URLS } from '../../resources';
 import { getSuperappHostDependencies } from './dependencies';
 import { isPersonalizedPetDialogueEnabled } from './petDialogue/dialogueFlag';
 import { usePersonalizedPetDialogue } from './petDialogue/usePersonalizedPetDialogue';
-import { markDialogueDismissed, buildDialogueDismissalKey } from './petDialogue/sessionDedupe';
+import { markDialogueDismissed, resetDialogueRound } from './petDialogue/sessionDedupe';
 import { DIALOGUE_ID, type DialogueCandidate, type ProfileCompletionStatus } from './petDialogue/types';
 
 // PHASE 9D (Cat Presentation migration): the local App Gallery dialogue
@@ -110,15 +110,11 @@ export default function CatMascot({
   // Never set true anywhere else (see tryActivateDialog for the gate this
   // guards).
   const isEntryWalkComplete = useRef(false);
-  // Which dialog type is currently prepared to show ('intro' | 'welcomeBack' |
-  // 'personalized' | null), and which dialog types have already been dismissed
-  // during this page lifecycle. Tracking dismissal per-type (rather than one
-  // shared flag) means dismissing the Post-Login Intro no longer permanently
-  // blocks the Welcome Back dialog, or vice versa. 'personalized' is the
-  // Phase 1A resolver's own single slot (P0 / profile reminder / fallback);
-  // when the resolver instead picks the legacy intro, it reuses 'intro' as-is.
+  // Current step of this visit's dialogue round. The resolver chooses the
+  // next candidate after Close; the fallback ends the round until next visit.
   const currentDialogType = useRef<'intro' | 'welcomeBack' | 'personalized' | null>(null);
-  const dismissedDialogs = useRef<Set<'intro' | 'welcomeBack' | 'personalized'>>(new Set());
+  const roundCompleteRef = useRef(false);
+  const advanceRoundRef = useRef<() => void>(() => {});
   // Holds the winning Phase 1A candidate while it's active, so tryActivateDialog
   // can decide whether to bypass the entry-walk gate / arm an auto-close timer,
   // and so the bubble can render its optional action button. Mirrored into
@@ -173,21 +169,11 @@ export default function CatMascot({
     localStorage.setItem(`intro_shown_${uid}`, 'true');
   };
 
-  // persistDismissal defaults to true (Close button, CTA button, and the
-  // auto-close timer all count as this tab actually finishing with the
-  // dialogue, so they write the cross-tab localStorage dismissal). The one
-  // caller that must NOT write again is the cross-tab `storage` event
-  // listener below — the dismissal key is already present in shared
-  // localStorage (that's what triggered the event), so re-writing it here
-  // would be a pointless redundant write, not merely idempotent; passing
-  // persistDismissal: false keeps that handler a pure local-UI suppression.
-  const closeDialog = (options?: { persistDismissal?: boolean }) => {
-    const persistDismissal = options?.persistDismissal ?? true;
+  // Closing an ordinary candidate re-evaluates the remaining pool. Closing
+  // Welcome Back leaves the page quiet, but a new visit starts fresh.
+  const closeDialog = () => {
     const dialogType = currentDialogType.current;
-    if (dialogType) {
-      dismissedDialogs.current.add(dialogType);
-    }
-    if (persistDismissal && dialogType === 'personalized') {
+    if (dialogType === 'personalized') {
       const candidate = personalizedCandidateRef.current;
       if (candidate && personalizedUserId) {
         markDialogueDismissed(personalizedUserId, candidate.dedupeKey);
@@ -199,11 +185,22 @@ export default function CatMascot({
     if (dialogType === 'intro' && !disabled && currentUserId) {
       markIntroCompleted(currentUserId);
     }
+    if (dialogType === 'personalized' || dialogType === 'intro') {
+      if (personalizedCandidateRef.current?.dialogueId === DIALOGUE_ID.WELCOME_FALLBACK) {
+        roundCompleteRef.current = true;
+        if (personalizedUserId) resetDialogueRound(personalizedUserId);
+      } else {
+        currentDialogType.current = null;
+        personalizedCandidateRef.current = null;
+        setPersonalizedActiveCandidate(null);
+        setDialogSteps([]);
+        advanceRoundRef.current();
+      }
+    }
   };
 
   // Single source of truth for showing a prepared dialog: only activates once the
-  // entry walk has finished AND a dialog type has been prepared AND that specific
-  // type hasn't already been dismissed this page lifecycle. Idempotent via
+  // entry walk has finished AND a dialog type has been prepared. Idempotent via
   // isDialogActiveRef — once active, further calls (StrictMode's dev double-invoke
   // of the fetch effect, click-to-move, etc.) are no-ops instead of re-arming the
   // Welcome Back timer from scratch every time.
@@ -218,7 +215,7 @@ export default function CatMascot({
   // arrives, without duplicating any of the logic below.
   const tryActivateDialog = () => {
     const dialogType = currentDialogType.current;
-    if (!dialogType || dismissedDialogs.current.has(dialogType) || isDialogActiveRef.current) {
+    if (!dialogType || isDialogActiveRef.current) {
       return;
     }
 
@@ -264,6 +261,7 @@ export default function CatMascot({
     userId: personalizedUserId,
     markShown: markPersonalizedShown,
     runAction: runPersonalizedAction,
+    advanceRound,
   } = usePersonalizedPetDialogue({
     active: personalizedDialogueEnabled && !disabled,
     matchedUserId: personalizedMatchedUserId,
@@ -277,6 +275,7 @@ export default function CatMascot({
     },
     onNavigateInternal,
   });
+  advanceRoundRef.current = advanceRound;
 
   // usePersonalizedPetDialogue reactively tracks the authenticated identity
   // and restarts its own evaluation the instant it changes — including a
@@ -299,6 +298,7 @@ export default function CatMascot({
     lastPersonalizedUserIdRef.current = personalizedUserId;
 
     if (!previousUserId || previousUserId === personalizedUserId) return;
+    roundCompleteRef.current = false;
 
     // Identity changed under this mount. Only ever tears down state this
     // same resolver adopted ('personalized' or resolver-driven 'intro') —
@@ -312,43 +312,9 @@ export default function CatMascot({
       clearWelcomeBackAutoCloseTimer();
       setDialogSteps([]);
       setDialogStep(0);
-      // Deliberately not added to dismissedDialogs: the outgoing user's
-      // dismissal state must never suppress the new user's fresh
-      // evaluation once it resolves.
+      // The outgoing user's current step must not survive an account switch.
     }
   }, [personalizedUserId, personalizedDialogueEnabled, disabled]);
-
-  // Cross-tab dismissal sync: if the SAME dialogue (same userId + dedupeKey)
-  // is dismissed (Close or CTA) in another tab, that tab's write to
-  // localStorage fires the native `storage` event here — but only in THIS
-  // tab, never in the tab that performed the write, so reusing closeDialog()
-  // (which itself re-writes the identical key/value) cannot loop. Only acts
-  // on the 'personalized' dialog type and only while it's actually visible
-  // for the matching candidate; unrelated storage writes (theme, other
-  // dedupeKeys, other users) are ignored.
-  useEffect(() => {
-    if (!personalizedDialogueEnabled) return;
-
-    const handleStorage = (event: StorageEvent) => {
-      if (!event.key || event.newValue === null) return;
-      if (currentDialogType.current !== 'personalized') return;
-      if (!isDialogActiveRef.current) return;
-
-      const candidate = personalizedCandidateRef.current;
-      if (!candidate || !personalizedUserId) return;
-
-      const expectedKey = buildDialogueDismissalKey(personalizedUserId, candidate.dedupeKey);
-      if (event.key === expectedKey) {
-        // Local UI suppression only — the dismissal key is already in
-        // shared localStorage (that's what fired this event), so this must
-        // never write it again.
-        closeDialog({ persistDismissal: false });
-      }
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [personalizedDialogueEnabled, personalizedUserId]);
 
   // Adopts the resolver's selection into the same dialogSteps/currentDialogType
   // machinery the legacy Intro/Welcome Back paths already use, so rendering,
@@ -358,6 +324,7 @@ export default function CatMascot({
   // replace an already-shown dialogue for this mount.
   useEffect(() => {
     if (!personalizedDialogueEnabled || disabled) return;
+    if (roundCompleteRef.current) return;
     if (personalizedLifecycle !== 'ready' && personalizedLifecycle !== 'failed') return;
     if (!personalizedSelection) return;
     if (currentDialogType.current) return;
