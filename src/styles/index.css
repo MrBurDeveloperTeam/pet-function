@@ -645,6 +645,26 @@
   border-color: rgb(226 232 240 / 0.8);
   border-radius: 1.2rem 1.2rem 1.2rem 0.125rem;
 }
+.snabbb-molar-experience .molar-chat-error-retry {
+  display: block;
+  margin-top: 0.65rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #047857;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.snabbb-molar-experience .molar-chat-error-reference {
+  display: block;
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 
 .snabbb-molar-experience .molar-chat-loading-bubble {
   padding: 0.875rem 1.25rem;

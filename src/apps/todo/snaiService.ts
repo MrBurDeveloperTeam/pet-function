@@ -1,5 +1,7 @@
 type ChatPart = { text: string };
 
+import { createAuthorizedSnaiTransport } from '../../ai/internal/snaiTransport';
+
 type ChatMessage = { role: 'user' | 'model'; parts: ChatPart[] };
 
 interface CapabilityRouteResult {
@@ -15,40 +17,17 @@ interface CapabilityDescriptor {
 }
 
 export function createTodoSNAIService(supabase: any, fetch: typeof globalThis.fetch = (...args) => globalThis.fetch(...args)) {
-void fetch;
-// Client-side transport layer only. This file must NEVER import
-// @google/genai, construct a GoogleGenAI client, read
-// VITE_GEMINI_API_KEY, or call generateContent directly — all of that now
-// lives exclusively in the server-only Supabase Edge Function at
-// supabase/functions/molar-chat-todo/index.ts, which this file calls via
-// supabase.functions.invoke(). That invocation automatically carries the
-// browser's current authenticated Supabase session as the Authorization
-// bearer token — no token is ever placed into the request body/prompt
-// here. Public function signatures are preserved so
-// src/aiExperience/todoMolarAdapter.ts requires no change.
-//
-// Namespaced as "molar-chat-todo", NOT the generic "molar-chat" slug —
-// this shared Supabase project also hosts separate, differently-prompted
-// molar-chat functions for Appointment, Calculator, and App Gallery; a
-// shared name let one app's deploy silently overwrite another's system
-// prompt (confirmed to have actually happened to this app).
+// Thin client transport only. The shared `snai-chat` Edge Function owns
+// authentication verification, prompts, model calls and response validation.
+// This host supplies only its authenticated Supabase client and authorized data.
 
 
 
+
+const invokeSnai = createAuthorizedSnaiTransport(supabase, 'todo', fetch);
 
 async function invokeMolarChat(payload: Record<string, unknown>): Promise<string> {
-  if (!supabase) {
-    throw new Error('AI service is not configured');
-  }
-
-  const { data, error } = await supabase.functions.invoke('molar-chat-todo', {
-    body: payload,
-  });
-
-  if (error || !data?.ok) {
-    throw new Error(data?.error || error?.message || 'AI service request failed');
-  }
-
+  const data = await invokeSnai(payload);
   return data.text;
 }
 
@@ -57,12 +36,7 @@ async function chatWithMolarAI(
   message: string,
   userContext = ''
 ) {
-  try {
-    return await invokeMolarChat({ mode: 'general', history, message, userContext });
-  } catch (error) {
-    console.error('Gemini Chat Error:', error);
-    return "I'm having trouble connecting to the Snabbb Assistant Intelligent servers right now. Please try again shortly.";
-  }
+  return invokeMolarChat({ mode: 'general', history, message, userContext });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -119,17 +93,7 @@ async function routeTodoCapability(
   recentContext: string[],
   previousCapability: string | null
 ): Promise<CapabilityRouteResult> {
-  if (!supabase) {
-    throw new Error('AI service is not configured');
-  }
-
-  const { data, error } = await supabase.functions.invoke('molar-chat-todo', {
-    body: { mode: 'capability_route', message, capabilities, recentContext, previousCapability },
-  });
-
-  if (error || !data?.ok) {
-    throw new Error(data?.error || error?.message || 'Capability routing failed');
-  }
+  const data = await invokeSnai({ mode: 'capability_route', message, capabilities, recentContext, previousCapability });
 
   const { route, capability, confidence, clarification } = data as CapabilityRouteResult;
   if (route !== 'grounded' && route !== 'general_chat' && route !== 'clarification' && route !== 'analytical_followup') {

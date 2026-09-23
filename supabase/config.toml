@@ -1,0 +1,4 @@
+project_id = "opdotszsldcgwjqtvgul"
+
+[functions.snai-chat]
+verify_jwt = true

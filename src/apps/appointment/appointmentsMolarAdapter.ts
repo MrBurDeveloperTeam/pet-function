@@ -141,13 +141,13 @@ export function createAppointmentsMolarAdapter({
   }
 
   return {
+    diagnosticContext: { appId: 'appointment' },
     reset() {
       groundedContextStore.clear();
     },
     async sendMessage({ text, history }) {
       const msg = text.trim();
 
-      try {
         // ── Phase-3 Data-Driven Chat (read-only pilot) ──────────────────
         // Runs BEFORE the existing predefined-response/legacy General Chat
         // pipeline below, and is fully separate from it: a matched request
@@ -311,13 +311,6 @@ export function createAppointmentsMolarAdapter({
           text: cleanResponse || 'SNAI: Unable to process request.',
           meta: { source: 'general' },
         };
-      } catch (error) {
-        // Matches SharedMolarAI's own generic catch string exactly (see
-        // dist/ai.js's `ERROR_TEXT`) — returned here rather than thrown so
-        // this adapter's behavior stays identical regardless of the shared
-        // package's own catch handling.
-        return { text: 'SNAI Error: Unable to process request.', meta: { source: 'fallback' } };
-      }
     },
   };
 }

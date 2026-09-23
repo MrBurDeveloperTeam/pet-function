@@ -10,6 +10,12 @@
 export interface AIMessage {
   role: 'user' | 'model';
   text: string;
+  error?: {
+    code: string;
+    retryable: boolean;
+    requestId?: string;
+    retryText?: string;
+  };
 }
 
 export interface AIRequest {
@@ -34,6 +40,8 @@ export interface AIResponse {
 
 export interface AIAdapter {
   sendMessage(request: AIRequest): Promise<AIResponse>;
+  /** Metadata only; never put a user id, token, prompt, or record id here. */
+  diagnosticContext?: { appId?: string };
   /**
    * Optional generic conversation-lifecycle hook. Called when the user
    * clears the chat via the shared UI's own "Clear conversation" button

@@ -24,7 +24,7 @@ export function createAppointmentMolarAIFloat({supabase, ...services}) {
 // byte-identical from this file's own pre-8D `MolarAIFloat.jsx`/
 // `MolarChat.jsx` (confirmed via reading the installed `dist/ai.js`
 // directly). Every actual response — General Chat, Data Chat, Gemini calls
-// (now server-proxied via the app-specific "molar-chat-appointment" Edge
+// (now server-proxied via the shared "snai-chat" Edge
 // Function, never a client-side API key) — is entirely local, in
 // `../aiExperience/appointmentsMolarAdapter.ts`. That adapter has no
 // mutation-dispatch capability (removed in phase

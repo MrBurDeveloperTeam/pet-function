@@ -182,6 +182,7 @@ async function getPredefinedChatResponse(message: string): Promise<string | null
   }
 
   return {
+    diagnosticContext: { appId: 'inventory' },
     reset() {
       groundedContextStore.clear();
     },

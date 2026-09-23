@@ -1,5 +1,7 @@
 type ChatPart = { text: string };
 
+import { createAuthorizedSnaiTransport } from '../../ai/internal/snaiTransport';
+
 type ChatMessage = { role: 'user' | 'model'; parts: ChatPart[] };
 
 interface CapabilityRouteResult {
@@ -15,45 +17,14 @@ interface CapabilityDescriptor {
 }
 
 export function createElearningSNAIService(supabase: any, fetch: typeof globalThis.fetch = (...args) => globalThis.fetch(...args)) {
-// Client-side transport layer only. This file must NEVER import
-// @google/genai, construct a GoogleGenAI client, read
-// VITE_GEMINI_API_KEY, or call generateContent directly — all of that
-// now lives exclusively in the server-only Cloudflare Pages Function at
-// functions/api/molar-chat.ts, which this file calls via an authenticated
-// fetch('/api/molar-chat', ...). The Supabase access token is attached as
-// an explicit Authorization bearer header (obtained fresh from
-// supabase.auth.getSession() on every call, never cached/logged) — the
-// server independently verifies its signature, never trusts a
-// client-supplied user id. Public function signatures are preserved so
-// src/aiExperience/elearningMolarAdapter.ts requires no change.
+// Thin client transport only. The shared `snai-chat` Edge Function owns
+// authentication verification, prompts, model calls and response validation.
+// This host supplies only its authenticated Supabase client and authorized data.
 
 
 
 
-async function invokeMolarChatRaw(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const accessToken = session?.access_token;
-  if (!accessToken) {
-    throw new Error('No active session');
-  }
-
-  const res = await fetch('/api/molar-chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await res.json().catch(() => null) as Record<string, unknown> | null;
-
-  if (!res.ok || !data?.ok) {
-    throw new Error((data?.error as string | undefined) || `AI service request failed (${res.status})`);
-  }
-
-  return data;
-}
+const invokeMolarChatRaw = createAuthorizedSnaiTransport(supabase, 'elearning', fetch);
 
 async function invokeMolarChat(payload: Record<string, unknown>): Promise<string> {
   const data = await invokeMolarChatRaw(payload);
@@ -65,12 +36,7 @@ async function chatWithMolarAI(
   message: string,
   userContext = ''
 ) {
-  try {
-    return await invokeMolarChat({ mode: 'general', history, message, userContext });
-  } catch (error) {
-    console.error('Gemini Chat Error:', error);
-    return "I'm having trouble connecting to the Snabbb Assistant Intelligent servers right now. Please try again shortly.";
-  }
+  return invokeMolarChat({ mode: 'general', history, message, userContext });
 }
 
 // ─────────────────────────────────────────────────────────────

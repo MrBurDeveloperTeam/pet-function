@@ -9,8 +9,8 @@ import { DynamicIcon } from './internal/DynamicIcon';
 import { MolarMarkdown } from './internal/MolarMarkdown';
 import molarAiLogo from '../assets/ai/ai_logo.png';
 import { SharedSNAISupportCard } from './SharedSNAISupportCard';
-
-const ERROR_TEXT = 'SNAI Error: Unable to process request.';
+import { getSnaiErrorUserMessage, toSnaiError } from './errors';
+import { createDiagnosticId, emitSnabbbDiagnostic } from '../observability';
 
 /**
  * Public Molar AI entry point: floating trigger button + chat panel.
@@ -58,15 +58,28 @@ export function SharedMolarAI({ adapter, disabled = false, onPetToggle, emptySta
     if (!msg || isLoading) return;
 
     const historyBeforeThisMessage = chatHistory;
+    const requestId = createDiagnosticId('chat');
+    const appId = adapter.diagnosticContext?.appId;
     setChatInput('');
     setChatHistory((prev) => [...prev, { role: 'user', text: msg }]);
     setIsLoading(true);
+    emitSnabbbDiagnostic({ eventType: 'snai_chat_submitted', appId, requestId });
 
     try {
       const response = await adapter.sendMessage({ text: msg, history: historyBeforeThisMessage });
       setChatHistory((prev) => [...prev, { role: 'model', text: response.text }]);
-    } catch {
-      setChatHistory((prev) => [...prev, { role: 'model', text: ERROR_TEXT }]);
+      emitSnabbbDiagnostic({ eventType: 'snai_chat_answered', appId, requestId, outcome: 'success' });
+      if (response.meta?.source === 'fallback') {
+        emitSnabbbDiagnostic({ eventType: 'snai_fallback_used', appId, requestId, outcome: 'fallback' });
+      }
+    } catch (cause) {
+      const error = toSnaiError(cause);
+      setChatHistory((prev) => [...prev, {
+        role: 'model',
+        text: getSnaiErrorUserMessage(error),
+        error: { code: error.code, retryable: error.retryable, requestId: error.requestId, retryText: msg },
+      }]);
+      emitSnabbbDiagnostic({ eventType: 'snai_chat_failed', appId, requestId: error.requestId || requestId, outcome: 'failure', errorCode: error.code, retryable: error.retryable });
     } finally {
       setIsLoading(false);
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -172,6 +185,21 @@ export function SharedMolarAI({ adapter, disabled = false, onPetToggle, emptySta
                     <div key={idx} className={`molar-chat-message-row ${isUser ? 'molar-chat-message-row--user' : 'molar-chat-message-row--model'}`}>
                       <div className={`molar-chat-bubble ${isUser ? 'molar-chat-bubble--user' : 'molar-chat-bubble--model'}`}>
                         <MolarMarkdown text={msg.text} isUser={isUser} />
+                        {!isUser && msg.error?.retryable && msg.error.retryText && (
+                          <button
+                            type="button"
+                            className="molar-chat-error-retry"
+                            onClick={() => {
+                              setChatInput(msg.error?.retryText ?? '');
+                              setTimeout(() => inputRef.current?.focus(), 0);
+                            }}
+                          >
+                            Try again
+                          </button>
+                        )}
+                        {!isUser && msg.error?.requestId && (
+                          <span className="molar-chat-error-reference">Reference: {msg.error.requestId}</span>
+                        )}
                       </div>
                     </div>
                   );

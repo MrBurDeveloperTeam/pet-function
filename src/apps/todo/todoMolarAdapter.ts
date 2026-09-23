@@ -11,7 +11,7 @@
 // text.
 //
 // The one outer try/catch that used to wrap the whole send pipeline (to
-// render "SNAI Error: Unable to process request.") is intentionally NOT
+// render the shared typed failure experience) is intentionally NOT
 // reproduced here — SharedMolarAI itself catches any rejection from
 // `adapter.sendMessage` and renders that exact same fallback text, so
 // this function is free to simply throw/let errors propagate for that
@@ -104,6 +104,7 @@ export function createTodoMolarAdapter({ supabase, chatWithMolarAI, chatWithGrou
   }
 
   return {
+    diagnosticContext: { appId: 'todo' },
     reset: () => {
       groundedContextStore.clear();
     },

@@ -7,8 +7,20 @@ import type { DialogueRuntimeInput, DialogueRuntimeResult } from './dialogueRunt
 import { CAT_ENTRY_WALK_DURATION_MS, DEFAULT_WELCOME_BACK_AUTO_CLOSE_MS } from './internal/timing';
 import { isIntroCompleted, markIntroCompleted } from './internal/introCompletion';
 import { holdDialogueUntilReload, isDialogueHeldUntilReload, markDialogueClosedForRefresh, readClosedDialogueKeys, resetDialogueProgress } from './internal/refreshDialogueProgress';
+import { emitSnabbbDiagnostic } from '../observability';
 
 type DialogType = 'intro' | 'welcomeBack' | 'personalized' | null;
+
+function candidateDiagnostic(candidate: DialogueCandidate | null, appId: string) {
+  if (!candidate) return { dialogueId: `${appId}:unknown` };
+  const extended = candidate as DialogueCandidate & { dialogueId?: string; ruleVersion?: string; evaluatedAt?: string };
+  return {
+    dialogueId: extended.dialogueId || `${appId}:${candidate.triggerId}`,
+    triggerId: candidate.triggerId,
+    ruleVersion: extended.ruleVersion,
+    evaluatedAt: extended.evaluatedAt,
+  };
+}
 
 /**
  * Shared Cat dialogue lifecycle engine.
@@ -59,13 +71,22 @@ export function useSharedCatDialogueRuntime<
     const duration = Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_WELCOME_BACK_AUTO_CLOSE_MS;
     autoCloseTimerRef.current = setTimeout(() => {
       autoCloseTimerRef.current = null;
-      closeDialog();
+      closeDialog('auto_close');
     }, duration);
   };
 
-  const closeDialog = () => {
+  const closeDialog = (reasonCode = 'close') => {
     const dialogType = currentDialogType.current;
     if (!dialogType) return;
+    emitSnabbbDiagnostic({
+      eventType: 'pet_dialogue_closed',
+      appId,
+      dialogType,
+      reasonCode,
+      ...(dialogType === 'personalized'
+        ? candidateDiagnostic(activeCandidateRef.current, appId)
+        : { dialogueId: `${appId}:${dialogType}` }),
+    });
     if (userId) holdDialogueUntilReload(appId, userId);
     if (dialogType === 'personalized' && userId && activeCandidateRef.current) {
       markDialogueClosedForRefresh(appId, userId, activeCandidateRef.current.dedupeKey);
@@ -95,6 +116,14 @@ export function useSharedCatDialogueRuntime<
     }
     isDialogActiveRef.current = true;
     setIsDialogActive(true);
+    emitSnabbbDiagnostic({
+      eventType: 'pet_dialogue_shown',
+      appId,
+      dialogType,
+      ...(dialogType === 'personalized'
+        ? candidateDiagnostic(activeCandidateRef.current, appId)
+        : { dialogueId: `${appId}:${dialogType}` }),
+    });
     if (dialogType === 'welcomeBack') {
       startWelcomeBackAutoCloseTimer();
     }
@@ -137,10 +166,12 @@ export function useSharedCatDialogueRuntime<
     if (!intro) return; // host has no Intro concept — wait forever
     if (intro.status !== 'ready') return;
     const steps = intro.steps ?? [];
+    emitSnabbbDiagnostic({ eventType: 'pet_dialogue_evaluated', appId, dialogType: 'intro', candidateCount: steps.length > 0 ? 1 : 0, eligibleCount: steps.length > 0 ? 1 : 0, reasonCode: steps.length > 0 ? 'intro_ready' : 'intro_empty' });
     if (steps.length > 0) {
       setDialogSteps(steps);
       setDialogStepIdx(0);
       currentDialogType.current = 'intro';
+      emitSnabbbDiagnostic({ eventType: 'pet_dialogue_selected', appId, dialogType: 'intro', dialogueId: `${appId}:intro` });
       tryActivateDialog();
     } else if (!disabled && userId) {
       markIntroCompleted(userId);
@@ -202,9 +233,16 @@ export function useSharedCatDialogueRuntime<
     // re-sorted, never interpreted beyond dedupeKey.
     const candidates = personalizedState.candidates ?? [];
     const closedKeys = readClosedDialogueKeys(appId, userId);
-    const eligible = candidates.find(
-      (c) => c.dedupeKey && !closedKeys.has(c.dedupeKey)
-    );
+    const eligibleCandidates = candidates.filter((c) => c.dedupeKey && !closedKeys.has(c.dedupeKey));
+    emitSnabbbDiagnostic({
+      eventType: 'pet_dialogue_evaluated',
+      appId,
+      dialogType: 'personalized',
+      candidateCount: candidates.length,
+      eligibleCount: eligibleCandidates.length,
+      reasonCode: eligibleCandidates.length > 0 ? 'eligible_candidate' : 'no_eligible_candidate',
+    });
+    const eligible = eligibleCandidates[0];
 
     if (eligible) {
       setWelcomeBackPhaseEntered(false);
@@ -212,6 +250,12 @@ export function useSharedCatDialogueRuntime<
       activeOnActionRef.current = personalized?.onAction ?? null;
       setActiveCandidate(eligible);
       currentDialogType.current = 'personalized';
+      emitSnabbbDiagnostic({
+        eventType: 'pet_dialogue_selected',
+        appId,
+        dialogType: 'personalized',
+        ...candidateDiagnostic(eligible, appId),
+      });
       tryActivateDialog();
       return;
     }
@@ -230,9 +274,11 @@ export function useSharedCatDialogueRuntime<
     if (!welcomeBack) return; // host has no Welcome Back concept
     if (welcomeBack.status !== 'ready') return;
     if (!welcomeBack.message) return;
+    emitSnabbbDiagnostic({ eventType: 'pet_dialogue_evaluated', appId, dialogType: 'welcomeBack', candidateCount: 1, eligibleCount: 1, reasonCode: 'welcome_back_ready' });
     setDialogSteps([welcomeBack.message]);
     setDialogStepIdx(0);
     currentDialogType.current = 'welcomeBack';
+    emitSnabbbDiagnostic({ eventType: 'pet_dialogue_selected', appId, dialogType: 'welcomeBack', dialogueId: `${appId}:welcomeBack` });
     welcomeBackAutoCloseMsRef.current = welcomeBack.autoCloseMs ?? DEFAULT_WELCOME_BACK_AUTO_CLOSE_MS;
     tryActivateDialog();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,7 +292,7 @@ export function useSharedCatDialogueRuntime<
           stepIndex: dialogStepIdx,
           onBack: () => setDialogStepIdx((p) => Math.max(0, p - 1)),
           onNext: () => setDialogStepIdx((p) => Math.min(dialogSteps.length - 1, p + 1)),
-          onClose: () => closeDialog(),
+          onClose: () => closeDialog('close'),
         }
       : isDialogActive && activeCandidate
         ? {
@@ -261,14 +307,23 @@ export function useSharedCatDialogueRuntime<
                     // fresh/live re-resolution at click time.
                     const onAction = activeOnActionRef.current;
                     const candidateToActOn = activeCandidateRef.current;
-                    closeDialog();
+                    if (candidateToActOn) {
+                      emitSnabbbDiagnostic({
+                        eventType: 'pet_dialogue_action_clicked',
+                        appId,
+                        dialogType: 'personalized',
+                        actionType: candidateToActOn.action?.actionId || 'cta',
+                        ...candidateDiagnostic(candidateToActOn, appId),
+                      });
+                    }
+                    closeDialog('action_clicked');
                     if (candidateToActOn) void onAction?.(candidateToActOn);
                   },
                 }
               : undefined,
-            onClose: () => closeDialog(),
+            onClose: () => closeDialog('close'),
           }
         : { kind: 'none' };
 
-  return { dialogue, closeActiveDialogue: () => closeDialog() };
+  return { dialogue, closeActiveDialogue: () => closeDialog('cat_click') };
 }

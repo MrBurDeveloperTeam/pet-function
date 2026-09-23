@@ -3,6 +3,8 @@ type ChatHistory = {
   parts: { text: string }[];
 };
 
+import { createAuthorizedSnaiTransport } from '../../ai/internal/snaiTransport';
+
 interface CapabilityRouteResult {
   route: 'grounded' | 'general_chat' | 'clarification';
   capability: string | null;
@@ -16,36 +18,11 @@ interface CapabilityDescriptor {
 }
 
 export function createInventorySNAIService(supabase: any, fetch: typeof globalThis.fetch = (...args) => globalThis.fetch(...args)) {
-void fetch;
-// Client-side transport layer only. This file must NEVER import
-// @google/genai, construct a GoogleGenAI client, read
-// VITE_GEMINI_API_KEY, or call generateContent directly — all of that
-// now lives exclusively in the server-only Supabase Edge Function at
-// supabase/functions/molar-chat-inventory/index.ts, which this file
-// calls via supabase.functions.invoke(). That invocation automatically
-// carries the browser's current authenticated Supabase session as the
-// Authorization bearer token — no token is ever placed into the request
-// body/prompt here. Public function signatures are preserved so
-// aiExperience/inventoryMolarAdapter.ts and RoomModal.tsx require no
-// change.
-//
-// Namespaced as "molar-chat-inventory", matching the established
-// per-app naming convention on this shared Supabase project — a shared
-// generic "molar-chat" name would let one app's deploy silently
-// overwrite another's system prompt (confirmed to have actually
-// happened to Todo/Calculator before they were each namespaced).
+// Thin client transport only. The shared `snai-chat` Edge Function owns
+// authentication verification, prompts, model calls and response validation.
+// This host supplies only its authenticated Supabase client and authorized data.
 
-async function invokeMolarChatInventory(payload: Record<string, unknown>): Promise<any> {
-  const { data, error } = await supabase.functions.invoke('molar-chat-inventory', {
-    body: payload,
-  });
-
-  if (error || !data?.ok) {
-    throw new Error(data?.error || error?.message || 'AI service request failed');
-  }
-
-  return data;
-}
+const invokeMolarChatInventory = createAuthorizedSnaiTransport(supabase, 'inventory', fetch);
 
 
 
@@ -57,21 +34,16 @@ const chatWithGemini = async (
   activityLogs?: string,
   userContext?: string,
 ): Promise<string> => {
-  try {
-    const { text } = await invokeMolarChatInventory({
-      mode: 'general',
-      history,
-      message,
-      inventoryContext,
-      purchaseHistory,
-      activityLogs,
-      userContext,
-    });
-    return text;
-  } catch (error) {
-    console.error("Gemini Chat Error:", error);
-    return "I'm having trouble connecting to the Snabbb Assistant Intelligent servers right now. Please try again shortly.";
-  }
+  const { text } = await invokeMolarChatInventory({
+    mode: 'general',
+    history,
+    message,
+    inventoryContext,
+    purchaseHistory,
+    activityLogs,
+    userContext,
+  });
+  return text;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -150,5 +122,10 @@ const routeInventoryCapability = async (
   return { route, capability: route === 'grounded' ? capability : null, confidence, clarification: clarification ?? null };
 };
 
-return { chatWithGemini, chatWithGroundedInventoryFacts, routeInventoryCapability };
+const extractInventoryDataFromImage = async (base64Image: string, mimeType: string): Promise<any[]> => {
+  const data = await invokeMolarChatInventory({ mode: 'ocr', base64Image, mimeType });
+  return Array.isArray(data.items) ? data.items : [];
+};
+
+return { chatWithGemini, chatWithGroundedInventoryFacts, routeInventoryCapability, extractInventoryDataFromImage };
 }

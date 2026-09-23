@@ -9,6 +9,7 @@ import { usePersonalizedPetDialogue } from './petDialogue/usePersonalizedPetDial
 import { markDialogueDismissed, resetDialogueRound } from './petDialogue/sessionDedupe';
 import { holdDialogueUntilReload, isDialogueHeldUntilReload } from '../../cat/internal/refreshDialogueProgress';
 import { DIALOGUE_ID, type DialogueCandidate, type ProfileCompletionStatus } from './petDialogue/types';
+import { emitSnabbbDiagnostic } from '../../observability';
 
 // PHASE 9D (Cat Presentation migration): the local App Gallery dialogue
 // resolver/arbitration below is UNCHANGED — every effect, ref, and storage
@@ -154,7 +155,7 @@ export default function CatMascot({
 
     autoCloseTimerRef.current = setTimeout(() => {
       autoCloseTimerRef.current = null;
-      closeDialog();
+      closeDialog('auto_close');
     }, duration);
   };
 
@@ -171,9 +172,20 @@ export default function CatMascot({
 
   // Every Close leaves this page quiet. Welcome Back also resets progress,
   // so the following reload starts at the first still-eligible reminder.
-  const closeDialog = () => {
+  const closeDialog = (reasonCode = 'close') => {
     const dialogType = currentDialogType.current;
     if (!dialogType) return;
+    const candidate = personalizedCandidateRef.current;
+    emitSnabbbDiagnostic({
+      eventType: 'pet_dialogue_closed',
+      appId: 'superapp',
+      dialogType,
+      reasonCode,
+      dialogueId: candidate?.dialogueId || `superapp:${dialogType}`,
+      triggerId: candidate?.triggerId,
+      ruleVersion: candidate?.ruleVersion,
+      evaluatedAt: candidate?.evaluatedAt,
+    });
     if (personalizedUserId) holdDialogueUntilReload('superapp', personalizedUserId);
     if (dialogType === 'personalized') {
       const candidate = personalizedCandidateRef.current;
@@ -232,6 +244,16 @@ export default function CatMascot({
 
     isDialogActiveRef.current = true;
     setIsDialogActive(true);
+    const candidate = personalizedCandidateRef.current;
+    emitSnabbbDiagnostic({
+      eventType: 'pet_dialogue_shown',
+      appId: 'superapp',
+      dialogType,
+      dialogueId: candidate?.dialogueId || `superapp:${dialogType}`,
+      triggerId: candidate?.triggerId,
+      ruleVersion: candidate?.ruleVersion,
+      evaluatedAt: candidate?.evaluatedAt,
+    });
 
     if (dialogType === 'welcomeBack') {
       startWelcomeBackAutoCloseTimer();
@@ -325,6 +347,14 @@ export default function CatMascot({
     if (personalizedUserId) setCurrentUserId(personalizedUserId);
 
     const { candidate, introSteps } = personalizedSelection;
+    emitSnabbbDiagnostic({
+      eventType: 'pet_dialogue_evaluated',
+      appId: 'superapp',
+      dialogType: 'personalized',
+      candidateCount: 1,
+      eligibleCount: 1,
+      reasonCode: personalizedLifecycle === 'failed' ? 'fallback_selected' : 'eligible_candidate',
+    });
     personalizedCandidateRef.current = candidate;
     setPersonalizedActiveCandidate(candidate);
 
@@ -338,6 +368,16 @@ export default function CatMascot({
       setDialogStep(0);
       currentDialogType.current = 'personalized';
     }
+
+    emitSnabbbDiagnostic({
+      eventType: 'pet_dialogue_selected',
+      appId: 'superapp',
+      dialogType: currentDialogType.current || 'personalized',
+      dialogueId: candidate.dialogueId,
+      triggerId: candidate.triggerId,
+      ruleVersion: candidate.ruleVersion,
+      evaluatedAt: candidate.evaluatedAt,
+    });
 
     tryActivateDialog();
   }, [personalizedDialogueEnabled, disabled, personalizedLifecycle, personalizedSelection, personalizedUserId]);
@@ -604,6 +644,7 @@ export default function CatMascot({
             setDialogSteps([welcomeText]);
             setDialogStep(0);
             currentDialogType.current = 'welcomeBack';
+            emitSnabbbDiagnostic({ eventType: 'pet_dialogue_selected', appId: 'superapp', dialogType: 'welcomeBack', dialogueId: 'superapp:welcomeBack' });
             welcomeBackAutoCloseMsRef.current = autoCloseMs;
             tryActivateDialog();
           }
@@ -657,6 +698,7 @@ export default function CatMascot({
           setDialogSteps(steps);
           setDialogStep(0);
           currentDialogType.current = 'intro';
+          emitSnabbbDiagnostic({ eventType: 'pet_dialogue_selected', appId: 'superapp', dialogType: 'intro', dialogueId: 'superapp:intro' });
           tryActivateDialog();
           return;
         }
@@ -887,12 +929,22 @@ export default function CatMascot({
                 // Exact pre-9D CTA order: run the frozen candidate's action
                 // first, then close/persist dismissal — never a live re-read
                 // of the candidate.
+                emitSnabbbDiagnostic({
+                  eventType: 'pet_dialogue_action_clicked',
+                  appId: 'superapp',
+                  dialogType: 'personalized',
+                  actionType: personalizedActiveCandidate.action?.route || 'cta',
+                  dialogueId: personalizedActiveCandidate.dialogueId,
+                  triggerId: personalizedActiveCandidate.triggerId,
+                  ruleVersion: personalizedActiveCandidate.ruleVersion,
+                  evaluatedAt: personalizedActiveCandidate.evaluatedAt,
+                });
                 runPersonalizedAction(personalizedActiveCandidate);
-                closeDialog();
+                closeDialog('action_clicked');
               },
             }
           : undefined,
-        onClose: () => closeDialog(),
+        onClose: () => closeDialog('close'),
       };
     }
     return {
@@ -901,7 +953,7 @@ export default function CatMascot({
       stepIndex: dialogStep,
       onBack: () => setDialogStep((p) => Math.max(0, p - 1)),
       onNext: () => setDialogStep((p) => Math.min(dialogSteps.length - 1, p + 1)),
-      onClose: () => closeDialog(),
+      onClose: () => closeDialog('close'),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDialogActive, dialogSteps, dialogStep, personalizedActiveCandidate]);
@@ -916,7 +968,7 @@ export default function CatMascot({
   // gate either, so this preserves that exact ungated behavior), and the
   // parent's Cat → Virtual Pet callback.
   const handleCatClick = () => {
-    if (!disabled) closeDialog();
+    if (!disabled) closeDialog('cat_click');
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(() => {});

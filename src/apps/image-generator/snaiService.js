@@ -1,31 +1,12 @@
+import { createAuthorizedSnaiTransport } from '../../ai/internal/snaiTransport';
+
 // SNAI client transport. Host supplies its current authenticated client; no secrets.
 export function createContentStudioSNAIService(supabase, fetch = (...args) => globalThis.fetch(...args)) {
-void supabase;
-// Client-side transport layer only. This file must NEVER import
-// @google/genai, construct a GoogleGenAI client, read a Gemini API-key
-// environment variable, or call generateContent directly — all of that now
-// lives exclusively in the server-only route handler at
-// src/app/api/molar-chat/route.ts, which this file calls via same-origin
-// fetch. Public function signatures are preserved so
-// src/aiExperience/contentStudioMolarAdapter.js requires no change.
+// Thin client transport only. The shared `snai-chat` Edge Function owns
+// authentication verification, prompts, model calls and response validation.
+// This host supplies only its authenticated Supabase client and authorized data.
 
-const MOLAR_CHAT_ENDPOINT = '/api/molar-chat';
-
-async function postMolarChatRaw(payload) {
-  const response = await fetch(MOLAR_CHAT_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok || !data?.ok) {
-    throw new Error(data?.error || 'AI service request failed');
-  }
-
-  return data;
-}
+const postMolarChatRaw = createAuthorizedSnaiTransport(supabase, 'image-generator', fetch);
 
 async function postMolarChat(payload) {
   const data = await postMolarChatRaw(payload);
@@ -39,12 +20,7 @@ async function postMolarChat(payload) {
  * @param {string} [userContext]
  */
 async function chatWithMolarAI(history, message, userContext) {
-  try {
-    return await postMolarChat({ mode: 'general', history, message, userContext: userContext || '' });
-  } catch (error) {
-    console.error('Gemini Chat Error:', error);
-    return "I'm having trouble connecting to the Snabbb Assistant Intelligent servers right now. Please try again shortly.";
-  }
+  return postMolarChat({ mode: 'general', history, message, userContext: userContext || '' });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -105,4 +81,3 @@ async function routeContentStudioCapability(message, capabilities, recentContext
 
 return { chatWithMolarAI, chatWithGroundedContentStudioFacts, routeContentStudioCapability };
 }
-

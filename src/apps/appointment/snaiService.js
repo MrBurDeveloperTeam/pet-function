@@ -1,35 +1,12 @@
+import { createAuthorizedSnaiTransport } from '../../ai/internal/snaiTransport';
+
 // SNAI client transport. Host supplies its current authenticated client; no secrets.
 export function createAppointmentSNAIService(supabase, fetch = (...args) => globalThis.fetch(...args)) {
-void fetch;
-// Client-side transport layer only. This file must NEVER import
-// @google/genai, construct a GoogleGenAI client, read
-// VITE_GEMINI_API_KEY, or call generateContent directly — all of that now
-// lives exclusively in the server-only Supabase Edge Function at
-// supabase/functions/molar-chat-appointment/index.ts, which this file
-// calls via supabase.functions.invoke(). That invocation automatically
-// carries the browser's current authenticated Supabase session as the
-// Authorization bearer token — no token is ever placed into the request
-// body/prompt here. Public function signatures are preserved so
-// src/aiExperience/appointmentsMolarAdapter.ts requires no change beyond
-// the mutation-dispatch removal made alongside this migration.
-//
-// Namespaced as "molar-chat-appointment", NOT the generic "molar-chat"
-// slug — this shared Supabase project also hosts separate,
-// differently-prompted molar-chat functions for Todo, Calculator, and
-// App Gallery; a shared name let one app's deploy silently overwrite
-// another's system prompt (confirmed to have actually happened).
+// Thin client transport only. The shared `snai-chat` Edge Function owns
+// authentication verification, prompts, model calls and response validation.
+// This host supplies only its authenticated Supabase client and authorized data.
 
-async function invokeMolarChatRaw(payload) {
-  const { data, error } = await supabase.functions.invoke('molar-chat-appointment', {
-    body: payload,
-  });
-
-  if (error || !data?.ok) {
-    throw new Error(data?.error || error?.message || 'AI service request failed');
-  }
-
-  return data;
-}
+const invokeMolarChatRaw = createAuthorizedSnaiTransport(supabase, 'appointment', fetch);
 
 async function invokeMolarChat(payload) {
   const data = await invokeMolarChatRaw(payload);
@@ -43,12 +20,7 @@ async function invokeMolarChat(payload) {
  * @param {string} [userContext]
  */
 async function chatWithMolarAI(history, message, userContext) {
-  try {
-    return await invokeMolarChat({ mode: 'general', history, message, userContext: userContext || '' });
-  } catch (error) {
-    console.error('Gemini Chat Error:', error);
-    return "I'm having trouble connecting to the Snabbb Assistant Intelligent servers right now. Please try again shortly.";
-  }
+  return invokeMolarChat({ mode: 'general', history, message, userContext: userContext || '' });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -113,4 +85,3 @@ async function routeAppointmentCapability(message, capabilities, recentContext, 
 
 return { chatWithMolarAI, chatWithGroundedAppointmentFacts, routeAppointmentCapability };
 }
-

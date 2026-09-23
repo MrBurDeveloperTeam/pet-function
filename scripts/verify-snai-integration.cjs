@@ -3,7 +3,22 @@
 const path = require('node:path');
 const { build } = require('esbuild');
 const root = path.resolve(__dirname, '../..');
-const entries = ['inventory/components/MolarAIFloat.tsx','appointment/src/components/MolarAIFloat.jsx','calculator/components/MolarAIFloat.jsx','todo/src/components/MolarAIFloat.jsx','Image-generator/src/components/MolarAIFloat.jsx','E-learning/src/components/MolarAIFloat.jsx','snabb-superapp/App.tsx'];
+const entries = [
+  'inventory/components/MolarAIFloat.tsx',
+  'inventory/services/geminiService.ts',
+  'appointment/src/components/MolarAIFloat.jsx',
+  'appointment/src/services/geminiService.js',
+  'calculator/components/MolarAIFloat.jsx',
+  'calculator/services/geminiService.ts',
+  'todo/src/components/MolarAIFloat.jsx',
+  'todo/src/services/geminiService.ts',
+  'Image-generator/src/components/MolarAIFloat.jsx',
+  'Image-generator/src/services/geminiService.js',
+  'E-learning/src/components/MolarAIFloat.jsx',
+  'E-learning/src/services/geminiService.ts',
+  'snabb-superapp/App.tsx',
+  'snabb-superapp/services/geminiService.ts',
+];
 const prefix = '@mrburdeveloperteam/pet-function';
 const exported = require('../package.json').exports;
 (async () => {
@@ -25,4 +40,3 @@ const exported = require('../package.json').exports;
     console.log('PASS '+entry);
   }
 })().catch(error=>{console.error(error);process.exitCode=1});
-

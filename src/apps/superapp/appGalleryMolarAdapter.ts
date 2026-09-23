@@ -55,10 +55,10 @@ interface AppGalleryMolarAdapterDeps {
 export function createAppGalleryMolarAdapter({ userChatContext }: AppGalleryMolarAdapterDeps): AIAdapter {
   const { supabase, chatWithGemini } = getSuperappHostDependencies();
   return {
+    diagnosticContext: { appId: 'superapp' },
     async sendMessage({ text, history }) {
       const userMsg = text.trim();
 
-      try {
         let response: string | null = null;
 
         // 1. Check custom responses first
@@ -104,14 +104,6 @@ export function createAppGalleryMolarAdapter({ userChatContext }: AppGalleryMola
         }
 
         return { text: response as string, meta: { source: 'general' } };
-      } catch (error) {
-        console.error(error);
-        // Matches SharedMolarAI's own generic catch string exactly (see
-        // dist/ai.js's `ERROR_TEXT`) — returned here rather than thrown so
-        // this adapter's behavior stays identical regardless of the shared
-        // package's own catch handling.
-        return { text: 'SNAI Error: Unable to process request.', meta: { source: 'fallback' } };
-      }
     },
   };
 }

@@ -12,7 +12,7 @@
 // their specific wording reaches the user — only a genuinely unexpected
 // failure (e.g. a network error from the AIBoard keyword-lookup queries)
 // propagates as a thrown error, which `SharedMolarAI`'s own outer catch
-// turns into the identical generic "SNAI Error: Unable to process request."
+// is normalized by the shared typed-error presentation.
 // text the pre-migration component's own outer catch produced.
 //
 // `window.__MOLAR_ACTIONS__` fenced-json action-block parsing from the
@@ -104,6 +104,7 @@ export function createElearningMolarAdapter(deps: CreateElearningMolarAdapterDep
   }
 
   return {
+    diagnosticContext: { appId: 'elearning' },
     reset() {
       groundedContext = null;
     },
