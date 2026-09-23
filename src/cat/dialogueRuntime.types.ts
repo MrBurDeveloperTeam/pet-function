@@ -38,7 +38,7 @@ export interface DialogueRuntimeInput<
 export interface DialogueRuntimeResult {
   /** Feed directly into <SharedCatMascot dialogue={...} />. */
   dialogue: import('./presentation').CatDialoguePresentation;
-  /** Closes the current dialogue and advances this visit's round. The host composes this with its
+  /** Closes the current dialogue; the next reminder appears after a reload. The host composes this with its
    *  own onCatClick prop — e.g. `onCatClick={() => { closeActiveDialogue();
    *  openVirtualPet(); }}` — matching the pre-extraction behavior where a
    *  Cat click while a dialogue is open also dismisses it. */

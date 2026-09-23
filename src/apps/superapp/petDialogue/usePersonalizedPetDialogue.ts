@@ -7,7 +7,7 @@ import { fetchAppointmentDialogueEvaluation } from './providers/appointmentSnaps
 import { buildProfileCandidate } from './providers/profileProvider';
 import { fetchLegacyIntroCandidate } from './providers/legacyIntroProvider';
 import { buildSuperappWelcomeBackMessage, resolveSafeDisplayName } from './nameResolution';
-import { isDialogueIneligible, markDialogueDismissed, markDialogueSeenThisSession } from './sessionDedupe';
+import { isDialogueIneligible, markDialogueDismissed } from './sessionDedupe';
 import { selectFirstEligibleDialogueCandidate } from './selectDialogueCandidate';
 import { getInventoryAppRoute, getTodoAppRoute, getAppointmentAppRoute, getProfileSettingsRoute } from './knownRoutes';
 import { toCalendarDateKey } from './dateUtils';
@@ -467,25 +467,6 @@ export function usePersonalizedPetDialogue({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, matchedUserId, profileStatus, refreshTick]);
 
-  // Show-time mark: same-tab/session ONLY (sessionStorage). Merely
-  // displaying a candidate must never suppress it in another tab — only an
-  // explicit Close or CTA does that (see runAction below, and
-  // CatMascot.tsx's closeDialog).
-  const markShown = useCallback((candidate: DialogueCandidate) => {
-    const uid = lockedUserIdRef.current;
-    if (!uid) return;
-    if (
-      candidate.priority === 'P0' ||
-      candidate.priority === 'PROFILE' ||
-      candidate.priority === 'P1' ||
-      candidate.priority === 'P2'
-    ) {
-      markDialogueSeenThisSession(uid, candidate.dedupeKey);
-    }
-  }, []);
-
-  const advanceRound = useCallback(() => setRefreshTick((tick) => tick + 1), []);
-
   const runAction = useCallback(
     async (candidate: DialogueCandidate) => {
       // CTA = explicit user action: write the cross-tab dismissal FIRST,
@@ -574,5 +555,5 @@ export function usePersonalizedPetDialogue({
     [onNavigateInternal, createAppLink]
   );
 
-  return { lifecycle, selection, userId, markShown, runAction, advanceRound };
+  return { lifecycle, selection, userId, runAction };
 }

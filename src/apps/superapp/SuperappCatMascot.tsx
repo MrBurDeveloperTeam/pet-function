@@ -7,6 +7,7 @@ import { getSuperappHostDependencies } from './dependencies';
 import { isPersonalizedPetDialogueEnabled } from './petDialogue/dialogueFlag';
 import { usePersonalizedPetDialogue } from './petDialogue/usePersonalizedPetDialogue';
 import { markDialogueDismissed, resetDialogueRound } from './petDialogue/sessionDedupe';
+import { holdDialogueUntilReload, isDialogueHeldUntilReload } from '../../cat/internal/refreshDialogueProgress';
 import { DIALOGUE_ID, type DialogueCandidate, type ProfileCompletionStatus } from './petDialogue/types';
 
 // PHASE 9D (Cat Presentation migration): the local App Gallery dialogue
@@ -110,11 +111,10 @@ export default function CatMascot({
   // Never set true anywhere else (see tryActivateDialog for the gate this
   // guards).
   const isEntryWalkComplete = useRef(false);
-  // Current step of this visit's dialogue round. The resolver chooses the
-  // next candidate after Close; the fallback ends the round until next visit.
+  // Current step of this page load. Close leaves the page quiet; the next
+  // reload re-evaluates candidates after the ones closed in this tab.
   const currentDialogType = useRef<'intro' | 'welcomeBack' | 'personalized' | null>(null);
   const roundCompleteRef = useRef(false);
-  const advanceRoundRef = useRef<() => void>(() => {});
   // Holds the winning Phase 1A candidate while it's active, so tryActivateDialog
   // can decide whether to bypass the entry-walk gate / arm an auto-close timer,
   // and so the bubble can render its optional action button. Mirrored into
@@ -169,34 +169,31 @@ export default function CatMascot({
     localStorage.setItem(`intro_shown_${uid}`, 'true');
   };
 
-  // Closing an ordinary candidate re-evaluates the remaining pool. Closing
-  // Welcome Back leaves the page quiet, but a new visit starts fresh.
+  // Every Close leaves this page quiet. Welcome Back also resets progress,
+  // so the following reload starts at the first still-eligible reminder.
   const closeDialog = () => {
     const dialogType = currentDialogType.current;
+    if (!dialogType) return;
+    if (personalizedUserId) holdDialogueUntilReload('superapp', personalizedUserId);
     if (dialogType === 'personalized') {
       const candidate = personalizedCandidateRef.current;
       if (candidate && personalizedUserId) {
-        markDialogueDismissed(personalizedUserId, candidate.dedupeKey);
+        if (candidate.dialogueId === DIALOGUE_ID.WELCOME_FALLBACK) resetDialogueRound(personalizedUserId);
+        else markDialogueDismissed(personalizedUserId, candidate.dedupeKey);
       }
     }
+    if (dialogType === 'welcomeBack' && personalizedUserId) resetDialogueRound(personalizedUserId);
+    roundCompleteRef.current = true;
     isDialogActiveRef.current = false;
     setIsDialogActive(false);
     clearWelcomeBackAutoCloseTimer();
     if (dialogType === 'intro' && !disabled && currentUserId) {
       markIntroCompleted(currentUserId);
     }
-    if (dialogType === 'personalized' || dialogType === 'intro') {
-      if (personalizedCandidateRef.current?.dialogueId === DIALOGUE_ID.WELCOME_FALLBACK) {
-        roundCompleteRef.current = true;
-        if (personalizedUserId) resetDialogueRound(personalizedUserId);
-      } else {
-        currentDialogType.current = null;
-        personalizedCandidateRef.current = null;
-        setPersonalizedActiveCandidate(null);
-        setDialogSteps([]);
-        advanceRoundRef.current();
-      }
-    }
+    currentDialogType.current = null;
+    personalizedCandidateRef.current = null;
+    setPersonalizedActiveCandidate(null);
+    setDialogSteps([]);
   };
 
   // Single source of truth for showing a prepared dialog: only activates once the
@@ -223,9 +220,8 @@ export default function CatMascot({
       return;
     }
 
-    // Phase 1A candidates must never activate — and therefore must never be
-    // marked "handled" in session dedupe (see markPersonalizedShown below) —
-    // while the mascot wrapper is intentionally hidden (auth routes, or the
+    // Phase 1A candidates must never activate while the mascot wrapper is
+    // intentionally hidden (auth routes, or the
     // Virtual Pet modal — see App.tsx's `isHidden` prop). The legacy Intro /
     // Welcome Back path never gated on this, so this check is scoped to
     // 'personalized' only to leave that behaviour unchanged when the feature
@@ -242,7 +238,6 @@ export default function CatMascot({
     } else if (dialogType === 'personalized') {
       const candidate = personalizedCandidateRef.current;
       if (candidate) {
-        markPersonalizedShown(candidate);
         if (candidate.autoCloseMs) startWelcomeBackAutoCloseTimer(candidate.autoCloseMs);
       }
     }
@@ -259,9 +254,7 @@ export default function CatMascot({
     lifecycle: personalizedLifecycle,
     selection: personalizedSelection,
     userId: personalizedUserId,
-    markShown: markPersonalizedShown,
     runAction: runPersonalizedAction,
-    advanceRound,
   } = usePersonalizedPetDialogue({
     active: personalizedDialogueEnabled && !disabled,
     matchedUserId: personalizedMatchedUserId,
@@ -275,7 +268,6 @@ export default function CatMascot({
     },
     onNavigateInternal,
   });
-  advanceRoundRef.current = advanceRound;
 
   // usePersonalizedPetDialogue reactively tracks the authenticated identity
   // and restarts its own evaluation the instant it changes — including a
@@ -324,6 +316,7 @@ export default function CatMascot({
   // replace an already-shown dialogue for this mount.
   useEffect(() => {
     if (!personalizedDialogueEnabled || disabled) return;
+    if (personalizedUserId && isDialogueHeldUntilReload('superapp', personalizedUserId)) return;
     if (roundCompleteRef.current) return;
     if (personalizedLifecycle !== 'ready' && personalizedLifecycle !== 'failed') return;
     if (!personalizedSelection) return;
@@ -563,6 +556,8 @@ export default function CatMascot({
       } catch (err) {
         console.error("Error fetching session in initDialog:", err);
       }
+
+      if (userId && isDialogueHeldUntilReload('superapp', userId)) return;
 
       // If user is logged in (disabled = false) and has seen the intro, fetch
       // the configurable Welcome Back message and auto-close after a few seconds.

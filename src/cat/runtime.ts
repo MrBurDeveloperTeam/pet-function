@@ -6,6 +6,7 @@ import type { CatDialoguePresentation } from './presentation';
 import type { DialogueRuntimeInput, DialogueRuntimeResult } from './dialogueRuntime.types';
 import { CAT_ENTRY_WALK_DURATION_MS, DEFAULT_WELCOME_BACK_AUTO_CLOSE_MS } from './internal/timing';
 import { isIntroCompleted, markIntroCompleted } from './internal/introCompletion';
+import { holdDialogueUntilReload, isDialogueHeldUntilReload, markDialogueClosedForRefresh, readClosedDialogueKeys, resetDialogueProgress } from './internal/refreshDialogueProgress';
 
 type DialogType = 'intro' | 'welcomeBack' | 'personalized' | null;
 
@@ -13,8 +14,8 @@ type DialogType = 'intro' | 'welcomeBack' | 'personalized' | null;
  * Shared Cat dialogue lifecycle engine.
  *
  * Hosts provide an ordered pool of already-resolved candidates. Close/CTA
- * advances to the next candidate in this mount, then Welcome Back. The
- * completed round is never persisted, so the next visit starts again.
+ * ends this page's display. The next reload re-evaluates the pool and skips
+ * reminders closed in this tab until Welcome Back ends the round.
  *
  * Business logic that stays entirely host-side (never appears here):
  * candidate generation, candidate ordering/eligibility, Intro/Welcome Back
@@ -24,7 +25,7 @@ type DialogType = 'intro' | 'welcomeBack' | 'personalized' | null;
 export function useSharedCatDialogueRuntime<
   TCandidate extends DialogueCandidate = DialogueCandidate
 >(input: DialogueRuntimeInput<TCandidate>): DialogueRuntimeResult {
-  const { userId, disabled = false, intro, personalized, welcomeBack } = input;
+  const { appId, userId, disabled = false, intro, personalized, welcomeBack } = input;
 
   const [dialogSteps, setDialogSteps] = useState<string[]>([]);
   const [dialogStepIdx, setDialogStepIdx] = useState(0);
@@ -32,9 +33,6 @@ export function useSharedCatDialogueRuntime<
   const [activeCandidate, setActiveCandidate] = useState<TCandidate | null>(null);
 
   const currentDialogType = useRef<DialogType>(null);
-  // A completed walkthrough is scoped to this mount. Reloading starts a
-  // fresh round, including candidates closed in earlier visits.
-  const shownCandidateKeysRef = useRef<Set<string>>(new Set());
   const activeCandidateRef = useRef<TCandidate | null>(null);
   // Captured at adoption time, never re-read live at CTA-click time — see
   // the CTA handler in `dialogue` below.
@@ -68,6 +66,12 @@ export function useSharedCatDialogueRuntime<
   const closeDialog = () => {
     const dialogType = currentDialogType.current;
     if (!dialogType) return;
+    if (userId) holdDialogueUntilReload(appId, userId);
+    if (dialogType === 'personalized' && userId && activeCandidateRef.current) {
+      markDialogueClosedForRefresh(appId, userId, activeCandidateRef.current.dedupeKey);
+    }
+    if (dialogType === 'welcomeBack' && userId) resetDialogueProgress(appId, userId);
+    roundCompleteRef.current = true;
     isDialogActiveRef.current = false;
     setIsDialogActive(false);
     if (dialogType === 'personalized') {
@@ -78,8 +82,6 @@ export function useSharedCatDialogueRuntime<
     clearWelcomeBackAutoCloseTimer();
     if (dialogType === 'intro' && !disabled && userId) markIntroCompleted(userId);
     currentDialogType.current = null;
-    if (dialogType === 'welcomeBack') roundCompleteRef.current = true;
-    else setAdvanceTick((value) => value + 1);
   };
 
   // Single source of truth for showing a prepared dialog: only activates
@@ -95,9 +97,6 @@ export function useSharedCatDialogueRuntime<
     setIsDialogActive(true);
     if (dialogType === 'welcomeBack') {
       startWelcomeBackAutoCloseTimer();
-    } else if (dialogType === 'personalized') {
-      const candidate = activeCandidateRef.current;
-      if (candidate) shownCandidateKeysRef.current.add(candidate.dedupeKey);
     }
   };
 
@@ -107,7 +106,6 @@ export function useSharedCatDialogueRuntime<
     clearWelcomeBackAutoCloseTimer();
     currentDialogType.current = null;
     activeCandidateRef.current = null;
-    shownCandidateKeysRef.current.clear();
     roundCompleteRef.current = false;
     isDialogActiveRef.current = false;
     setIsDialogActive(false);
@@ -129,8 +127,8 @@ export function useSharedCatDialogueRuntime<
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Intro is a one-time onboarding step. Closing it advances to this visit's
-  // personalized round; later visits skip Intro but repeat the round.
+  // Intro is a one-time onboarding step. Closing it leaves this page quiet;
+  // the first personalized reminder can appear after the next reload.
   useEffect(() => {
     if (currentDialogType.current || isIntroCompleted(userId ?? '')) return;
     if (!disabled && userId && isIntroCompleted(userId)) {
@@ -151,7 +149,7 @@ export function useSharedCatDialogueRuntime<
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disabled, userId, intro?.status, intro?.steps]);
 
-  // Re-scan the ordered pool after every Close/CTA. An unresolved adapter
+  // Select once per page load. An unresolved adapter
   // must not be mistaken for an empty pool.
   //
   // Two distinct "no personalized candidate yet" signals, deliberately NOT
@@ -180,6 +178,7 @@ export function useSharedCatDialogueRuntime<
   //     real contract value.
   useEffect(() => {
     if (disabled || !userId) return;
+    if (isDialogueHeldUntilReload(appId, userId)) return;
     if (roundCompleteRef.current) return;
     if (currentDialogType.current) return;
     if (!isIntroCompleted(userId)) return;
@@ -199,17 +198,17 @@ export function useSharedCatDialogueRuntime<
     }
 
     // status === 'ready': scan the host's already-ordered pool for the
-    // first candidate not shown this mount. Never
+    // first candidate not closed on an earlier load. Never
     // re-sorted, never interpreted beyond dedupeKey.
     const candidates = personalizedState.candidates ?? [];
+    const closedKeys = readClosedDialogueKeys(appId, userId);
     const eligible = candidates.find(
-      (c) => c.dedupeKey && !shownCandidateKeysRef.current.has(c.dedupeKey)
+      (c) => c.dedupeKey && !closedKeys.has(c.dedupeKey)
     );
 
     if (eligible) {
       setWelcomeBackPhaseEntered(false);
       activeCandidateRef.current = eligible;
-      shownCandidateKeysRef.current.add(eligible.dedupeKey);
       activeOnActionRef.current = personalized?.onAction ?? null;
       setActiveCandidate(eligible);
       currentDialogType.current = 'personalized';
@@ -219,7 +218,7 @@ export function useSharedCatDialogueRuntime<
 
     setWelcomeBackPhaseEntered(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personalized?.state, userId, disabled, advanceTick]);
+  }, [personalized?.state, userId, disabled, advanceTick, appId]);
 
   // Welcome Back content: only acts once the arbitration effect above has
   // entered the Welcome Back phase, and only once the host's reactive
