@@ -21,6 +21,7 @@ const ROWS = {
 };
 
 export interface CatSpriteProps {
+  asSpan?: boolean;
   petId?: string | null;
   isWalking: boolean;
   facingLeft: boolean;
@@ -42,6 +43,7 @@ export interface CatSpriteProps {
  * compiled stylesheet (`.molar-cat-sprite` in styles/index.css).
  */
 export function CatSprite({
+  asSpan = false,
   petId,
   isWalking,
   facingLeft,
@@ -89,9 +91,10 @@ export function CatSprite({
     '--sprite-frame': 'frame' in config ? config.frame : 0,
     '--pet-spritesheet': `url("${sprite.spriteSheetUrl}")`,
   } as CSSProperties;
+  const Element = asSpan ? 'span' : 'div';
 
   return (
-    <div
+    <Element
       className={`molar-cat-sprite ${stateClass} ${isMeowing ? 'molar-cat-sprite--talking' : ''}`}
       aria-label={`pet ${stateClass.replace('molar-cat-sprite--', '')}`}
       onPointerEnter={onHoverStart}

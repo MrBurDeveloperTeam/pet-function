@@ -59,6 +59,7 @@
   box-shadow: none;
   cursor: pointer;
   transition: transform 180ms ease, opacity 180ms ease;
+  overflow: visible;
 }
 
 .snabbb-molar-experience .molar-cat-bed:hover,
@@ -90,16 +91,21 @@
   pointer-events: none;
 }
 
-.snabbb-molar-experience .molar-cat-wrapper--in-bed .molar-cat-sprite {
-  transform: scale(0.68);
+.snabbb-molar-experience .molar-cat-bed__sleeping-cat {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 7px;
+  width: 80.64px;
+  height: 87.36px;
+  transform: translateX(-50%) scale(0.68);
   transform-origin: 50% 100%;
   pointer-events: none;
-  cursor: default;
-  transition: transform 180ms ease;
 }
 
-.snabbb-molar-experience .molar-cat-wrapper--in-bed [data-cat='true'] {
-  pointer-events: none !important;
+.snabbb-molar-experience .molar-cat-bed__sleeping-cat .molar-cat-sprite {
+  pointer-events: none;
+  cursor: default;
 }
 
 @media (prefers-reduced-motion: reduce) {

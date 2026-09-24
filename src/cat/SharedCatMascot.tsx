@@ -282,6 +282,21 @@ export function SharedCatMascot({
     if (!disabled) onCatClick?.();
   };
 
+  const catSprite = (
+    <CatSprite
+      asSpan={isCatBedSleepReady}
+      petId={petId}
+      isWalking={isWalking}
+      facingLeft={facingLeft}
+      isMeowing={isMeowing}
+      isHovered={isHovered}
+      isSleeping={isSleeping || isCatBedSleepReady}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      spriteSheetUrls={spriteSheetUrls}
+    />
+  );
+
   return (
     <div className="snabbb-molar-experience" data-molar-theme="light">
     <button
@@ -299,10 +314,15 @@ export function SharedCatMascot({
       aria-label={isCatBedActive ? 'Wake cat up' : 'Put cat to sleep'}
       title={isCatBedActive ? 'Wake cat up' : 'Cat bed'}
     >
-      <img src="/pet-function/pet/grey_bed.png?v=0.9.27" alt="" aria-hidden="true" draggable={false} />
+      <img src="/pet-function/pet/cat_bed_pixel.png?v=0.9.28" alt="" aria-hidden="true" draggable={false} />
+      {isCatBedSleepReady && (
+        <span className="molar-cat-bed__sleeping-cat" aria-hidden="true">
+          {catSprite}
+        </span>
+      )}
     </button>
     <div
-      className={`molar-cat-wrapper ${isCatBedSleepReady ? 'molar-cat-wrapper--in-bed' : ''}`}
+      className="molar-cat-wrapper"
       style={{
         left: `${catPos.x}%`,
         top: `${catPos.y}%`,
@@ -425,29 +445,21 @@ export function SharedCatMascot({
         )}
       </AnimatePresence>
 
-      <div
-        data-cat="true"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!isCatBedActiveRef.current) handleCatClick();
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseOver={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={{ pointerEvents: 'auto' }}
-      >
-        <CatSprite
-          petId={petId}
-          isWalking={isWalking}
-          facingLeft={facingLeft}
-          isMeowing={isMeowing}
-          isHovered={isHovered}
-          isSleeping={isSleeping || isCatBedSleepReady}
-          onHoverStart={() => setIsHovered(true)}
-          onHoverEnd={() => setIsHovered(false)}
-          spriteSheetUrls={spriteSheetUrls}
-        />
-      </div>
+      {!isCatBedSleepReady && (
+        <div
+          data-cat="true"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isCatBedActiveRef.current) handleCatClick();
+          }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseOver={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          style={{ pointerEvents: 'auto' }}
+        >
+          {catSprite}
+        </div>
+      )}
     </div>
     </div>
   );
