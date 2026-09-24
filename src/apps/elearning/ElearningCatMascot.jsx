@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { normalizePetId } from '../../pet/publicOptions';
 import { usePersonalizedInsightBridge } from './petDialogue/PersonalizedInsightBridge';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
-import { useSharedCatDialogueRuntime, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
+import { useSharedCatDialogueRuntime, useSharedCatSleepSync, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
 
 const PET_SLEEPING_KEY = 'pet_is_sleeping';
 const PET_SLEEPING_UPDATED_AT_KEY = 'pet_is_sleeping_updated_at';
@@ -22,6 +22,7 @@ return function ElearningCatMascot({ onCatClick, disabled = false, userId = null
   const [isPetSleeping, setIsPetSleeping] = useState(() => {
     try { return localStorage.getItem(PET_SLEEPING_KEY) === 'true'; } catch { return false; }
   });
+  const handleCatBedSleepChange = useSharedCatSleepSync(supabase, userId, setIsPetSleeping);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, userId);
   const initialPetName = readSharedPetName(userId);
   const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
@@ -547,6 +548,7 @@ return function ElearningCatMascot({ onCatClick, disabled = false, userId = null
       disabled={disabled}
       petId={selectedPetId}
       isSleeping={isPetSleeping}
+      onSleepingChange={handleCatBedSleepChange}
       dialogue={dialogue}
       meowMessage={meowMsg}
       onCatClick={handleCatClick}

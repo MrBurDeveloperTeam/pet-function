@@ -53,6 +53,7 @@ export function SharedCatMascot({
   disabled = false,
   petId,
   isSleeping = false,
+  onSleepingChange,
   dialogue = { kind: 'none' },
   meowMessage = null,
   onCatClick,
@@ -109,6 +110,20 @@ export function SharedCatMascot({
       onArrive?.();
     }, duration * 1000);
   }, [getInterpolatedPos]);
+
+  useEffect(() => {
+    if (isSleeping) {
+      isCatBedActiveRef.current = true;
+      setIsCatBedActive(true);
+      setIsCatBedSleepReady(true);
+      return;
+    }
+    if (isCatBedActiveRef.current && isCatBedSleepReady) {
+      isCatBedActiveRef.current = false;
+      setIsCatBedActive(false);
+      setIsCatBedSleepReady(false);
+    }
+  }, [isCatBedSleepReady, isSleeping]);
 
   useEffect(() => {
     const updateCatBedPosition = () => {
@@ -257,6 +272,7 @@ export function SharedCatMascot({
       isCatBedActiveRef.current = false;
       setIsCatBedActive(false);
       setIsCatBedSleepReady(false);
+      void onSleepingChange?.(false);
       moveCatTo({
         x: Math.max(5, ((bedRect.left - 54) / window.innerWidth) * 100),
         y: Math.min(94, ((bedRect.top + bedRect.height * 0.78) / window.innerHeight) * 100),
@@ -271,7 +287,10 @@ export function SharedCatMascot({
       x: ((bedRect.left + bedRect.width / 2) / window.innerWidth) * 100,
       y: ((bedRect.top + bedRect.height * 0.78) / window.innerHeight) * 100,
     }, () => {
-      if (isCatBedActiveRef.current) setIsCatBedSleepReady(true);
+      if (isCatBedActiveRef.current) {
+        setIsCatBedSleepReady(true);
+        void onSleepingChange?.(true);
+      }
     });
   };
 
@@ -323,7 +342,7 @@ export function SharedCatMascot({
       )}
     </button>
     <div
-      className="molar-cat-wrapper"
+      className={`molar-cat-wrapper ${isCatBedActive ? 'molar-cat-wrapper--bed-active' : ''}`}
       style={{
         left: `${catPos.x}%`,
         top: `${catPos.y}%`,
@@ -331,6 +350,7 @@ export function SharedCatMascot({
         transition: `left ${walkDuration}s linear, top ${walkDuration}s linear`,
       }}
     >
+      <div className="molar-cat-dialogue-layer">
       <AnimatePresence mode="wait">{bubbleContent}</AnimatePresence>
       <AnimatePresence mode="wait">
         {dialogue.kind === 'sequence' && (
@@ -445,6 +465,8 @@ export function SharedCatMascot({
           </motion.div>
         )}
       </AnimatePresence>
+
+      </div>
 
       {!isCatBedSleepReady && (
         <div

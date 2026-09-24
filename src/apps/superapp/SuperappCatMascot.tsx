@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
+import { SharedCatMascot, useSharedCatSleepSync, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
 import type { CatDialoguePresentation, CatAuthStatus } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
@@ -97,6 +97,7 @@ export default function CatMascot({
 }: CatMascotProps) {
   const { supabase } = getSuperappHostDependencies();
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(catCacheOwnerId, PET_SLEEPING_KEY) === 'true');
+  const handleCatBedSleepChange = useSharedCatSleepSync(supabase, catCacheOwnerId, setIsPetSleeping);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, catCacheOwnerId);
   const initialPetName = readSharedPetName(catCacheOwnerId);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
@@ -997,6 +998,7 @@ export default function CatMascot({
       disabled={disabled}
       petId={selectedPetId}
       isSleeping={isPetSleeping}
+      onSleepingChange={handleCatBedSleepChange}
       dialogue={dialoguePresentation}
       meowMessage={meowMsg}
       onCatClick={handleCatClick}

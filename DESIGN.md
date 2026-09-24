@@ -66,7 +66,10 @@ sleep pose until that same control is activated again. The bed is a frameless
 64px control matching the SNAI trigger. While sleeping, the cat scales into the
 bed as a child of the bed control, follows it across route/layout changes, and
 stops intercepting pointer input so the bed can wake it immediately. Keep the
-bed slightly closer to the right edge than its Tutorial/SNAI anchor.
+bed slightly closer to the right edge than its Tutorial/SNAI anchor. Bed sleep
+state is stored in the account's inventory_pet row and synchronized through
+Supabase Realtime across all seven hosts. Keep dialogue mounted but hidden for
+the whole sleep period so it can return when the cat wakes.
 SharedVirtualPet owns pet rooms/runtime. SharedMeowdokuLauncher owns the game bridge.
 Database clients, identities and business action executors remain host-owned.
 SNAI services, adapters, welcome content, UI and fixed light styling are shared.

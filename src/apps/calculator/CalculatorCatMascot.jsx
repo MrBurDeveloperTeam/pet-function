@@ -22,7 +22,7 @@
 // parity is the acceptance gate for whether that specific behavioral
 // difference is acceptable.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SharedCatMascot, useSharedCatDialogueRuntime, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
+import { SharedCatMascot, useSharedCatDialogueRuntime, useSharedCatSleepSync, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
 import { usePersonalizedInsightBridge } from './petDialogue/PersonalizedInsightBridge';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
@@ -48,6 +48,7 @@ export default function CalculatorCatMascot({ supabase, onCatClick, disabled = f
   const [isPetSleeping, setIsPetSleeping] = useState(() => {
     try { return localStorage.getItem(PET_SLEEPING_KEY) === 'true'; } catch { return false; }
   });
+  const handleCatBedSleepChange = useSharedCatSleepSync(supabase, userId, setIsPetSleeping);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, userId);
   const initialPetName = readSharedPetName(userId);
   const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
@@ -567,6 +568,7 @@ export default function CalculatorCatMascot({ supabase, onCatClick, disabled = f
       disabled={disabled}
       petId={selectedPetId}
       isSleeping={isPetSleeping}
+      onSleepingChange={handleCatBedSleepChange}
       dialogue={dialogue}
       meowMessage={meowMsg}
       onCatClick={handleCatClick}

@@ -1,4 +1,5 @@
 export { SharedCatMascot } from './SharedCatMascot';
+export { useSharedCatSleepSync } from './useSharedCatSleepSync';
 export { SharedCatPreviewProvider, useSharedCatPreview, SharedPreviewCatMascot } from './SharedCatPreview';
 export type { SharedCatMascotProps, SharedCatPetId, CatDialoguePresentation } from './presentation';
 export { useSharedCatDialogueRuntime } from './runtime';

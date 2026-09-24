@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { SharedCatMascot, useSharedCatDialogueRuntime, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey } from '../../cat';
+import { SharedCatMascot, useSharedCatDialogueRuntime, useSharedCatSleepSync, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
 import { usePersonalizedInsightBridge } from './petDialogue/PersonalizedInsightBridge';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
@@ -38,6 +38,7 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
     if (initialIsSleeping) return true;
     try { return localStorage.getItem(PET_SLEEPING_KEY) === 'true'; } catch { return false; }
   });
+  const handleCatBedSleepChange = useSharedCatSleepSync(supabase, userId, setIsPetSleeping);
   // initialPetName comes from the server (layout.tsx) and is always correct;
   // fall back to localStorage for client-only apps (all other 6 apps).
   const initialResolvedPetName = initialPetName ?? readSharedPetName(userId);
@@ -520,6 +521,7 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
       disabled={disabled}
       petId={selectedPetId}
       isSleeping={isPetSleeping}
+      onSleepingChange={handleCatBedSleepChange}
       dialogue={dialogue}
       meowMessage={meowMsg}
       onCatClick={() => {

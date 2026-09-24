@@ -43,6 +43,9 @@ export interface SharedCatMascotProps {
   disabled?: boolean;
   petId?: string | null;
   isSleeping?: boolean;
+  /** Persists a bed-triggered sleep/wake change through the host's shared
+   * account store so every mini app reflects the same state. */
+  onSleepingChange?: (sleeping: boolean) => void | Promise<void>;
   /** Defaults to `{ kind: 'none' }` — a host that hasn't wired dialogue
    *  presentation yet still renders a valid, dialogue-less Cat. */
   dialogue?: CatDialoguePresentation;

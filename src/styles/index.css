@@ -98,9 +98,17 @@
   bottom: 7px;
   width: 80.64px;
   height: 87.36px;
-  transform: translateX(-50%) scale(0.68);
+  transform: translateX(-50%) scale(0.56);
   transform-origin: 50% 100%;
   pointer-events: none;
+}
+
+.snabbb-molar-experience .molar-cat-dialogue-layer {
+  display: contents;
+}
+
+.snabbb-molar-experience .molar-cat-wrapper--bed-active .molar-cat-dialogue-layer {
+  display: none;
 }
 
 .snabbb-molar-experience .molar-cat-bed__sleeping-cat .molar-cat-sprite {

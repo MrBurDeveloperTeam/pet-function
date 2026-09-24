@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useSharedCatDialogueRuntime, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../cat';
+import { useSharedCatDialogueRuntime, useSharedCatSleepSync, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../cat';
 
 import { normalizePetId } from '../pet/publicOptions';
 import { CAT_SPRITE_SHEET_URLS } from '../resources';
@@ -31,6 +31,7 @@ const writeCatStorage = (userId, key, value) => {
 
 export default function AppointmentCatMascot({ supabase, onCatClick, disabled = false, personalizedInsightState = null, catCacheOwnerId = null, authStatus }) {
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(catCacheOwnerId, PET_SLEEPING_KEY) === 'true');
+  const handleCatBedSleepChange = useSharedCatSleepSync(supabase, catCacheOwnerId, setIsPetSleeping);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, catCacheOwnerId);
   const initialPetName = readSharedPetName(catCacheOwnerId);
   const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
@@ -563,6 +564,7 @@ export default function AppointmentCatMascot({ supabase, onCatClick, disabled = 
       disabled={disabled}
       petId={selectedPetId}
       isSleeping={isPetSleeping}
+      onSleepingChange={handleCatBedSleepChange}
       dialogue={dialogue}
       meowMessage={meowMsg}
       onCatClick={handleCatClick}

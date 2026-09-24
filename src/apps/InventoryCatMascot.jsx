@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 
 import { normalizePetId } from '../pet/publicOptions';
-import { useSharedCatDialogueRuntime, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../cat';
+import { useSharedCatDialogueRuntime, useSharedCatSleepSync, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../cat';
 import { CAT_SPRITE_SHEET_URLS } from '../resources';
 import { formatInventoryWelcomeBack } from './inventory/petDialogue/inventoryWelcomeBack';
 
@@ -60,6 +60,7 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
   // the Phase 7B user-key auth boundary and any React Strict-Mode-driven
   // remount) that requires explicit manual browser acceptance.
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(catCacheOwnerId, PET_SLEEPING_KEY) === 'true');
+  const handleCatBedSleepChange = useSharedCatSleepSync(supabase, catCacheOwnerId, setIsPetSleeping);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, catCacheOwnerId);
   const initialPetName = readSharedPetName(catCacheOwnerId);
   const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
@@ -591,6 +592,7 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
       disabled={disabled}
       petId={selectedPetId}
       isSleeping={isPetSleeping}
+      onSleepingChange={handleCatBedSleepChange}
       dialogue={dialogue}
       meowMessage={meowMsg}
       onCatClick={handleCatClick}

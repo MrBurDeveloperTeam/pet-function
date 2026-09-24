@@ -20,7 +20,7 @@
 // Manual browser parity is the acceptance gate for whether that specific
 // behavioral difference is acceptable.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SharedCatMascot, useSharedCatDialogueRuntime, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
+import { SharedCatMascot, useSharedCatDialogueRuntime, useSharedCatSleepSync, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
 import { usePersonalizedInsightBridge } from './petDialogue/PersonalizedInsightBridge';
 import { CAT_SPRITE_SHEET_URLS } from '../../resources';
@@ -69,6 +69,7 @@ const introCompletedLocally = (uid) => {
 export function createTodoCatMascot(supabase) {
 return function TodoCatMascot({ onCatClick, disabled = false, userId = null, authStatus }) {
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(userId, PET_SLEEPING_KEY) === 'true');
+  const handleCatBedSleepChange = useSharedCatSleepSync(supabase, userId, setIsPetSleeping);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, userId);
   const initialPetName = readSharedPetName(userId);
   const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
@@ -570,6 +571,7 @@ return function TodoCatMascot({ onCatClick, disabled = false, userId = null, aut
       disabled={disabled}
       petId={selectedPetId}
       isSleeping={isPetSleeping}
+      onSleepingChange={handleCatBedSleepChange}
       dialogue={dialogue}
       meowMessage={meowMsg}
       onCatClick={handleCatClick}
