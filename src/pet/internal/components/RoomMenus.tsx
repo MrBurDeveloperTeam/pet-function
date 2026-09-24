@@ -13,6 +13,7 @@ import { FoodItem, ToolType, ExtraGame } from '../types';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import soapUrl from '../../../assets/pet/soap.png';
 import showerUrl from '../../../assets/pet/shower.png';
+import { FoodItemVisual } from './FoodItemVisual';
 
 interface FoodMenuProps {
     onDragStart: (e: React.PointerEvent, item: FoodItem) => void;
@@ -71,7 +72,11 @@ export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOp
                             onPointerDown={(e) => onDragStart(e, item)}
                             className="relative flex h-16 w-16 shrink-0 snap-center cursor-grab items-center justify-center transition-all hover:-translate-y-0.5 active:cursor-grabbing active:scale-95"
                         >
-                            <div className="select-none touch-none text-4xl drop-shadow-sm">{item.icon}</div>
+                            <FoodItemVisual
+                                item={item}
+                                imageClassName="h-11 w-11 touch-none drop-shadow-sm"
+                                emojiClassName="select-none touch-none text-4xl drop-shadow-sm"
+                            />
                             <div className="pointer-events-none absolute -right-0 -top-0 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 text-[11px] font-black text-white shadow">
                                 {inventory[item.id]}
                             </div>

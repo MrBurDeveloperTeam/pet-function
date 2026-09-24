@@ -27,19 +27,17 @@ import { TOY_ITEMS } from '../constants';
 import { AiOutlineShop } from 'react-icons/ai';
 import { BedImage } from './BedImage';
 import { resolveBedImage } from '../bedImages';
+import { FoodItemVisual } from './FoodItemVisual';
 
 interface ShopModalProps {
   isOpen: boolean;
   onClose: () => void;
   items: FoodItem[];
   inventory: Record<string, number>;
-  activeBedId: string | null;
   activeBallId: string;
   coins: number;
   currentLevel: number;
   onBuy: (item: FoodItem) => void;
-  onBuyBed: (bed: FoodItem) => void;
-  onSelectBed: (id: string) => void;
   onBuyToy: (item: FoodItem) => void;
   onSelectToy: (id: string) => void;
   isLoading?: boolean;
@@ -89,19 +87,11 @@ const findToyByShopItem = (item: Pick<FoodItem, 'id' | 'label'>) => {
 };
 
 const ToyVisual = ({ item, size = 'large' }: { item: FoodItem; size?: 'small' | 'large' }) => {
-  const toy = findToyByShopItem(item);
-  if (!toy) {
-    return <span className={size === 'large' ? 'text-6xl drop-shadow-sm' : 'text-4xl drop-shadow-sm'}>{item.icon}</span>;
-  }
-
-  if (toy.icon) {
-    return <span className={`${size === 'large' ? 'text-[64px]' : 'text-4xl'} leading-none drop-shadow-md select-none`}>{toy.icon}</span>;
-  }
-
   return (
-    <span
-      className={`${size === 'large' ? 'h-16 w-16' : 'h-11 w-11'} rounded-full border-2 border-white/50 shadow-inner`}
-      style={{ background: toy.color }}
+    <FoodItemVisual
+      item={item}
+      imageClassName={size === 'large' ? 'h-16 w-16' : 'h-10 w-10'}
+      emojiClassName={size === 'large' ? 'text-6xl' : 'text-4xl'}
     />
   );
 };
@@ -111,13 +101,10 @@ const ShopModal: React.FC<ShopModalProps> = ({
   onClose,
   items,
   inventory,
-  activeBedId,
   activeBallId,
   coins,
   currentLevel,
   onBuy,
-  onBuyBed,
-  onSelectBed,
   onBuyToy,
   onSelectToy,
   isLoading = false
@@ -256,33 +243,15 @@ const ShopModal: React.FC<ShopModalProps> = ({
           {!isLoading && selectedCategory === 'Beds' && (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {bedItems.map((bed) => {
-                const isOwned = bed.price === 0 || (inventory[bed.id] || 0) > 0;
-                const isActive = activeBedId === bed.id;
-                const isLocked = (bed.levelReq || 1) > currentLevel;
-                const actualPrice = bed.price * currencyRate;
-                const canAfford = coins >= actualPrice;
-
                 return (
                   <div
                     key={bed.id}
-                    className={`relative flex min-h-56 flex-col rounded-[26px] border ${selectedStyle.border} bg-white p-4 text-center shadow-lg shadow-orange-900/5 transition-all ${
-                      isLocked ? 'opacity-65 grayscale' : 'hover:-translate-y-1 hover:shadow-xl'
-                    }`}
+                    className={`relative flex min-h-56 flex-col rounded-[26px] border ${selectedStyle.border} bg-white p-4 text-center opacity-75 shadow-lg shadow-orange-900/5 grayscale-[0.2]`}
                   >
-                    {isOwned && !isLocked && (
-                      <div className="absolute right-3 top-3 z-10 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white shadow">
-                        Owned
-                      </div>
-                    )}
-
-                    {isLocked && (
-                      <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[26px] bg-white/55">
-                        <div className="flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-xs font-black text-white shadow-md">
-                          <Lock className="h-3.5 w-3.5" strokeWidth={3} />
-                          Lvl {bed.levelReq}
-                        </div>
-                      </div>
-                    )}
+                    <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full bg-slate-600 px-2.5 py-1 text-[11px] font-black text-white shadow">
+                      <Lock className="h-3.5 w-3.5" strokeWidth={3} />
+                      Unavailable
+                    </div>
 
                     <div className="mt-2 flex h-20 items-center justify-center">
                       <BedImage src={resolveBedImage(bed.id, bed.imageSrc, assetUrls?.beds)} alt="" draggable={false} className="h-20 w-28 object-contain drop-shadow-md" />
@@ -296,31 +265,9 @@ const ShopModal: React.FC<ShopModalProps> = ({
                       </span>
                     </div>
 
-                    {isOwned ? (
-                      <button
-                        onClick={() => !isActive && onSelectBed(bed.id)}
-                        disabled={isActive}
-                        className={`mt-auto rounded-2xl px-3 py-2.5 text-sm font-black transition-all ${
-                          isActive
-                            ? SHOP_BUTTONS.active
-                            : SHOP_BUTTONS.select
-                        }`}
-                      >
-                        {isActive ? 'Active' : 'Select'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => !isLocked && canAfford && onBuyBed(bed)}
-                        disabled={isLocked || !canAfford}
-                        className={`mt-auto rounded-2xl px-3 py-2.5 text-sm font-black transition-all ${
-                          !isLocked && canAfford
-                            ? SHOP_BUTTONS.buy
-                            : SHOP_BUTTONS.disabled
-                        }`}
-                      >
-                        {isLocked ? 'Locked' : `${currencyCode} ${formatPrice(bed.price)}`}
-                      </button>
-                    )}
+                    <button disabled className={`mt-auto rounded-2xl px-3 py-2.5 text-sm font-black ${SHOP_BUTTONS.disabled}`}>
+                      Unavailable
+                    </button>
                   </div>
                 );
               })}

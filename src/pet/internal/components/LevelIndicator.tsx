@@ -1,6 +1,3 @@
-/**
- * Ported verbatim from Content Studio's `src/VirtualPet/components/LevelIndicator.tsx`.
- */
 import React, { useState } from 'react';
 import { PetStats } from '../types';
 
@@ -8,102 +5,52 @@ interface LevelIndicatorProps {
   stats: PetStats;
 }
 
+const CAT_HEAD_POINTS = '3,7 3,2 8,6 16,6 21,2 21,7 23,9 23,19 20,19 20,22 16,22 16,24 8,24 8,22 4,22 4,19 1,19 1,9';
+
 const LevelIndicator: React.FC<LevelIndicatorProps> = ({ stats }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  const bodyPath = "M 40 30 Q 70 70 100 65 Q 130 70 160 30 Q 190 80 180 150 Q 170 195 100 190 Q 30 195 20 150 Q 10 80 40 30 Z";
-
-  const whiskersPath = `
-    M 45 115 L 5 105
-    M 45 135 L 5 145
-    M 155 115 L 195 105
-    M 155 135 L 195 145
-  `;
-
-  const fillHeightRange = 165;
-  const fillBottomY = 195;
-  const xpPercent = Math.min(100, Math.max(0, stats.xp)) / 100;
-  const fillY = fillBottomY - (xpPercent * fillHeightRange);
+  const xpPercent = Math.min(100, Math.max(0, stats.xp));
+  const fillY = 24 - (xpPercent / 100) * 22;
 
   return (
-    <div className="absolute right-2 top-2 z-50 flex flex-col items-end animate-in fade-in slide-in-from-right-4 duration-700 sm:right-6 sm:top-3">
-        <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="group relative h-12 w-12 shrink-0 cursor-pointer outline-none transition-transform duration-200 hover:scale-105 active:scale-95 sm:h-20 sm:w-20"
-            title={`Level ${stats.level}`}
-        >
-            <svg viewBox="0 0 200 200" className="w-full h-full overflow-visible drop-shadow-xl">
-                <defs>
-                    <clipPath id="body-mask-lvl">
-                        <path d={bodyPath} />
-                    </clipPath>
-                    <linearGradient id="fill-gradient-lvl" x1="0" x2="0" y1="0" y2="1">
-                          <stop offset="0%" stopColor="#fbbf24" />
-                          <stop offset="100%" stopColor="#f59e0b" />
-                    </linearGradient>
-                </defs>
+    <div className="absolute right-2 top-2 z-50 flex flex-col items-end sm:right-6 sm:top-3">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className="group relative h-14 w-14 shrink-0 cursor-pointer outline-none transition-transform hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 sm:h-20 sm:w-20"
+        title={`Level ${stats.level}`}
+        aria-expanded={isOpen}
+      >
+        <svg viewBox="0 0 24 24" className="h-full w-full overflow-visible drop-shadow-[3px_3px_0_rgba(55,38,21,0.45)]" shapeRendering="crispEdges" aria-hidden="true">
+          <defs>
+            <clipPath id="pixel-cat-level-mask"><polygon points={CAT_HEAD_POINTS} /></clipPath>
+          </defs>
+          <polygon points={CAT_HEAD_POINTS} fill="#fff0ad" stroke="#3f321f" strokeWidth="1.2" />
+          <g clipPath="url(#pixel-cat-level-mask)">
+            <rect x="0" y={fillY} width="24" height="24" fill="#f7b733" className="transition-all duration-700" />
+            <path fill="#ffd96a" d="M3 8h18v3H3z" />
+          </g>
+          <polygon points={CAT_HEAD_POINTS} fill="none" stroke="#3f321f" strokeWidth="1.2" />
+          <path fill="#3f321f" d="M1 13h5v1H1zM1 16h5v1H1zM18 13h5v1h-5zM18 16h5v1h-5z" />
+        </svg>
+        <span className="pointer-events-none absolute inset-x-0 top-[34%] text-center text-base font-black leading-none text-[#2f291f] sm:text-2xl">{stats.level}</span>
+        <span className="pointer-events-none absolute inset-x-0 top-[60%] text-center text-[7px] font-black uppercase tracking-[0.08em] text-[#514632] sm:text-[9px]">Lvl</span>
+      </button>
 
-                <path d={bodyPath} className="fill-white/30 backdrop-blur-md stroke-white/60 stroke-[4]" />
-
-                <g clipPath="url(#body-mask-lvl)">
-                    <rect
-                        x="0"
-                        y={fillY}
-                        width="200"
-                        height="200"
-                        fill="url(#fill-gradient-lvl)"
-                        className="transition-all duration-700 ease-out"
-                    />
-                </g>
-
-                <path d={bodyPath} className="fill-none stroke-slate-500/10 stroke-[4px]" />
-                <path d={bodyPath} className="fill-none stroke-black stroke-[4px] pointer-events-none" />
-                <path
-                  d={whiskersPath}
-                  className="fill-none stroke-slate-600/60 stroke-[3px]"
-                  strokeLinecap="round"
-                />
-
-                <text
-                    x="100"
-                    y="110"
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    className="text-5xl font-black fill-slate-800 drop-shadow-sm pointer-events-none select-none"
-                    style={{ fontFamily: 'Fredoka, sans-serif' }}
-                >
-                    {stats.level}
-                </text>
-
-                <text
-                    x="100"
-                    y="150"
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    className="text-[18px] font-bold fill-slate-700/70 tracking-widest pointer-events-none select-none"
-                    style={{ fontFamily: 'Fredoka, sans-serif' }}
-                >
-                    LVL
-                </text>
-            </svg>
-        </button>
-
-        {isOpen && (
-            <div className="absolute right-0 top-14 w-64 max-w-[90vw] origin-top-right animate-in rounded-2xl border border-white/50 bg-white/90 p-5 shadow-2xl backdrop-blur-xl fade-in zoom-in-95 sm:top-24">
-                <div className="text-center">
-                    <h3 className="text-xl font-bold text-slate-800">Level {stats.level}</h3>
-                    <div className="text-sm font-semibold text-slate-500 mt-1">
-                        {Math.floor(stats.xp)} / 100 XP
-                    </div>
-                    <div className="w-full h-3 bg-slate-200 rounded-full mt-2 overflow-hidden shadow-inner">
-                        <div
-                            className="h-full bg-amber-400 transition-all duration-500"
-                            style={{ width: `${Math.min(100, Math.max(0, stats.xp))}%` }}
-                        />
-                    </div>
-                </div>
+      {isOpen && (
+        <div className="absolute right-0 top-16 w-56 max-w-[90vw] border-4 border-[#5f543e] bg-[#fff3c4] p-4 text-[#3f321f] shadow-[5px_5px_0_rgba(53,45,31,0.5)] sm:top-24 sm:w-64">
+          <div className="text-center">
+            <h3 className="text-lg font-black uppercase tracking-wide">Level {stats.level}</h3>
+            <div className="mt-1 text-xs font-black text-[#6f654f]">{Math.floor(stats.xp)} / 100 XP</div>
+            <div className="mt-3 h-4 w-full overflow-hidden border-2 border-[#6f654f] bg-[#e9dfbd]">
+              <div
+                className="h-full bg-amber-400 transition-[width] duration-500"
+                style={{ width: `${xpPercent}%`, backgroundImage: 'repeating-linear-gradient(90deg, transparent 0 10px, rgba(255,255,255,0.4) 10px 12px)' }}
+              />
             </div>
-        )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

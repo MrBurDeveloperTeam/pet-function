@@ -209,7 +209,7 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
     const setPetName = (name: string) => {
         if (!hasAdoptedPet) _setPetName(normalizePetId(name));
     };
-    const [currentRoom, setCurrentRoom] = useState<RoomType>(RoomType.KITCHEN);
+    const [currentRoom, setCurrentRoom] = useState<RoomType>(RoomType.GAMES);
     const [inventory, setInventory] = useState<Record<string, number>>(INITIAL_INVENTORY);
     const [isSleeping, setIsSleeping] = useState(() => {
         try {

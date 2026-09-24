@@ -8,6 +8,7 @@ import { FoodItem, ToolType, Bubble } from '../types';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import soapUrl from '../../../assets/pet/soap.png';
 import showerUrl from '../../../assets/pet/shower.png';
+import { FoodItemVisual } from './FoodItemVisual';
 
 interface DragLayerProps {
     draggedItem: FoodItem | null;
@@ -68,7 +69,11 @@ const DragLayer: React.FC<DragLayerProps> = ({ draggedItem, draggedTool, dragPos
                         transform: 'translate(-50%, -50%) scale(1.2)'
                     }}
                 >
-                    {draggedItem.icon}
+                    <FoodItemVisual
+                        item={draggedItem}
+                        imageClassName="h-14 w-14 drop-shadow-2xl"
+                        emojiClassName="text-5xl filter drop-shadow-2xl"
+                    />
                 </div>
             )}
 

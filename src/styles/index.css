@@ -1182,6 +1182,34 @@
   }
 }
 
+@keyframes molar-room-loading-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes molar-room-loading-runner {
+  from { left: 16px; transform: translateY(0); }
+  25% { transform: translateY(-4px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-4px); }
+  to { left: calc(100% - 82px); transform: translateY(0); }
+}
+
+@keyframes molar-room-loading-cat-sprite {
+  from { background-position-x: 0; }
+  to { background-position-x: -1536px; }
+}
+
+@keyframes molar-room-loading-cloud {
+  from { transform: translateX(-8px); }
+  to { transform: translateX(18px); }
+}
+
+@keyframes molar-room-loading-paw {
+  0%, 100% { transform: translateY(2px) scale(0.9); opacity: 0.45; }
+  45% { transform: translateY(-3px) scale(1.12); opacity: 1; }
+}
+
 .snabbb-molar-experience .animate-breathe {
   animation: molar-pet-breathe 3s infinite ease-in-out;
 }
@@ -1197,6 +1225,124 @@
 .snabbb-molar-experience .animate-poop-reward {
   animation: molar-pet-poop-reward 1.6s ease-out forwards;
 }
+
+.snabbb-molar-experience .pet-room-loading-sky {
+  image-rendering: pixelated;
+}
+
+.snabbb-molar-experience .pet-room-loading-sun {
+  transform: rotate(8deg);
+}
+
+.snabbb-molar-experience .pet-room-loading-cloud {
+  width: 52px;
+  height: 18px;
+  border: 3px solid #6ba7b4;
+  background: #fffdf0;
+  box-shadow: 4px 4px 0 rgb(76 121 133 / 22%);
+  animation: molar-room-loading-cloud 1.6s ease-in-out infinite alternate;
+}
+
+.snabbb-molar-experience .pet-room-loading-cloud::before,
+.snabbb-molar-experience .pet-room-loading-cloud::after {
+  position: absolute;
+  bottom: 15px;
+  content: '';
+  background: #fffdf0;
+  border-color: #6ba7b4;
+  border-style: solid;
+  border-width: 3px 3px 0;
+}
+
+.snabbb-molar-experience .pet-room-loading-cloud::before {
+  left: 7px;
+  width: 15px;
+  height: 12px;
+}
+
+.snabbb-molar-experience .pet-room-loading-cloud::after {
+  left: 23px;
+  width: 20px;
+  height: 18px;
+}
+
+.snabbb-molar-experience .pet-room-loading-cloud-two {
+  animation-delay: -0.7s;
+}
+
+.snabbb-molar-experience .pet-room-loading-star {
+  width: 7px;
+  height: 7px;
+  background: #fff6a8;
+  box-shadow: -5px 0 0 #fff6a8, 5px 0 0 #fff6a8, 0 -5px 0 #fff6a8, 0 5px 0 #fff6a8;
+}
+
+.snabbb-molar-experience .pet-room-loading-flower {
+  width: 7px;
+  height: 7px;
+  background: #ffd64f;
+  box-shadow: -7px 0 0 #fff9df, 7px 0 0 #fff9df, 0 -7px 0 #fff9df, 0 7px 0 #fff9df;
+}
+
+.snabbb-molar-experience .pet-room-loading-flower::after {
+  position: absolute;
+  top: 12px;
+  left: 2px;
+  width: 3px;
+  height: 13px;
+  content: '';
+  background: #356c2c;
+}
+
+.snabbb-molar-experience .pet-room-loading-progress {
+  animation: molar-room-loading-progress 1800ms linear forwards;
+}
+
+.snabbb-molar-experience .pet-room-loading-runner {
+  animation: molar-room-loading-runner 1800ms linear forwards;
+}
+
+.snabbb-molar-experience .pet-room-loading-cat {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 192px;
+  height: 208px;
+  background-repeat: no-repeat;
+  background-size: 1536px 1872px;
+  image-rendering: pixelated;
+  transform: scale(0.34);
+  transform-origin: left bottom;
+  animation: molar-room-loading-cat-sprite 0.55s steps(8) infinite;
+}
+
+.snabbb-molar-experience .pet-room-loading-paw {
+  display: inline-block;
+  animation: molar-room-loading-paw 0.72s ease-in-out infinite;
+}
+
+.snabbb-molar-experience .pet-room-loading-paw:nth-child(2) { animation-delay: 0.12s; }
+.snabbb-molar-experience .pet-room-loading-paw:nth-child(3) { animation-delay: 0.24s; }
+.snabbb-molar-experience .pet-room-loading-paw:nth-child(4) { animation-delay: 0.36s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .snabbb-molar-experience .pet-room-loading-cloud,
+  .snabbb-molar-experience .pet-room-loading-cat,
+  .snabbb-molar-experience .pet-room-loading-paw {
+    animation: none;
+  }
+
+  .snabbb-molar-experience .pet-room-loading-progress {
+    width: 100%;
+    animation: none;
+  }
+
+  .snabbb-molar-experience .pet-room-loading-runner {
+    left: calc(100% - 82px);
+    animation: none;
+  }
+}
+
 .snabbb-molar-experience .snai-support-link {
   display: flex; width: 100%; align-items: center; gap: 12px;
   padding: 10px 12px; border: 1px solid #334155;
