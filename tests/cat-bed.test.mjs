@@ -28,7 +28,14 @@ test('sleeping cat fits inside the bed without blocking its wake button', () => 
   assert.match(css, /\.molar-cat-bed__sleeping-cat[\s\S]*?transform: translateX\(-50%\) scale\(0\.68\)/);
   assert.match(css, /\.molar-cat-bed__sleeping-cat \.molar-cat-sprite[\s\S]*?pointer-events: none/);
   assert.match(css, /\.molar-cat-bed[\s\S]*?width: 4rem;[\s\S]*?height: 4rem;[\s\S]*?background: transparent/);
-  assert.match(mascot, /cat_bed_pixel\.png\?v=0\.9\.28/);
+  assert.match(css, /\.molar-cat-sprite \{[\s\S]*?display: block/);
+  assert.match(mascot, /cat_bed_pixel\.png\?v=0\.9\.30/);
+});
+
+test('cat bed is offset toward the right edge while the sleeping cat stays nested', () => {
+  assert.match(mascot, /const CAT_BED_RIGHT_OFFSET = 12/);
+  assert.match(mascot, /- CAT_BED_RIGHT_OFFSET/);
+  assert.match(mascot, /molar-cat-bed__sleeping-cat[\s\S]*?\{catSprite\}/);
 });
 
 test('cat bed is keyboard-visible and respects reduced motion', () => {

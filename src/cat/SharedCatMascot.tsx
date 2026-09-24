@@ -32,6 +32,7 @@ const MASCOT_CLICK_IGNORE_SELECTOR = [
 ].join(',');
 
 const CAT_BED_SIZE = 64;
+const CAT_BED_RIGHT_OFFSET = 12;
 
 /**
  * Public Cat visual/runtime entry point.
@@ -117,7 +118,7 @@ export function SharedCatMascot({
       if (!anchor) return;
       const rect = anchor.getBoundingClientRect();
       const nextPosition = {
-        right: Math.max(12, window.innerWidth - rect.right + (rect.width - CAT_BED_SIZE) / 2),
+        right: Math.max(4, window.innerWidth - rect.right + (rect.width - CAT_BED_SIZE) / 2 - CAT_BED_RIGHT_OFFSET),
         bottom: Math.max(12, window.innerHeight - rect.top + 12),
       };
       setCatBedPosition((current) => (
@@ -314,7 +315,7 @@ export function SharedCatMascot({
       aria-label={isCatBedActive ? 'Wake cat up' : 'Put cat to sleep'}
       title={isCatBedActive ? 'Wake cat up' : 'Cat bed'}
     >
-      <img src="/pet-function/pet/cat_bed_pixel.png?v=0.9.28" alt="" aria-hidden="true" draggable={false} />
+      <img src="/pet-function/pet/cat_bed_pixel.png?v=0.9.30" alt="" aria-hidden="true" draggable={false} />
       {isCatBedSleepReady && (
         <span className="molar-cat-bed__sleeping-cat" aria-hidden="true">
           {catSprite}

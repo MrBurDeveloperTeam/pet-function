@@ -65,7 +65,8 @@ locks page-driven movement immediately, walks the cat into bed, and holds the
 sleep pose until that same control is activated again. The bed is a frameless
 64px control matching the SNAI trigger. While sleeping, the cat scales into the
 bed as a child of the bed control, follows it across route/layout changes, and
-stops intercepting pointer input so the bed can wake it immediately.
+stops intercepting pointer input so the bed can wake it immediately. Keep the
+bed slightly closer to the right edge than its Tutorial/SNAI anchor.
 SharedVirtualPet owns pet rooms/runtime. SharedMeowdokuLauncher owns the game bridge.
 Database clients, identities and business action executors remain host-owned.
 SNAI services, adapters, welcome content, UI and fixed light styling are shared.

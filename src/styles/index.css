@@ -117,6 +117,7 @@
 /* Sprite ------------------------------------------------------------------ */
 
 .snabbb-molar-experience .molar-cat-sprite {
+  display: block;
   position: relative;
   width: 80.64px; /* CAT_FRAME_WIDTH * CAT_SCALE = 192 * 0.42 */
   height: 87.36px; /* CAT_FRAME_HEIGHT * CAT_SCALE = 208 * 0.42 */
