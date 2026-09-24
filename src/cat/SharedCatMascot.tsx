@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { CatSprite } from './internal/CatSprite';
@@ -63,12 +63,77 @@ export function SharedCatMascot({
   const [isMeowing, setIsMeowing] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [walkDuration, setWalkDuration] = useState(0.8);
+  const [isCatBedActive, setIsCatBedActive] = useState(false);
+  const [isCatBedSleepReady, setIsCatBedSleepReady] = useState(false);
+  const [catBedPosition, setCatBedPosition] = useState({ right: 24, bottom: 104 });
 
   const walkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const catBedRef = useRef<HTMLButtonElement | null>(null);
+  const isCatBedActiveRef = useRef(false);
   const lastMoveStartPos = useRef({ x: -10, y: 85 });
   const lastMoveStartTime = useRef(0);
   const lastMoveDuration = useRef(0.8);
   const lastMoveTarget = useRef({ x: -10, y: 85 });
+
+  const getInterpolatedPos = useCallback(() => {
+    const elapsed = (Date.now() - lastMoveStartTime.current) / 1000;
+    const progress = Math.min(elapsed / lastMoveDuration.current, 1);
+    return {
+      x: lastMoveStartPos.current.x + (lastMoveTarget.current.x - lastMoveStartPos.current.x) * progress,
+      y: lastMoveStartPos.current.y + (lastMoveTarget.current.y - lastMoveStartPos.current.y) * progress,
+    };
+  }, []);
+
+  const moveCatTo = useCallback((target: { x: number; y: number }, onArrive?: () => void) => {
+    const currentPos = getInterpolatedPos();
+    const currentX = (currentPos.x / 100) * window.innerWidth;
+    const currentY = (currentPos.y / 100) * window.innerHeight;
+    const targetX = (target.x / 100) * window.innerWidth;
+    const targetY = (target.y / 100) * window.innerHeight;
+    const duration = Math.max(0.25, Math.hypot(targetX - currentX, targetY - currentY) / 200);
+
+    lastMoveStartPos.current = currentPos;
+    lastMoveTarget.current = target;
+    lastMoveStartTime.current = Date.now();
+    lastMoveDuration.current = duration;
+    setFacingLeft(target.x < currentPos.x);
+    setWalkDuration(duration);
+    setCatPos(target);
+    setIsWalking(true);
+    if (walkTimeoutRef.current) clearTimeout(walkTimeoutRef.current);
+    walkTimeoutRef.current = setTimeout(() => {
+      setIsWalking(false);
+      onArrive?.();
+    }, duration * 1000);
+  }, [getInterpolatedPos]);
+
+  useEffect(() => {
+    const updateCatBedPosition = () => {
+      const tutorial = document.querySelector<HTMLElement>('[data-pet-bed-anchor="tutorial"]');
+      const snai = document.querySelector<HTMLElement>('[data-pet-bed-anchor="snai"]');
+      const anchor = tutorial && tutorial.getClientRects().length > 0 ? tutorial : snai;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const nextPosition = {
+        right: Math.max(12, window.innerWidth - rect.right + (rect.width - 76) / 2),
+        bottom: Math.max(12, window.innerHeight - rect.top + 12),
+      };
+      setCatBedPosition((current) => (
+        Math.abs(current.right - nextPosition.right) < 0.5
+        && Math.abs(current.bottom - nextPosition.bottom) < 0.5
+          ? current
+          : nextPosition
+      ));
+    };
+    updateCatBedPosition();
+    const observer = new MutationObserver(updateCatBedPosition);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+    window.addEventListener('resize', updateCatBedPosition);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateCatBedPosition);
+    };
+  }, []);
 
   useEffect(() => {
     // Entry walk into the screen from the left — identical timing/target
@@ -134,16 +199,8 @@ export function SharedCatMascot({
       });
     });
 
-    const getInterpolatedPos = () => {
-      const elapsed = (Date.now() - lastMoveStartTime.current) / 1000;
-      const progress = Math.min(elapsed / lastMoveDuration.current, 1);
-      return {
-        x: lastMoveStartPos.current.x + (lastMoveTarget.current.x - lastMoveStartPos.current.x) * progress,
-        y: lastMoveStartPos.current.y + (lastMoveTarget.current.y - lastMoveStartPos.current.y) * progress,
-      };
-    };
-
     const handleGlobalClick = (e: MouseEvent) => {
+      if (isCatBedActiveRef.current) return;
       const target = e.target;
       if (!(target instanceof Element)) return;
       if (target.closest(MASCOT_CLICK_IGNORE_SELECTOR)) return;
@@ -185,7 +242,35 @@ export function SharedCatMascot({
       document.removeEventListener('dblclick', handleGlobalClick);
       if (walkTimeoutRef.current) clearTimeout(walkTimeoutRef.current);
     };
-  }, []);
+  }, [getInterpolatedPos]);
+
+  const handleCatBedClick = () => {
+    if (disabled) return;
+
+    const bedRect = catBedRef.current?.getBoundingClientRect();
+    if (!bedRect) return;
+
+    if (isCatBedActiveRef.current) {
+      isCatBedActiveRef.current = false;
+      setIsCatBedActive(false);
+      setIsCatBedSleepReady(false);
+      moveCatTo({
+        x: Math.max(5, ((bedRect.left - 54) / window.innerWidth) * 100),
+        y: Math.min(94, ((bedRect.top + bedRect.height * 0.78) / window.innerHeight) * 100),
+      });
+      return;
+    }
+
+    isCatBedActiveRef.current = true;
+    setIsCatBedActive(true);
+    setIsCatBedSleepReady(false);
+    moveCatTo({
+      x: ((bedRect.left + bedRect.width / 2) / window.innerWidth) * 100,
+      y: ((bedRect.top + bedRect.height * 0.78) / window.innerHeight) * 100,
+    }, () => {
+      if (isCatBedActiveRef.current) setIsCatBedSleepReady(true);
+    });
+  };
 
   const handleCatClick = () => {
     if (!isSleeping) {
@@ -197,6 +282,23 @@ export function SharedCatMascot({
 
   return (
     <div className="snabbb-molar-experience" data-molar-theme="light">
+    <button
+      ref={catBedRef}
+      type="button"
+      data-cat="true"
+      className={`molar-cat-bed ${isCatBedActive ? 'molar-cat-bed--active' : ''}`}
+      style={{ right: catBedPosition.right, bottom: catBedPosition.bottom }}
+      onClick={(event) => {
+        event.stopPropagation();
+        handleCatBedClick();
+      }}
+      disabled={disabled}
+      aria-pressed={isCatBedActive}
+      aria-label={isCatBedActive ? 'Wake cat up' : 'Put cat to sleep'}
+      title={isCatBedActive ? 'Wake cat up' : 'Cat bed'}
+    >
+      <img src="/pet-function/pet/grey_bed.png?v=0.9.21" alt="" aria-hidden="true" draggable={false} />
+    </button>
     <div
       className="molar-cat-wrapper"
       style={{
@@ -325,7 +427,7 @@ export function SharedCatMascot({
         data-cat="true"
         onClick={(e) => {
           e.stopPropagation();
-          handleCatClick();
+          if (!isCatBedActiveRef.current) handleCatClick();
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseOver={() => setIsHovered(true)}
@@ -338,7 +440,7 @@ export function SharedCatMascot({
           facingLeft={facingLeft}
           isMeowing={isMeowing}
           isHovered={isHovered}
-          isSleeping={isSleeping}
+          isSleeping={isSleeping || isCatBedSleepReady}
           onHoverStart={() => setIsHovered(true)}
           onHoverEnd={() => setIsHovered(false)}
           spriteSheetUrls={spriteSheetUrls}

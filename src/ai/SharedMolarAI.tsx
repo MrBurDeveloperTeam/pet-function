@@ -112,6 +112,7 @@ export function SharedMolarAI({ adapter, disabled = false, onPetToggle, emptySta
               </AnimatePresence>
             </div>
             <button
+              data-pet-bed-anchor="snai"
               onClick={() => {
                 if (!disabled) setIsOpen(true);
               }}

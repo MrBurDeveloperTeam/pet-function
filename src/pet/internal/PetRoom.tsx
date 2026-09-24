@@ -23,6 +23,7 @@ import { getPetOption } from './petOptions';
 import poopUrl from '../../assets/pet/poop.png';
 import { resolveBedImage } from './bedImages';
 import { BedImage } from './components/BedImage';
+import { ROOM_BACKGROUNDS } from './roomBackgrounds';
 
 const MAX_BUBBLES = 120;
 const RINSE_COMPLETE_THRESHOLD = Math.ceil(MAX_BUBBLES * 0.05);
@@ -631,11 +632,30 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
   return (
     <div
       className={`relative flex h-[100dvh] min-h-0 w-full flex-col items-center justify-between overflow-hidden py-[clamp(8px,2dvh,24px)] transition-colors duration-700 ease-in-out ${roomConfig.bg}`}
+      style={{ isolation: 'isolate' }}
       onPointerDown={handleAppPointerDown}
       onPointerMove={handleAppPointerMove}
       onPointerUp={handleAppPointerUp}
       onPointerLeave={handleAppPointerUp}
     >
+      <img
+        src={ROOM_BACKGROUNDS[currentRoom]}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center bottom',
+          imageRendering: 'pixelated',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          zIndex: -1,
+        }}
+      />
 
       {/* Dark Overlay for Sleep Mode (Global) */}
       {currentRoom === RoomType.BEDROOM && isSleeping && (

@@ -25,7 +25,7 @@ Runtime ownership: src/styles/index.css, src/pet/tailwind-entry.css and game CSS
 scripts/postbuild.mjs compiles and scopes the pet utilities. Do not hand-edit dist.
 
 The shared UI is light-only, even when a host app or the operating system uses
-dark mode. Preserve the current light room gradients, white translucent HUD,
+dark mode. Use the selected cream pixel room artwork with light gradients as a fallback, white translucent HUD,
 sidebar, menus, shadows and existing cat/AI palette. No alternate dark palette.
 Runtime source styles remain canonical (Model B); postbuild generates a scoped
 `pet-function-light-lock` cascade layer with important paint declarations copied
@@ -38,6 +38,12 @@ geometry, drag positions and animation. Shared roots explicitly mark light mode.
 Keep existing host inheritance and per-game typography. No new font services.
 
 ## Layout
+
+Room artwork is owned by src/pet/internal/roomBackgrounds.ts and shipped from
+public/pet-function/rooms through prepare-pet. The user's output folders supply the five selected images.
+Outside maps to PLAYROOM (and the legacy GARDEN room). Render decorative artwork
+behind all interactions with bottom-centered cover sizing and pixelated scaling.
+Preserve pet movement, equipped beds, room controls and sleep dimming.
 
 Keep the fixed pet overlay, room navigation, landscape cleanup and game overlays.
 Meowdoku opens above the pet and closes back to the still-mounted Games room.
@@ -53,6 +59,10 @@ Existing component classes are the shape token source.
 ## Components
 
 SharedCatMascot owns visual display; shared app dialogue controllers own content.
+SharedCatMascot also owns the global cat-bed control. It follows the visible
+Tutorial trigger when present and otherwise the SNAI trigger. Activating it
+locks page-driven movement immediately, walks the cat into bed, and holds the
+sleep pose until that same control is activated again.
 SharedVirtualPet owns pet rooms/runtime. SharedMeowdokuLauncher owns the game bridge.
 Database clients, identities and business action executors remain host-owned.
 SNAI services, adapters, welcome content, UI and fixed light styling are shared.
