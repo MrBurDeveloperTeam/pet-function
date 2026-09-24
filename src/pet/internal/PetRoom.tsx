@@ -80,6 +80,7 @@ const INDOOR_PET_KEYBOARD_SPEED = 360;
 const INDOOR_PET_MOUSE_SPEED = 520;
 const INDOOR_PET_STOP_DISTANCE = 2;
 const ROOM_TRANSITION_LOADING_MS = 1800;
+const ROOM_BACKGROUND_ASPECT_RATIO = 1862 / 845;
 
 const INDOOR_FLOOR_LANES: Partial<Record<RoomType, { min: number; max: number }>> = {
   [RoomType.KITCHEN]: { min: 0.14, max: 0.86 },
@@ -95,6 +96,11 @@ const BEDROOM_BED_BOTTOM_OFFSET = 96;
 
 const SLEEP_WAKE_DURATION_MS = 760;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const getRoomSceneHorizontalBounds = (width: number, height: number) => {
+  const sceneWidth = Math.min(width, height * ROOM_BACKGROUND_ASPECT_RATIO);
+  const sceneLeft = (width - sceneWidth) / 2;
+  return { sceneLeft, sceneWidth };
+};
 
 interface PetRoomProps {
   onNavigateToGame: (gameId: string) => void;
@@ -169,6 +175,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
   const [pointerState, setPointerState] = useState<{ isDown: boolean, x: number, y: number }>({ isDown: false, x: 0, y: 0 });
 
   const playAreaRef = useRef<HTMLDivElement>(null);
+  const roomRootRef = useRef<HTMLDivElement>(null);
   const petRef = useRef<HTMLDivElement>(null);
   const lastBubbleTime = useRef(0);
   const lastBallPlayTime = useRef(0);
@@ -308,12 +315,14 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
     if (!area || !lane) return null;
 
     const rect = area.getBoundingClientRect();
+    const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
+    const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
     const displayScale = currentRoom === RoomType.BEDROOM
       ? bedroomSceneScale
       : INDOOR_PET_SCALE;
     const petHalfWidth = (192 * displayScale) / 2;
-    const visualMin = Math.max(petHalfWidth, rect.width * lane.min);
-    const visualMax = Math.min(rect.width - petHalfWidth, rect.width * lane.max);
+    const visualMin = Math.max(sceneLeft + petHalfWidth, sceneLeft + sceneWidth * lane.min);
+    const visualMax = Math.min(sceneLeft + sceneWidth - petHalfWidth, sceneLeft + sceneWidth * lane.max);
 
     return {
       min: Math.min(visualMin, visualMax),
@@ -558,9 +567,11 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
       if (!rect) return;
       const petHalfWidth = (192 * OUTSIDE_PET_SCALE) / 2;
       const petHalfHeight = (208 * OUTSIDE_PET_SCALE) / 2;
+      const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
+      const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
       outsideBallTargetRef.current = null;
       outsidePointerTargetRef.current = {
-        x: clamp(e.clientX - rect.left, petHalfWidth, rect.width - petHalfWidth),
+        x: clamp(e.clientX - rect.left, sceneLeft + petHalfWidth, sceneLeft + sceneWidth - petHalfWidth),
         y: clamp(e.clientY - rect.top, petHalfHeight, rect.height - petHalfHeight),
       };
       return;
@@ -877,6 +888,10 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
       const current = outsidePetPosRef.current;
       const petWidth = 192 * OUTSIDE_PET_SCALE;
       const petHeight = 208 * OUTSIDE_PET_SCALE;
+      const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
+      const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
+      const outsideMinX = sceneLeft + petWidth / 2;
+      const outsideMaxX = sceneLeft + sceneWidth - petWidth / 2;
       const latestBallPos = ballPosRef.current;
       const ballSpeed = Math.hypot(ballVel.current.vx, ballVel.current.vy);
       const ballIsReleasedAndMoving = isBallMovingRef.current && !isDraggingBallRef.current && ballSpeed > 0.5;
@@ -898,8 +913,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
         const next = {
           x: clamp(
             current.x + keyboardDirection * INDOOR_PET_KEYBOARD_SPEED * elapsedSeconds,
-            petWidth / 2,
-            rect.width - petWidth / 2
+            outsideMinX,
+            outsideMaxX
           ),
           y: clamp(current.y, petHeight / 2, rect.height - petHeight / 2),
         };
@@ -928,7 +943,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
           ? Math.min(distance, INDOOR_PET_MOUSE_SPEED * elapsedSeconds)
           : Math.min(7, Math.max(2, distance * 0.045));
         const next = {
-          x: clamp(current.x + (dx / distance) * speed, petWidth / 2, rect.width - petWidth / 2),
+          x: clamp(current.x + (dx / distance) * speed, outsideMinX, outsideMaxX),
           y: clamp(current.y + (dy / distance) * speed, petHeight / 2, rect.height - petHeight / 2),
         };
 
@@ -952,6 +967,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
 
   return (
     <div
+      ref={roomRootRef}
       className={`relative flex h-[100dvh] min-h-0 w-full flex-col items-center justify-between overflow-hidden py-[clamp(8px,2dvh,24px)] transition-colors duration-700 ease-in-out ${roomConfig.bg}`}
       style={{ isolation: 'isolate' }}
       onPointerDown={handleAppPointerDown}
@@ -970,7 +986,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
           inset: 0,
           width: '100%',
           height: '100%',
-          objectFit: 'fill',
+          objectFit: 'contain',
           objectPosition: 'center center',
           imageRendering: 'pixelated',
           pointerEvents: 'none',

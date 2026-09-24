@@ -1,61 +1,63 @@
 import React from 'react';
-import bananaPixelUrl from '../../../assets/pet/banana-pixel.png';
-import applePixelUrl from '../../../assets/pet/apple-pixel.png';
-import bobaTeaPixelUrl from '../../../assets/pet/boba-tea-pixel.png';
-import broccoliPixelUrl from '../../../assets/pet/broccoli-pixel.png';
-import carrotPixelUrl from '../../../assets/pet/carrot-pixel.png';
-import coffeePixelUrl from '../../../assets/pet/coffee-pixel.png';
-import cornPixelUrl from '../../../assets/pet/corn-pixel.png';
-import grapesPixelUrl from '../../../assets/pet/grapes-pixel.png';
-import greenTeaPixelUrl from '../../../assets/pet/green-tea-pixel.png';
-import juiceBoxPixelUrl from '../../../assets/pet/juice-box-pixel.png';
-import milkPixelUrl from '../../../assets/pet/milk-pixel.png';
-import pineapplePixelUrl from '../../../assets/pet/pineapple-pixel.png';
-import saladPixelUrl from '../../../assets/pet/salad-pixel.png';
-import sodaPixelUrl from '../../../assets/pet/soda-pixel.png';
-import strawberryPixelUrl from '../../../assets/pet/strawberry-pixel.png';
-import watermelonPixelUrl from '../../../assets/pet/watermelon-pixel.png';
-import waterPixelUrl from '../../../assets/pet/water-pixel.png';
-import baconPixelUrl from '../../../assets/pet/bacon-pixel.png';
-import breadPixelUrl from '../../../assets/pet/bread-pixel.png';
-import cerealPixelUrl from '../../../assets/pet/cereal-pixel.png';
-import croissantPixelUrl from '../../../assets/pet/croissant-pixel.png';
-import friedEggPixelUrl from '../../../assets/pet/fried-egg-pixel.png';
-import pancakesPixelUrl from '../../../assets/pet/pancakes-pixel.png';
-import wafflePixelUrl from '../../../assets/pet/waffle-pixel.png';
-import burgerPixelUrl from '../../../assets/pet/burger-pixel.png';
-import burritoPixelUrl from '../../../assets/pet/burrito-pixel.png';
-import chickenLegPixelUrl from '../../../assets/pet/chicken-leg-pixel.png';
-import friesPixelUrl from '../../../assets/pet/fries-pixel.png';
-import hotdogPixelUrl from '../../../assets/pet/hotdog-pixel.png';
-import pizzaPixelUrl from '../../../assets/pet/pizza-pixel.png';
-import ramenPixelUrl from '../../../assets/pet/ramen-pixel.png';
-import sandwichPixelUrl from '../../../assets/pet/sandwich-pixel.png';
-import spaghettiPixelUrl from '../../../assets/pet/spaghetti-pixel.png';
-import steakPixelUrl from '../../../assets/pet/steak-pixel.png';
-import sushiPixelUrl from '../../../assets/pet/sushi-pixel.png';
-import tacoPixelUrl from '../../../assets/pet/taco-pixel.png';
-import cakePixelUrl from '../../../assets/pet/cake-pixel.png';
-import chocolatePixelUrl from '../../../assets/pet/chocolate-pixel.png';
-import cookiePixelUrl from '../../../assets/pet/cookie-pixel.png';
-import donutPixelUrl from '../../../assets/pet/donut-pixel.png';
-import iceCreamPixelUrl from '../../../assets/pet/ice-cream-pixel.png';
-import lollipopPixelUrl from '../../../assets/pet/lollipop-pixel.png';
-import piePixelUrl from '../../../assets/pet/pie-pixel.png';
-import eightBallPixelUrl from '../../../assets/pet/8-ball-pixel.png';
-import baseballPixelUrl from '../../../assets/pet/baseball-pixel.png';
-import basketballPixelUrl from '../../../assets/pet/basketball-pixel.png';
-import blueBallPixelUrl from '../../../assets/pet/blue-ball-pixel.png';
-import footballPixelUrl from '../../../assets/pet/football-pixel.png';
-import goldBallPixelUrl from '../../../assets/pet/gold-ball-pixel.png';
-import greenBallPixelUrl from '../../../assets/pet/green-ball-pixel.png';
-import orangeBallPixelUrl from '../../../assets/pet/orange-ball-pixel.png';
-import purpleBallPixelUrl from '../../../assets/pet/purple-ball-pixel.png';
-import redBallPixelUrl from '../../../assets/pet/red-ball-pixel.png';
-import rugbyBallPixelUrl from '../../../assets/pet/rugby-ball-pixel.png';
-import soccerBallPixelUrl from '../../../assets/pet/soccer-ball-pixel.png';
-import tennisBallPixelUrl from '../../../assets/pet/tennis-ball-pixel.png';
 import type { FoodItem } from '../types';
+
+const itemAssetUrl = (fileName: string) => `/pet-function/items/${fileName}`;
+const bananaPixelUrl = itemAssetUrl('banana-pixel.png');
+const applePixelUrl = itemAssetUrl('apple-pixel.png');
+const bobaTeaPixelUrl = itemAssetUrl('boba-tea-pixel.png');
+const broccoliPixelUrl = itemAssetUrl('broccoli-pixel.png');
+const carrotPixelUrl = itemAssetUrl('carrot-pixel.png');
+const coffeePixelUrl = itemAssetUrl('coffee-pixel.png');
+const cornPixelUrl = itemAssetUrl('corn-pixel.png');
+const grapesPixelUrl = itemAssetUrl('grapes-pixel.png');
+const greenTeaPixelUrl = itemAssetUrl('green-tea-pixel.png');
+const juiceBoxPixelUrl = itemAssetUrl('juice-box-pixel.png');
+const milkPixelUrl = itemAssetUrl('milk-pixel.png');
+const pineapplePixelUrl = itemAssetUrl('pineapple-pixel.png');
+const saladPixelUrl = itemAssetUrl('salad-pixel.png');
+const sodaPixelUrl = itemAssetUrl('soda-pixel.png');
+const strawberryPixelUrl = itemAssetUrl('strawberry-pixel.png');
+const watermelonPixelUrl = itemAssetUrl('watermelon-pixel.png');
+const waterPixelUrl = itemAssetUrl('water-pixel.png');
+const baconPixelUrl = itemAssetUrl('bacon-pixel.png');
+const breadPixelUrl = itemAssetUrl('bread-pixel.png');
+const cerealPixelUrl = itemAssetUrl('cereal-pixel.png');
+const croissantPixelUrl = itemAssetUrl('croissant-pixel.png');
+const friedEggPixelUrl = itemAssetUrl('fried-egg-pixel.png');
+const pancakesPixelUrl = itemAssetUrl('pancakes-pixel.png');
+const wafflePixelUrl = itemAssetUrl('waffle-pixel.png');
+const burgerPixelUrl = itemAssetUrl('burger-pixel.png');
+const burritoPixelUrl = itemAssetUrl('burrito-pixel.png');
+const chickenLegPixelUrl = itemAssetUrl('chicken-leg-pixel.png');
+const friesPixelUrl = itemAssetUrl('fries-pixel.png');
+const hotdogPixelUrl = itemAssetUrl('hotdog-pixel.png');
+const pizzaPixelUrl = itemAssetUrl('pizza-pixel.png');
+const ramenPixelUrl = itemAssetUrl('ramen-pixel.png');
+const sandwichPixelUrl = itemAssetUrl('sandwich-pixel.png');
+const spaghettiPixelUrl = itemAssetUrl('spaghetti-pixel.png');
+const steakPixelUrl = itemAssetUrl('steak-pixel.png');
+const sushiPixelUrl = itemAssetUrl('sushi-pixel.png');
+const tacoPixelUrl = itemAssetUrl('taco-pixel.png');
+const cakePixelUrl = itemAssetUrl('cake-pixel.png');
+const chocolatePixelUrl = itemAssetUrl('chocolate-pixel.png');
+const cookiePixelUrl = itemAssetUrl('cookie-pixel.png');
+const donutPixelUrl = itemAssetUrl('donut-pixel.png');
+const iceCreamPixelUrl = itemAssetUrl('ice-cream-pixel.png');
+const lollipopPixelUrl = itemAssetUrl('lollipop-pixel.png');
+const piePixelUrl = itemAssetUrl('pie-pixel.png');
+const eightBallPixelUrl = itemAssetUrl('8-ball-pixel.png');
+const baseballPixelUrl = itemAssetUrl('baseball-pixel.png');
+const basketballPixelUrl = itemAssetUrl('basketball-pixel.png');
+const blueBallPixelUrl = itemAssetUrl('blue-ball-pixel.png');
+const footballPixelUrl = itemAssetUrl('football-pixel.png');
+const goldBallPixelUrl = itemAssetUrl('gold-ball-pixel.png');
+const greenBallPixelUrl = itemAssetUrl('green-ball-pixel.png');
+const orangeBallPixelUrl = itemAssetUrl('orange-ball-pixel.png');
+const purpleBallPixelUrl = itemAssetUrl('purple-ball-pixel.png');
+const redBallPixelUrl = itemAssetUrl('red-ball-pixel.png');
+const rugbyBallPixelUrl = itemAssetUrl('rugby-ball-pixel.png');
+const soccerBallPixelUrl = itemAssetUrl('soccer-ball-pixel.png');
+const tennisBallPixelUrl = itemAssetUrl('tennis-ball-pixel.png');
 
 interface FoodItemVisualProps {
   item: Pick<FoodItem, 'id' | 'icon' | 'label'>;
@@ -152,14 +154,16 @@ export const FoodItemVisual: React.FC<FoodItemVisualProps> = ({
   emojiClassName,
 }) => {
   const imageUrl = FOOD_PIXEL_IMAGES[item.id.toLowerCase()] ?? FOOD_PIXEL_IMAGES[item.label.toLowerCase()];
+  const [failedImageUrl, setFailedImageUrl] = React.useState<string | null>(null);
 
-  if (imageUrl) {
+  if (imageUrl && failedImageUrl !== imageUrl) {
     return (
       <img
         src={imageUrl}
         alt={item.label}
         draggable={false}
         className={`${imageClassName} select-none object-contain`}
+        onError={() => setFailedImageUrl(imageUrl)}
       />
     );
   }

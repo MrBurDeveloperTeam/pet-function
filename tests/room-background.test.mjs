@@ -7,12 +7,13 @@ const petRoomSource = readFileSync(
   'utf8',
 );
 
-test('all five ultra-wide room backgrounds fill the viewport as one complete scene', () => {
+test('all five room backgrounds remain fully visible at their original aspect ratio', () => {
   assert.match(petRoomSource, /src=\{ROOM_BACKGROUNDS\[currentRoom\]\}/);
   assert.match(
     petRoomSource,
-    /data-room-background="scene"[\s\S]*?objectFit: 'fill'[\s\S]*?objectPosition: 'center center'/,
+    /data-room-background="scene"[\s\S]*?objectFit: 'contain'[\s\S]*?objectPosition: 'center center'/,
   );
+  assert.doesNotMatch(petRoomSource, /objectFit: 'fill'/);
   assert.doesNotMatch(petRoomSource, /data-room-background="fill"/);
   assert.doesNotMatch(petRoomSource, /filter: 'blur\(/);
 });
