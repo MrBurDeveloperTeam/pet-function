@@ -7,9 +7,14 @@ const petRoomSource = readFileSync(
   'utf8',
 );
 
-test('all five room backgrounds remain fully visible without cover cropping', () => {
+test('all five room backgrounds use a complete scene over a full-screen soft fill', () => {
   assert.match(petRoomSource, /src=\{ROOM_BACKGROUNDS\[currentRoom\]\}/);
-  assert.match(petRoomSource, /objectFit: 'contain'/);
-  assert.match(petRoomSource, /objectPosition: 'center center'/);
-  assert.doesNotMatch(petRoomSource, /objectFit: 'cover'/);
+  assert.match(
+    petRoomSource,
+    /data-room-background="fill"[\s\S]*?objectFit: 'cover'[\s\S]*?filter: 'blur\(24px\) saturate\(0\.9\)'/,
+  );
+  assert.match(
+    petRoomSource,
+    /data-room-background="scene"[\s\S]*?objectFit: 'contain'[\s\S]*?objectPosition: 'center center'/,
+  );
 });

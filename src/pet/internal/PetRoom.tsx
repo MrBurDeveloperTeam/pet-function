@@ -639,6 +639,29 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
       onPointerLeave={handleAppPointerUp}
     >
       <img
+        data-room-background="fill"
+        src={ROOM_BACKGROUNDS[currentRoom]}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center center',
+          filter: 'blur(24px) saturate(0.9)',
+          transform: 'scale(1.06)',
+          opacity: 0.88,
+          pointerEvents: 'none',
+          userSelect: 'none',
+          zIndex: -2,
+        }}
+      />
+
+      <img
+        data-room-background="scene"
         src={ROOM_BACKGROUNDS[currentRoom]}
         alt=""
         aria-hidden="true"
