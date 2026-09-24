@@ -22,6 +22,13 @@ test('cat bed locks page movement until the bed is activated again', () => {
   assert.match(mascot, /isSleeping=\{isSleeping \|\| isCatBedSleepReady\}/);
 });
 
+test('sleeping cat fits inside the bed without blocking its wake button', () => {
+  assert.match(mascot, /molar-cat-wrapper--in-bed/);
+  assert.match(css, /\.molar-cat-wrapper--in-bed \.molar-cat-sprite[\s\S]*?transform: scale\(0\.68\)/);
+  assert.match(css, /\.molar-cat-wrapper--in-bed \[data-cat='true'\][\s\S]*?pointer-events: none !important/);
+  assert.match(css, /\.molar-cat-bed[\s\S]*?width: 4rem;[\s\S]*?height: 4rem;[\s\S]*?background: transparent/);
+});
+
 test('cat bed is keyboard-visible and respects reduced motion', () => {
   assert.match(css, /\.molar-cat-bed:focus-visible/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);

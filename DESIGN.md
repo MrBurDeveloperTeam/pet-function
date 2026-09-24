@@ -62,7 +62,9 @@ SharedCatMascot owns visual display; shared app dialogue controllers own content
 SharedCatMascot also owns the global cat-bed control. It follows the visible
 Tutorial trigger when present and otherwise the SNAI trigger. Activating it
 locks page-driven movement immediately, walks the cat into bed, and holds the
-sleep pose until that same control is activated again.
+sleep pose until that same control is activated again. The bed is a frameless
+64px control matching the SNAI trigger. While sleeping, the cat scales into the
+bed and stops intercepting pointer input so the bed can wake it immediately.
 SharedVirtualPet owns pet rooms/runtime. SharedMeowdokuLauncher owns the game bridge.
 Database clients, identities and business action executors remain host-owned.
 SNAI services, adapters, welcome content, UI and fixed light styling are shared.
