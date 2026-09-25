@@ -22,6 +22,7 @@ import CoinIndicator from './components/CoinIndicator';
 import { getPetOption } from './petOptions';
 import poopUrl from '../../assets/pet/poop.png';
 import { ROOM_BACKGROUNDS } from './roomBackgrounds';
+import { RoomInteractionOutlines } from './components/RoomInteractionOutlines';
 
 type RoomExitDirection = 'left' | 'right' | 'down';
 
@@ -71,7 +72,10 @@ const PixelPaw = () => (
   </svg>
 );
 
-const MAX_BUBBLES = 120;
+const SOAP_RUBS_TO_LATHER = 5;
+const SOAP_RUB_INTERVAL_MS = 220;
+const CLEAN_GAIN_PER_BATH_CYCLE = 25;
+const MAX_BUBBLES = SOAP_RUBS_TO_LATHER;
 const RINSE_COMPLETE_THRESHOLD = Math.ceil(MAX_BUBBLES * 0.05);
 const POOP_REWARD_COINS = 5;
 const POOP_RESPAWN_MS = 2 * 60 * 60 * 1000;
@@ -94,15 +98,27 @@ const INDOOR_FLOOR_LANES: Partial<Record<RoomType, { min: number; max: number }>
 };
 
 const INDOOR_FLOOR_DEPTH: Partial<Record<RoomType, { min: number; max: number }>> = {
-  [RoomType.KITCHEN]: { min: -0.08, max: 0.16 },
-  [RoomType.BATHROOM]: { min: -0.06, max: 0.22 },
-  [RoomType.BEDROOM]: { min: -0.05, max: 0.12 },
-  [RoomType.GAMES]: { min: -0.07, max: 0.16 },
+  [RoomType.KITCHEN]: { min: -0.03, max: 0.26 },
+  [RoomType.BATHROOM]: { min: 0.02, max: 0.3 },
+  [RoomType.BEDROOM]: { min: -0.08, max: 0.15 },
+  [RoomType.GAMES]: { min: -0.07, max: 0.24 },
+};
+
+const ROOM_DOOR_EXITS: Partial<Record<RoomType, RoomExit>> = {
+  [RoomType.BATHROOM]: { direction: 'left', destination: RoomType.BEDROOM, label: 'Go to bedroom through the door' },
+  [RoomType.KITCHEN]: { direction: 'right', destination: RoomType.PLAYROOM, label: 'Go outside through the door' },
+  [RoomType.GAMES]: { direction: 'left', destination: RoomType.PLAYROOM, label: 'Go outside through the door' },
+};
+
+const ROOM_DOOR_PROXIMITY: Partial<Record<RoomType, { min: number; max: number }>> = {
+  [RoomType.BATHROOM]: { min: 0.14, max: 0.25 },
+  [RoomType.KITCHEN]: { min: 0.72, max: 0.9 },
+  [RoomType.GAMES]: { min: 0.12, max: 0.25 },
 };
 
 const INDOOR_INITIAL_PLACEMENT: Partial<Record<RoomType, { x: number; y: number }>> = {
-  [RoomType.KITCHEN]: { x: 0.48, y: 0.06 },
-  [RoomType.BATHROOM]: { x: 0.48, y: 0.2 },
+  [RoomType.KITCHEN]: { x: 0.48, y: 0.11 },
+  [RoomType.BATHROOM]: { x: 0.48, y: 0.28 },
   [RoomType.BEDROOM]: { x: 0.5, y: -0.04 },
   [RoomType.GAMES]: { x: 0.48, y: 0.06 },
 };
@@ -125,6 +141,7 @@ interface PetRoomProps {
   extraGames?: ExtraGame[];
   roomNavigationRequest?: { destination: RoomType; requestId: number } | null;
   onRoomNavigationRequestHandled?: () => void;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 export const PetRoom: React.FC<PetRoomProps> = ({
@@ -132,6 +149,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   extraGames,
   roomNavigationRequest,
   onRoomNavigationRequestHandled,
+  onLoadingChange,
 }) => {
   // --- Custom Hooks for Logic ---
   const {
@@ -195,6 +213,10 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const [indoorPetPose, setIndoorPetPose] = useState<PetPose>('idle');
   const [roomTransition, setRoomTransition] = useState<RoomExit | null>(null);
   const [isRoomTransitionLoading, setIsRoomTransitionLoading] = useState(false);
+  useEffect(() => {
+    onLoadingChange?.(isRoomTransitionLoading);
+    return () => onLoadingChange?.(false);
+  }, [isRoomTransitionLoading, onLoadingChange]);
   const [loadingAnimationKey, setLoadingAnimationKey] = useState(0);
 
   // Pointer/Eye Tracking State
@@ -222,7 +244,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const isDraggingBallRef = useRef(isDraggingBall);
   const activeSoapType = useRef<'soap' | null>(null);
   const soapConsumedOnRinse = useRef(false);
-  const activeSoapMultiplier = useRef(1);
 
   useEffect(() => {
     if (currentRoom !== RoomType.BEDROOM) {
@@ -320,8 +341,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   useEffect(() => {
     isDraggingBallRef.current = isDraggingBall;
   }, [isDraggingBall]);
-
-  const getSoapItem = () => foodItems.find((item) => item.id === 'soap' && item.category === 'Soap');
 
   useEffect(() => {
     if (activeBedId !== null) setActiveBedId(null);
@@ -618,6 +637,31 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, [bedroomSceneScale, currentRoom, isSleeping, roomTransition, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
 
   useEffect(() => {
+    const doorExit = ROOM_DOOR_EXITS[currentRoom];
+    const doorProximity = ROOM_DOOR_PROXIMITY[currentRoom];
+    if (!doorExit || !doorProximity || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu || isSleeping || roomTransition) return;
+
+    const handleDoorInteraction = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+
+      const area = playAreaRef.current;
+      if (!area) return;
+      const rect = area.getBoundingClientRect();
+      const petXRatio = indoorPetXRef.current / Math.max(rect.width, 1);
+      if (petXRatio < doorProximity.min || petXRatio > doorProximity.max) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      startRoomTransition(doorExit);
+    };
+
+    window.addEventListener('keydown', handleDoorInteraction);
+    return () => window.removeEventListener('keydown', handleDoorInteraction);
+  }, [currentRoom, isSleeping, roomTransition, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
+
+  useEffect(() => {
     if (currentRoom !== RoomType.KITCHEN || showShopModal || showFoodMenu || isSleeping || roomTransition) return;
 
     const handleKitchenInteraction = (event: KeyboardEvent) => {
@@ -688,6 +732,28 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     window.addEventListener('keydown', handleGamesInteraction);
     return () => window.removeEventListener('keydown', handleGamesInteraction);
   }, [currentRoom, isSleeping, roomTransition, showGamesMenu, showShopModal]);
+
+  useEffect(() => {
+    if (!showFoodMenu && !showBathroomMenu && !showGamesMenu) return;
+
+    const handleRoomMenuClose = (event: KeyboardEvent) => {
+      if (event.repeat || (event.key !== 'Escape' && event.code !== 'Space')) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (
+        event.code === 'Space' &&
+        target?.closest('input, textarea, select, button, [contenteditable="true"]')
+      ) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setShowFoodMenu(false);
+      setShowBathroomMenu(false);
+      setShowGamesMenu(false);
+    };
+
+    window.addEventListener('keydown', handleRoomMenuClose);
+    return () => window.removeEventListener('keydown', handleRoomMenuClose);
+  }, [showBathroomMenu, showFoodMenu, showGamesMenu]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -821,11 +887,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             if (!activeSoapType.current) {
               activeSoapType.current = 'soap';
               soapConsumedOnRinse.current = false;
-              const soapItem = getSoapItem();
-              activeSoapMultiplier.current = Math.max(1, (soapItem?.hygiene || 50) / 50);
             }
 
-            if (now - lastBubbleTime.current > 50) {
+            if (now - lastBubbleTime.current > SOAP_RUB_INTERVAL_MS) {
               const newBubble: Bubble = {
                 id: now,
                 x: clamp(relX + (Math.random() * 20 - 10), 36, 164),
@@ -849,13 +913,13 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                   return !isUnderShower;
                 });
                 const rinsedBubbles = remaining.length <= RINSE_COMPLETE_THRESHOLD ? [] : remaining;
-                if (rinsedBubbles.length < prev.length && stats.hygiene < 100) {
-                  setStats(s => ({ ...s, hygiene: Math.min(100, s.hygiene + (0.5 * activeSoapMultiplier.current)) }));
-                }
                 if (rinsedBubbles.length === 0 && prev.length > 0 && activeSoapType.current && !soapConsumedOnRinse.current) {
                   soapConsumedOnRinse.current = true;
+                  setStats(s => ({
+                    ...s,
+                    hygiene: Math.min(100, s.hygiene + CLEAN_GAIN_PER_BATH_CYCLE),
+                  }));
                   activeSoapType.current = null;
-                  activeSoapMultiplier.current = 1;
                 }
                 return rinsedBubbles;
               });
@@ -983,7 +1047,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       setIsSoapedUp(false);
       activeSoapType.current = null;
       soapConsumedOnRinse.current = false;
-      activeSoapMultiplier.current = 1;
     }
   }, [currentRoom]);
 
@@ -1183,6 +1246,18 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       ref={roomRootRef}
       className={`relative flex h-[100dvh] min-h-0 w-full flex-col items-center justify-between overflow-hidden py-[clamp(8px,2dvh,24px)] transition-colors duration-700 ease-in-out ${roomConfig.bg}`}
       style={{ isolation: 'isolate' }}
+      onClickCapture={(event) => {
+        if (isRoomTransitionLoading) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
+      onKeyDownCapture={(event) => {
+        if (isRoomTransitionLoading && event.key !== 'Tab') {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
       onPointerDown={handleAppPointerDown}
       onPointerMove={handleAppPointerMove}
       onPointerUp={handleAppPointerUp}
@@ -1246,50 +1321,20 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         );
       })}
 
-      {currentRoom === RoomType.GAMES && !showGamesMenu && (
-        <button
-          type="button"
-          onClick={() => setShowGamesMenu(true)}
-          className="absolute left-[29%] top-[30%] z-[15] h-[34%] w-[36%] cursor-pointer bg-transparent outline-none focus-visible:border-4 focus-visible:border-[#fff1a8]"
-          aria-label="Interact with the television and arcade machines"
-          title="Play games"
-          data-pet-movement-block
-        >
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 border-[3px] border-[#4b2b20] bg-[#fff1b8] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#4b2b20] shadow-[3px_3px_0_#29170f] opacity-80">
-            Click / Space
-          </span>
-        </button>
-      )}
-
-      {currentRoom === RoomType.BATHROOM && !showBathroomMenu && (
-        <button
-          type="button"
-          onClick={() => setShowBathroomMenu(true)}
-          className="absolute left-[27%] top-[38%] z-[15] h-[34%] w-[22%] cursor-pointer bg-transparent outline-none focus-visible:border-4 focus-visible:border-[#fff1a8]"
-          aria-label="Interact with the bathtub"
-          title="Use bath tools"
-          data-pet-movement-block
-        >
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap border-[3px] border-[#4b2b20] bg-[#fff1b8] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#4b2b20] shadow-[3px_3px_0_#29170f] opacity-80">
-            Click / Space
-          </span>
-        </button>
-      )}
-
-      {currentRoom === RoomType.KITCHEN && !showFoodMenu && (
-        <button
-          type="button"
-          onClick={() => setShowFoodMenu(true)}
-          className="absolute left-[18%] top-[28%] z-[15] h-[42%] w-[12%] cursor-pointer bg-transparent outline-none focus-visible:border-4 focus-visible:border-[#fff1a8]"
-          aria-label="Interact with the refrigerator"
-          title="Open food inventory"
-          data-pet-movement-block
-        >
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap border-[3px] border-[#4b2b20] bg-[#fff1b8] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#4b2b20] shadow-[3px_3px_0_#29170f] opacity-80">
-            Click / Space
-          </span>
-        </button>
-      )}
+      <RoomInteractionOutlines
+        room={currentRoom}
+        hidden={!!roomTransition || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu}
+        onActivate={(action) => {
+          if (action === 'door') {
+            const doorExit = ROOM_DOOR_EXITS[currentRoom];
+            if (doorExit) startRoomTransition(doorExit);
+            return;
+          }
+          if (action === 'food') setShowFoodMenu(true);
+          if (action === 'bath') setShowBathroomMenu(true);
+          if (action === 'games') setShowGamesMenu(true);
+        }}
+      />
 
       {isRoomTransitionLoading && (
         <div

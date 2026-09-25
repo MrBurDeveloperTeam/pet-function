@@ -39,6 +39,21 @@ Keep existing host inheritance and per-game typography. No new font services.
 
 ## Layout
 
+Room interaction hints use RoomInteractionOutlines.tsx: thin cream object contours,
+mapped to rooms-wide artwork with centered cover cropping. No Click / Space plaques.
+src/styles/index.css owns the 2px stroke and slow 3.2s opacity pulse; hover and
+keyboard focus hold a steady contour. Each object opens its existing room menu.
+Kitchen food and bathroom tool menus are non-modal top panels beside the map.
+They never add a dimming or blur layer over the room, pet, stats, level, or coins,
+and their desktop width stops before the centered stats panel.
+Food, bathroom-tool, and game menus close from their close control, Escape, or a
+second Space press; Space on a focused interactive control keeps that control's action.
+Bathroom care reaches full lather after five paced soap rubs. A complete rinse then
+adds 25 Clean points, so four soap-and-rinse cycles fill an empty Clean meter.
+Bathroom, Kitchen, and Games doors share the same slow pulsing contour as other
+room objects. Click activates the door directly; Space activates it only while the
+cat is beside it. Bathroom leads to Bedroom, while Kitchen and Games lead Outside.
+
 Room artwork is owned by src/pet/internal/roomBackgrounds.ts and shipped from
 public/pet-function/rooms through prepare-pet. The user's output folders supply the five selected images.
 Outside maps to PLAYROOM (and the legacy GARDEN room). Render decorative artwork
@@ -71,6 +86,8 @@ state is stored in the account's inventory_pet row and synchronized through
 Supabase Realtime across all seven hosts. Keep dialogue mounted but hidden for
 the whole sleep period so it can return when the cat wakes.
 SharedVirtualPet owns pet rooms/runtime. SharedMeowdokuLauncher owns the game bridge.
+Indoor cat movement uses room-specific floor depth offsets: kitchen -0.03 to 0.26,
+bathroom 0.02 to 0.30, bedroom -0.08 to 0.15, and games -0.07 to 0.24.
 Database clients, identities and business action executors remain host-owned.
 SNAI services, adapters, welcome content, UI and fixed light styling are shared.
 Server endpoints remain deployed per app; frontend sharing never bundles secrets.

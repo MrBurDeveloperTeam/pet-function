@@ -1226,6 +1226,29 @@
   animation: molar-pet-poop-reward 1.6s ease-out forwards;
 }
 
+@keyframes pet-interaction-pulse {
+  0%, 100% { stroke-opacity: 0.25; }
+  50% { stroke-opacity: 0.95; }
+}
+
+.snabbb-molar-experience .pet-interaction-outline {
+  fill: transparent;
+  stroke: #fff6c8;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  pointer-events: all;
+  cursor: pointer;
+  outline: none;
+  animation: pet-interaction-pulse 3.2s ease-in-out infinite;
+}
+
+.snabbb-molar-experience .pet-interaction-outline:hover,
+.snabbb-molar-experience .pet-interaction-outline:focus-visible {
+  animation: none;
+  stroke-opacity: 1;
+  stroke-width: 2.5;
+}
+
 .snabbb-molar-experience .pet-room-loading-sky {
   image-rendering: pixelated;
 }
@@ -1329,7 +1352,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .snabbb-molar-experience .pet-room-loading-cloud,
-  .snabbb-molar-experience .pet-room-loading-cat,
   .snabbb-molar-experience .pet-room-loading-paw {
     animation: none;
   }

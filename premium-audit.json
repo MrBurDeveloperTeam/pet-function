@@ -3,7 +3,7 @@
     {
       "category": "violation",
       "file": "src/styles/index.css",
-      "line": 924,
+      "line": 1140,
       "message": "Scrollbar theme does not provide both standards-based scrollbar properties.",
       "remediation": "Add global scrollbar-color and scrollbar-width standards properties plus fallbacks.",
       "ruleId": "scrollbar.webkit-only",

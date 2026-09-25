@@ -110,7 +110,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
   onSelectToy,
   isLoading = false
 }) => {
-  const { currencyCode, currencyRate, assetUrls } = useGameState();
+  const { currencyRate, assetUrls } = useGameState();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const formatPrice = (baseUSD: number) => {
@@ -357,7 +357,12 @@ const ShopModal: React.FC<ShopModalProps> = ({
                               : SHOP_BUTTONS.disabled
                         }`}
                       >
-                        {isLocked ? 'Locked' : `${currencyCode} ${formatPrice(item.price)}`}
+                        {isLocked ? 'Locked' : (
+                          <span className="inline-flex items-center justify-center gap-2" aria-label={`${formatPrice(item.price)} coins`}>
+                            <PixelCoinBag />
+                            <span>{formatPrice(item.price)}</span>
+                          </span>
+                        )}
                       </button>
                     )}
                   </div>

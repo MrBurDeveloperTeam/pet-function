@@ -98,6 +98,11 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
   const [showRotateNotice, setShowRotateNotice] = useState(false);
   const [showRoomMap, setShowRoomMap] = useState(false);
+  const [isRoomLoading, setIsRoomLoading] = useState(false);
+  const handleRoomLoadingChange = useCallback((loading: boolean) => {
+    setIsRoomLoading(loading);
+    if (loading) setShowRoomMap(false);
+  }, []);
   const [roomNavigationRequest, setRoomNavigationRequest] = useState<{ destination: RoomType; requestId: number } | null>(null);
   const enteredFullscreenRef = useRef(false);
   const { currentRoom, setCurrentRoom } = useGameState();
@@ -111,6 +116,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   ];
 
   const handleRoomMapNavigate = (room: RoomType) => {
+    if (isRoomLoading || roomNavigationRequest) return;
     setShowRoomMap(false);
     if (room === currentRoom) return;
     setRoomNavigationRequest({ destination: room, requestId: Date.now() });
@@ -246,6 +252,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
           <button
             type="button"
             onClick={() => setShowRoomMap((visible) => !visible)}
+            disabled={isRoomLoading || !!roomNavigationRequest}
             className={`absolute left-16 top-3 z-[70] flex h-11 w-11 items-center justify-center rounded-md border-2 shadow-[3px_3px_0_rgba(69,56,35,0.45)] transition-transform hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:left-[6.25rem] sm:top-6 sm:h-16 sm:w-16 ${showRoomMap ? 'border-amber-800 bg-amber-200' : 'border-stone-500 bg-[#fff8d9]'}`}
             title="Open map"
             aria-label="Choose a room"
@@ -254,7 +261,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
             <PixelMapIcon className="h-7 w-7 sm:h-11 sm:w-11" />
           </button>
 
-          {showRoomMap && (
+          {showRoomMap && !isRoomLoading && !roomNavigationRequest && (
             <>
               <button type="button" className="fixed inset-0 z-[64] cursor-default" onClick={() => setShowRoomMap(false)} aria-label="Close map" />
               <div className="absolute left-3 top-[4.25rem] z-[70] w-[min(19rem,calc(100vw-1.5rem))] border-4 border-[#6b4423] bg-[#fff3bd] p-2 shadow-[6px_6px_0_rgba(51,35,20,0.55)] sm:left-6 sm:top-[6.25rem] sm:w-80 sm:p-3">
@@ -292,6 +299,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
           extraGames={extraGames}
           roomNavigationRequest={roomNavigationRequest}
           onRoomNavigationRequestHandled={handleRoomNavigationRequestHandled}
+          onLoadingChange={handleRoomLoadingChange}
         />
       ) : (
         <>

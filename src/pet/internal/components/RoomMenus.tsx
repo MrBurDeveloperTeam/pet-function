@@ -52,13 +52,11 @@ export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOp
 
     return (
         <div
-            className="fixed inset-0 z-[45] flex items-end justify-center bg-[#28170f]/45 p-6 backdrop-blur-[2px] animate-in fade-in duration-200"
+            className="fixed left-6 top-[10.5rem] z-[45] w-[min(31.25rem,calc(100vw-3rem))] animate-in fade-in duration-200 xl:left-[11.5rem] xl:top-6 xl:w-[min(31.25rem,calc(50vw-22.25rem))]"
             role="dialog"
-            aria-modal="true"
             aria-label="Food inventory"
             onPointerDown={(event) => {
                 event.stopPropagation();
-                if (event.target === event.currentTarget) onClose();
             }}
             data-pet-movement-block
         >
@@ -138,13 +136,11 @@ export const BathroomMenu: React.FC<BathroomMenuProps> = ({ onDragStart, onClose
 
     return (
     <div
-        className="fixed inset-0 z-[45] flex items-end justify-center bg-[#28170f]/45 p-6 backdrop-blur-[2px] animate-in fade-in duration-200"
+        className="fixed left-6 top-[10.5rem] z-[45] animate-in fade-in duration-200 xl:left-[11.5rem] xl:top-6"
         role="dialog"
-        aria-modal="true"
         aria-label="Bath tools"
         onPointerDown={(event) => {
             event.stopPropagation();
-            if (event.target === event.currentTarget) onClose();
         }}
         data-pet-movement-block
     >
