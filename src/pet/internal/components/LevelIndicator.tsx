@@ -27,8 +27,8 @@ const LevelIndicator: React.FC<LevelIndicatorProps> = ({ stats }) => {
           </defs>
           <polygon points={CAT_HEAD_POINTS} fill="#fff0ad" stroke="#3f321f" strokeWidth="1.2" />
           <g clipPath="url(#pixel-cat-level-mask)">
-            <rect x="0" y={fillY} width="24" height="24" fill="#f7b733" className="transition-all duration-700" />
-            <path fill="#ffd96a" d="M3 8h18v3H3z" />
+            <rect x="0" y={fillY} width="24" height="24" fill="#238f83" className="transition-all duration-700" />
+            <path fill="#6fd1bd" d="M3 8h18v3H3z" />
           </g>
           <polygon points={CAT_HEAD_POINTS} fill="none" stroke="#3f321f" strokeWidth="1.2" />
           <path fill="#3f321f" d="M1 13h5v1H1zM1 16h5v1H1zM18 13h5v1h-5zM18 16h5v1h-5z" />
@@ -44,7 +44,7 @@ const LevelIndicator: React.FC<LevelIndicatorProps> = ({ stats }) => {
             <div className="mt-1 text-xs font-black text-[#6f654f]">{Math.floor(stats.xp)} / 100 XP</div>
             <div className="mt-3 h-4 w-full overflow-hidden border-2 border-[#6f654f] bg-[#e9dfbd]">
               <div
-                className="h-full bg-amber-400 transition-[width] duration-500"
+                className="h-full bg-[#238f83] transition-[width] duration-500"
                 style={{ width: `${xpPercent}%`, backgroundImage: 'repeating-linear-gradient(90deg, transparent 0 10px, rgba(255,255,255,0.4) 10px 12px)' }}
               />
             </div>

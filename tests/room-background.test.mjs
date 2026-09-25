@@ -26,3 +26,26 @@ test('kitchen exits match the reversed room layout', () => {
     /\[RoomType\.KITCHEN\]: \[\s*\{ direction: 'left', destination: RoomType\.GAMES, label: 'Go to games room' \},\s*\{ direction: 'right', destination: RoomType\.PLAYROOM, label: 'Go outside' \},\s*\]/,
   );
 });
+
+test('outside has a left-side exit back to the games room', () => {
+  assert.match(
+    petRoomSource,
+    /\[RoomType\.PLAYROOM\]: \[\s*\{ direction: 'left', destination: RoomType\.GAMES, label: 'Go to games room' \},\s*\]/,
+  );
+});
+
+test('keyboard movement supports all four arrow keys within room bounds', () => {
+  assert.match(petRoomSource, /'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'/);
+  assert.match(petRoomSource, /verticalDirection = Number\(keys\.down\) - Number\(keys\.up\)/);
+  assert.match(petRoomSource, /const INDOOR_FLOOR_DEPTH:/);
+  assert.match(petRoomSource, /current\.y \+ verticalDirection \* INDOOR_PET_KEYBOARD_SPEED/);
+});
+
+test('indoor cats use room-specific rug placements and a smaller bedroom scale', () => {
+  assert.match(petRoomSource, /\[RoomType\.KITCHEN\]: \{ x: 0\.48, y: 0\.06 \}/);
+  assert.match(petRoomSource, /\[RoomType\.BATHROOM\]: \{ x: 0\.48, y: 0\.2 \}/);
+  assert.match(petRoomSource, /\[RoomType\.BEDROOM\]: \{ x: 0\.5, y: -0\.04 \}/);
+  assert.match(petRoomSource, /\[RoomType\.GAMES\]: \{ x: 0\.48, y: 0\.06 \}/);
+  assert.match(petRoomSource, /const BEDROOM_PET_SCALE_MULTIPLIER = 0\.8/);
+  assert.match(petRoomSource, /displayScale=\{bedroomSceneScale \* BEDROOM_PET_SCALE_MULTIPLIER\}/);
+});

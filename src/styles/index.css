@@ -1295,11 +1295,13 @@
 }
 
 .snabbb-molar-experience .pet-room-loading-progress {
-  animation: molar-room-loading-progress 1800ms linear forwards;
+  width: 0;
+  animation: molar-room-loading-progress 1800ms linear both;
 }
 
 .snabbb-molar-experience .pet-room-loading-runner {
-  animation: molar-room-loading-runner 1800ms linear forwards;
+  left: 16px;
+  animation: molar-room-loading-runner 1800ms linear both;
 }
 
 .snabbb-molar-experience .pet-room-loading-cat {
@@ -1329,16 +1331,6 @@
   .snabbb-molar-experience .pet-room-loading-cloud,
   .snabbb-molar-experience .pet-room-loading-cat,
   .snabbb-molar-experience .pet-room-loading-paw {
-    animation: none;
-  }
-
-  .snabbb-molar-experience .pet-room-loading-progress {
-    width: 100%;
-    animation: none;
-  }
-
-  .snabbb-molar-experience .pet-room-loading-runner {
-    left: calc(100% - 82px);
     animation: none;
   }
 }

@@ -28,6 +28,7 @@ import { AiOutlineShop } from 'react-icons/ai';
 import { BedImage } from './BedImage';
 import { resolveBedImage } from '../bedImages';
 import { FoodItemVisual } from './FoodItemVisual';
+import { PixelCoinBag } from './CoinIndicator';
 
 interface ShopModalProps {
   isOpen: boolean;
@@ -68,11 +69,11 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
 const CATEGORY_ORDER = ['Healthy', 'Breakfast', 'Meals', 'Drinks', 'Sweets', 'Toys', 'Beds'];
 
 const SHOP_BUTTONS = {
-  buy: 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 active:scale-95',
-  select: 'bg-orange-200 text-amber-800 border-2 border-amber-700 shadow-lg hover:bg-orange-300 active:scale-95',
-  active: 'border-2 border-orange-400 cursor-default bg-amber-100 shadow-lg text-orange-600',
-  disabled: 'cursor-not-allowed bg-slate-100 text-slate-400',
-  locked: 'cursor-not-allowed bg-slate-200 text-slate-500',
+  buy: 'border-[3px] border-[#7b3517] bg-[#f06422] text-white shadow-[4px_4px_0_#7b3517] hover:bg-[#dc5318] active:translate-x-1 active:translate-y-1 active:shadow-none',
+  select: 'border-[3px] border-[#7b3517] bg-[#ffd27a] text-[#6a351c] shadow-[4px_4px_0_#7b3517] hover:bg-[#ffc45c] active:translate-x-1 active:translate-y-1 active:shadow-none',
+  active: 'cursor-default border-[3px] border-[#238f83] bg-[#bcebdc] text-[#175f58] shadow-[4px_4px_0_#175f58]',
+  disabled: 'cursor-not-allowed border-[3px] border-[#aaa18d] bg-[#ded9cc] text-[#817968]',
+  locked: 'cursor-not-allowed border-[3px] border-[#817968] bg-[#c9c3b5] text-[#5e584c]',
 };
 
 const findToyByShopItem = (item: Pick<FoodItem, 'id' | 'label'>) => {
@@ -154,23 +155,21 @@ const ShopModal: React.FC<ShopModalProps> = ({
   // now-higher overlay while Shop is open, and this overlay's own backdrop
   // naturally intercepts all pointer interaction in front of it.
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[30px] border-4 border-orange-100 bg-white shadow-2xl">
-        <div className="relative overflow-hidden bg-gradient-to-r from-orange-400 to-amber-400 px-5 py-4 text-white">
-          <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/15" />
-          <div className="absolute left-40 bottom-0 h-14 w-14 translate-y-1/2 rounded-full bg-white/10" />
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#2b1b12]/70 p-4 backdrop-blur-[2px] animate-in fade-in duration-200">
+      <div className="flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden border-[5px] border-[#5a351f] bg-[#fff8df] shadow-[10px_10px_0_#2f1d13]">
+        <div className="relative overflow-hidden border-b-[5px] border-[#5a351f] bg-[#f39a2e] px-5 py-4 text-[#3f291b]">
           <div className="relative z-10 flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               {selectedCategory ? (
                 <button
                   onClick={() => setSelectedCategory(null)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 active:scale-95"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center border-[3px] border-[#6b4423] bg-[#fff0ad] shadow-[3px_3px_0_#6b4423] transition-transform active:translate-x-1 active:translate-y-1 active:shadow-none"
                   aria-label="Back to categories"
                 >
                   <ArrowLeft className="h-7 w-7" strokeWidth={3} />
                 </button>
               ) : (
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 shadow-inner">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center border-[3px] border-[#6b4423] bg-[#fff0ad] shadow-[3px_3px_0_#6b4423]">
                   <AiOutlineShop className="h-9 w-9" strokeWidth={10} />
                 </div>
               )}
@@ -184,13 +183,13 @@ const ShopModal: React.FC<ShopModalProps> = ({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-3">
-              <div className="flex items-center gap-2 rounded-full bg-orange-900/20 px-4 py-2 text-white shadow-inner">
-                <div className="text-xl drop-shadow-sm filter">💰</div>
-                <span className="font-black text-xl tracking-wide">{coins}</span>
+              <div className="flex items-center gap-2 border-[3px] border-[#6b4423] bg-[#fff0ad] px-3 py-1.5 text-[#3f321f] shadow-[4px_4px_0_#6b4423]">
+                <PixelCoinBag />
+                <span className="font-black text-xl tracking-wider">{coins}</span>
               </div>
               <button
                 onClick={onClose}
-                className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/20 active:scale-95"
+                className="flex h-11 w-11 items-center justify-center border-[3px] border-[#6b4423] bg-[#fff0ad] shadow-[3px_3px_0_#6b4423] transition-transform active:translate-x-1 active:translate-y-1 active:shadow-none"
                 aria-label="Close market"
               >
                 <X className="h-7 w-7" strokeWidth={3} />
@@ -199,10 +198,10 @@ const ShopModal: React.FC<ShopModalProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-orange-50 to-white p-5 no-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-[#fff8e8] p-5 no-scrollbar">
           {isLoading && (
             <div className="flex h-full flex-col items-center justify-center gap-4">
-              <div className="h-12 w-12 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+              <div className="h-12 w-12 border-4 border-[#d6b47a] border-t-[#7b3517] animate-spin" />
               <p className="text-lg font-black text-orange-600">Loading items...</p>
             </div>
           )}
@@ -218,15 +217,15 @@ const ShopModal: React.FC<ShopModalProps> = ({
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`group relative min-h-40 overflow-hidden rounded-[28px] border-2 ${style.border} ${style.bg} p-5 text-left shadow-lg shadow-orange-900/5 transition-all hover:-translate-y-1 hover:shadow-xl active:scale-95`}
+                    className={`group relative min-h-40 overflow-hidden border-[3px] ${style.border} ${style.bg} p-5 text-left shadow-[5px_5px_0_#76523a] transition-transform hover:-translate-y-1 active:translate-x-1 active:translate-y-1 active:shadow-none`}
                   >
-                    <div className={`pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full ${style.accent} opacity-60 transition-transform duration-300 group-hover:scale-110`} />
+                    <div className={`pointer-events-none absolute -right-6 -top-8 h-28 w-28 ${style.accent} opacity-60 transition-transform duration-300 group-hover:scale-110`} />
                     <div className="relative z-10 flex h-full flex-col justify-between gap-7">
                       <div className="flex items-start justify-between gap-3">
-                        <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${style.accent} shadow-inner`}>
+                        <div className={`flex h-14 w-14 items-center justify-center border-2 border-current ${style.accent}`}>
                           <Icon className={`h-8 w-8 ${style.text}`} strokeWidth={2.2} />
                         </div>
-                        <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm">
+                        <span className="border-2 border-[#8b725e] bg-[#fffdf4] px-3 py-1 text-xs font-black text-slate-600 shadow-[2px_2px_0_#8b725e]">
                           {itemCount} items
                         </span>
                       </div>
@@ -246,9 +245,9 @@ const ShopModal: React.FC<ShopModalProps> = ({
                 return (
                   <div
                     key={bed.id}
-                    className={`relative flex min-h-56 flex-col rounded-[26px] border ${selectedStyle.border} bg-white p-4 text-center opacity-75 shadow-lg shadow-orange-900/5 grayscale-[0.2]`}
+                    className={`relative flex min-h-56 flex-col border-[3px] ${selectedStyle.border} bg-white p-4 text-center opacity-75 shadow-[5px_5px_0_#76523a] grayscale-[0.2]`}
                   >
-                    <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full bg-slate-600 px-2.5 py-1 text-[11px] font-black text-white shadow">
+                    <div className="absolute right-3 top-3 z-10 flex items-center gap-1 border-2 border-slate-800 bg-slate-600 px-2.5 py-1 text-[11px] font-black text-white shadow-[2px_2px_0_#334155]">
                       <Lock className="h-3.5 w-3.5" strokeWidth={3} />
                       Unavailable
                     </div>
@@ -259,13 +258,13 @@ const ShopModal: React.FC<ShopModalProps> = ({
                     <div className="mt-3 truncate text-base font-black text-slate-700">{bed.label}</div>
 
                     <div className="my-3 flex min-h-8 flex-wrap items-center justify-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-xs font-black text-indigo-700">
+                      <span className="inline-flex items-center gap-1 border-2 border-indigo-300 bg-indigo-50 px-2 py-1 text-xs font-black text-indigo-700">
                         <Zap className="h-3.5 w-3.5" strokeWidth={3} />
                         +{bed.energyGain || 1}% sleep
                       </span>
                     </div>
 
-                    <button disabled className={`mt-auto rounded-2xl px-3 py-2.5 text-sm font-black ${SHOP_BUTTONS.disabled}`}>
+                    <button disabled className={`mt-auto px-3 py-2.5 text-sm font-black uppercase tracking-[0.08em] ${SHOP_BUTTONS.disabled}`}>
                       Unavailable
                     </button>
                   </div>
@@ -290,24 +289,24 @@ const ShopModal: React.FC<ShopModalProps> = ({
                 return (
                   <div
                     key={item.id}
-                    className={`relative flex min-h-56 flex-col rounded-[26px] border ${selectedStyle.border} bg-white p-4 text-center shadow-lg shadow-orange-900/5 transition-all ${
-                      isLocked ? 'opacity-65 grayscale' : 'hover:-translate-y-1 hover:shadow-xl'
+                    className={`relative flex min-h-56 flex-col border-[3px] ${selectedStyle.border} bg-white p-4 text-center shadow-[5px_5px_0_#76523a] transition-transform ${
+                      isLocked ? 'opacity-65 grayscale' : 'hover:-translate-y-1'
                     }`}
                   >
                     {ownedCount > 0 && !isLocked && !isToy && (
-                      <div className="absolute right-3 top-3 z-10 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white shadow">
+                      <div className="absolute right-3 top-3 z-10 border-2 border-emerald-800 bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white shadow-[2px_2px_0_#166534]">
                         x{ownedCount}
                       </div>
                     )}
                     {isOwnedToy && !isLocked && (
-                      <div className="absolute right-3 top-3 z-10 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white shadow">
+                      <div className="absolute right-3 top-3 z-10 border-2 border-emerald-800 bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white shadow-[2px_2px_0_#166534]">
                         Owned
                       </div>
                     )}
 
                     {isLocked && (
-                      <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[26px] bg-white/55">
-                        <div className="flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-xs font-black text-white shadow-md">
+                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/55">
+                        <div className="flex items-center gap-1 border-2 border-slate-950 bg-slate-800 px-3 py-1 text-xs font-black text-white shadow-[3px_3px_0_#334155]">
                           <Lock className="h-3.5 w-3.5" strokeWidth={3} />
                           Lvl {item.levelReq}
                         </div>
@@ -321,13 +320,13 @@ const ShopModal: React.FC<ShopModalProps> = ({
 
                     <div className="my-3 flex min-h-8 flex-wrap items-center justify-center gap-2">
                       {item.hunger > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-1 text-xs font-black text-orange-700">
+                        <span className="inline-flex items-center gap-1 border-2 border-orange-200 bg-orange-50 px-2 py-1 text-xs font-black text-orange-700">
                           <Utensils className="h-3.5 w-3.5" strokeWidth={2.8} />
                           +{item.hunger}%
                         </span>
                       )}
                       {!!item.happiness && item.happiness > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-pink-50 px-2 py-1 text-xs font-black text-pink-700">
+                        <span className="inline-flex items-center gap-1 border-2 border-pink-200 bg-pink-50 px-2 py-1 text-xs font-black text-pink-700">
                           <Smile className="h-3.5 w-3.5" strokeWidth={2.8} />
                           +{item.happiness}%
                         </span>
@@ -338,7 +337,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
                       <button
                         onClick={() => !isActiveToy && onSelectToy(toyId)}
                         disabled={isActiveToy}
-                        className={`mt-auto rounded-2xl px-3 py-2.5 text-sm font-black transition-all ${
+                        className={`mt-auto px-3 py-2.5 text-sm font-black uppercase tracking-[0.08em] transition-all ${
                           isActiveToy
                             ? SHOP_BUTTONS.active
                             : SHOP_BUTTONS.select
@@ -350,7 +349,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
                       <button
                         onClick={() => !isDisabled && (isToy ? onBuyToy(item) : onBuy(item))}
                         disabled={isDisabled}
-                        className={`mt-auto rounded-2xl px-3 py-2.5 text-sm font-black transition-all ${
+                        className={`mt-auto px-3 py-2.5 text-sm font-black uppercase tracking-[0.08em] transition-all ${
                           isLocked
                             ? SHOP_BUTTONS.locked
                             : canAfford

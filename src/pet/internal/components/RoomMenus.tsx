@@ -19,6 +19,7 @@ interface FoodMenuProps {
     onDragStart: (e: React.PointerEvent, item: FoodItem) => void;
     inventory: Record<string, number>;
     onOpenShop: () => void;
+    onClose: () => void;
     items: FoodItem[];
 }
 
@@ -39,7 +40,7 @@ const isKitchenFoodItem = (item: FoodItem) => {
     );
 };
 
-export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOpenShop, items }) => {
+export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOpenShop, onClose, items }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const availableItems = items.filter(item => isKitchenFoodItem(item) && (inventory[item.id] || 0) > 0);
 
@@ -50,18 +51,37 @@ export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOp
     };
 
     return (
-        <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center animate-in slide-in-from-bottom-10 fade-in duration-300 pointer-events-none">
-            <div className="pointer-events-auto flex max-w-[min(92vw,430px)] items-center gap-3 rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-2 shadow-2xl shadow-orange-900/10 backdrop-blur-xl">
+        <div
+            className="fixed inset-0 z-[45] flex items-end justify-center bg-[#28170f]/45 p-6 backdrop-blur-[2px] animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Food inventory"
+            onPointerDown={(event) => {
+                event.stopPropagation();
+                if (event.target === event.currentTarget) onClose();
+            }}
+            data-pet-movement-block
+        >
+            <div className="relative flex w-full max-w-[500px] items-center gap-3 border-[5px] border-[#4b2b20] bg-[#fff0c7] px-4 pb-4 pt-12 shadow-[8px_8px_0_#29170f]">
+                <div className="absolute left-4 top-3 text-sm font-black uppercase tracking-[0.12em] text-[#4b2b20]">Food inventory</div>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="absolute right-3 top-2 flex h-8 w-8 items-center justify-center border-[3px] border-[#4b2b20] bg-[#fff8df] text-xl font-black leading-none text-[#4b2b20] shadow-[3px_3px_0_#29170f] active:translate-x-1 active:translate-y-1 active:shadow-none"
+                    aria-label="Close food inventory"
+                >
+                    ×
+                </button>
                 <div
                     ref={scrollRef}
                     onWheel={handleWheel}
-                    className="flex h-22 min-w-0 flex-1 snap-x items-center gap-4 overflow-x-auto overflow-y-hidden px-4 pt-3 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full"
+                    className="flex h-22 min-w-0 flex-1 snap-x items-center gap-4 overflow-x-auto overflow-y-hidden px-4 pt-3 [scrollbar-width:thin] [scrollbar-color:#8b5a2b_transparent] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#8b5a2b]"
                 >
                     {availableItems.length === 0 && (
                         <button
                             type="button"
                             onClick={onOpenShop}
-                            className="flex h-16 w-44 shrink-0 mb-2 items-center justify-center rounded-2xl border border-dashed border-orange-300 bg-orange-50/70 px-4 text-center text-[15px] font-bold text-orange-700 tracking-wider transition-colors hover:bg-orange-100"
+                            className="mb-2 flex h-16 w-44 shrink-0 items-center justify-center border-[3px] border-dashed border-[#8b5a2b] bg-[#fff8df] px-4 text-center text-[15px] font-black tracking-wider text-orange-700 shadow-[3px_3px_0_#8b5a2b] transition-colors hover:bg-orange-100"
                         >
                             No food yet!
                         </button>
@@ -77,7 +97,7 @@ export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOp
                                 imageClassName="h-11 w-11 touch-none drop-shadow-sm"
                                 emojiClassName="select-none touch-none text-4xl drop-shadow-sm"
                             />
-                            <div className="pointer-events-none absolute -right-0 -top-0 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 text-[11px] font-black text-white shadow">
+                            <div className="pointer-events-none absolute -right-0 -top-0 z-10 flex h-5 min-w-5 items-center justify-center border-2 border-[#7b3517] bg-orange-500 text-[11px] font-black text-white shadow-[2px_2px_0_#7b3517]">
                                 {inventory[item.id]}
                             </div>
                         </div>
@@ -86,7 +106,7 @@ export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOp
                         <button
                             type="button"
                             onClick={onOpenShop}
-                            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl mb-2 border border-dashed border-slate-300 bg-white/70 text-slate-400 transition-all hover:border-orange-300 hover:text-orange-500 active:scale-95"
+                            className="mb-2 flex h-16 w-16 shrink-0 items-center justify-center border-[3px] border-dashed border-[#8b5a2b] bg-[#fff8df] text-[#8b725e] shadow-[3px_3px_0_#8b5a2b] transition-transform active:translate-x-1 active:translate-y-1 active:shadow-none"
                             aria-label="Buy more food"
                         >
                             <Plus className="h-8 w-8" strokeWidth={3} />
@@ -100,6 +120,7 @@ export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOp
 
 interface BathroomMenuProps {
     onDragStart: (e: React.PointerEvent, tool: ToolType) => void;
+    onClose: () => void;
     isSoapedUp?: boolean;
     isDirty?: boolean;
 }
@@ -111,13 +132,32 @@ const getBathroomToolIcons = (
     shower: { src: careOverrides?.shower ?? showerUrl, alt: 'Shower' },
 });
 
-export const BathroomMenu: React.FC<BathroomMenuProps> = ({ onDragStart, isSoapedUp, isDirty }) => {
+export const BathroomMenu: React.FC<BathroomMenuProps> = ({ onDragStart, onClose, isSoapedUp, isDirty }) => {
     const { assetUrls } = useGameState();
     const BATHROOM_TOOL_ICONS = getBathroomToolIcons(assetUrls?.care);
 
     return (
-    <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center animate-in slide-in-from-bottom-10 fade-in duration-300">
-        <div className="bg-white/60 backdrop-blur-xl p-4 rounded-2xl shadow-xl flex gap-6 border border-white/50 items-end">
+    <div
+        className="fixed inset-0 z-[45] flex items-end justify-center bg-[#28170f]/45 p-6 backdrop-blur-[2px] animate-in fade-in duration-200"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Bath tools"
+        onPointerDown={(event) => {
+            event.stopPropagation();
+            if (event.target === event.currentTarget) onClose();
+        }}
+        data-pet-movement-block
+    >
+        <div className="relative flex items-end gap-8 border-[5px] border-[#4b2b20] bg-[#fff0c7] px-8 pb-5 pt-12 shadow-[8px_8px_0_#29170f]">
+            <div className="absolute left-4 top-3 text-sm font-black uppercase tracking-[0.12em] text-[#4b2b20]">Bath tools</div>
+            <button
+                type="button"
+                onClick={onClose}
+                className="absolute right-3 top-2 flex h-8 w-8 items-center justify-center border-[3px] border-[#4b2b20] bg-[#fff8df] text-xl font-black leading-none text-[#4b2b20] shadow-[3px_3px_0_#29170f] active:translate-x-1 active:translate-y-1 active:shadow-none"
+                aria-label="Close bath tools"
+            >
+                ×
+            </button>
             {(['soap'] as const).map((tool) => {
                 const disabled = !!isSoapedUp;
                 return (
@@ -172,14 +212,35 @@ export const BathroomMenu: React.FC<BathroomMenuProps> = ({ onDragStart, isSoape
 
 interface GamesMenuProps {
     onStartGame: (gameId: string) => void;
+    onClose: () => void;
     /** Host-local games rendered as additional cards after the 3 built-in
      *  ones, same visual treatment. See `ExtraGame`'s own doc (types.ts). */
     extraGames?: ExtraGame[];
 }
 
-export const GamesMenu: React.FC<GamesMenuProps> = ({ onStartGame, extraGames }) => (
-    <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center animate-in slide-in-from-bottom-10 fade-in duration-300">
-        <div className="bg-violet-900/60 backdrop-blur-xl p-4 rounded-3xl shadow-xl border border-violet-500/50 flex gap-4">
+export const GamesMenu: React.FC<GamesMenuProps> = ({ onStartGame, onClose, extraGames }) => (
+    <div
+        className="fixed inset-0 z-[75] flex items-center justify-center bg-[#28170f]/70 p-4 backdrop-blur-[2px] animate-in fade-in duration-200"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose a game"
+        onPointerDown={(event) => {
+            event.stopPropagation();
+            if (event.target === event.currentTarget) onClose();
+        }}
+        data-pet-movement-block
+    >
+        <div className="relative border-[5px] border-[#4b2b20] bg-[#7b367d] p-5 pt-14 shadow-[9px_9px_0_#29170f]">
+            <div className="absolute left-4 top-3 font-black uppercase tracking-[0.12em] text-[#fff1b8]">Choose a game</div>
+            <button
+                type="button"
+                onClick={onClose}
+                className="absolute right-3 top-2 flex h-9 w-9 items-center justify-center border-[3px] border-[#4b2b20] bg-[#fff1b8] text-2xl font-black leading-none text-[#4b2b20] shadow-[3px_3px_0_#29170f] active:translate-x-1 active:translate-y-1 active:shadow-none"
+                aria-label="Close game menu"
+            >
+                ×
+            </button>
+            <div className="flex flex-wrap justify-center gap-4">
             <button
                 onClick={() => onStartGame('flappy')}
                 className="flex flex-col items-center group transition-all duration-200 ease-out hover:scale-105 active:scale-95"
@@ -226,6 +287,7 @@ export const GamesMenu: React.FC<GamesMenuProps> = ({ onStartGame, extraGames })
                     <span className="text-[10px] font-black text-white mt-1.5 uppercase tracking-wide drop-shadow-md">{game.title}</span>
                 </button>
             ))}
+            </div>
         </div>
     </div>
 );

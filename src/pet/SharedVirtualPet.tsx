@@ -34,7 +34,7 @@
  *     baseline while keeping Content Studio's own back-button visual
  *     (ROOM-view-only) unchanged.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TiArrowBack } from 'react-icons/ti';
 import type { PetRepository } from '../contracts/petRepository';
 import { SharedPetProvider, useGameState } from './runtime/SharedPetRuntime';
@@ -98,6 +98,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
   const [showRotateNotice, setShowRotateNotice] = useState(false);
   const [showRoomMap, setShowRoomMap] = useState(false);
+  const [roomNavigationRequest, setRoomNavigationRequest] = useState<{ destination: RoomType; requestId: number } | null>(null);
   const enteredFullscreenRef = useRef(false);
   const { currentRoom, setCurrentRoom } = useGameState();
 
@@ -110,9 +111,14 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   ];
 
   const handleRoomMapNavigate = (room: RoomType) => {
-    setCurrentRoom(room);
     setShowRoomMap(false);
+    if (room === currentRoom) return;
+    setRoomNavigationRequest({ destination: room, requestId: Date.now() });
   };
+
+  const handleRoomNavigationRequestHandled = useCallback(() => {
+    setRoomNavigationRequest(null);
+  }, []);
 
   const enterLandscapeMode = async () => {
     const orientation = window.screen.orientation as LockableScreenOrientation | undefined;
@@ -281,7 +287,12 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
       )}
 
       {view === 'ROOM' ? (
-        <PetRoom onNavigateToGame={handleNavigateToGame} extraGames={extraGames} />
+        <PetRoom
+          onNavigateToGame={handleNavigateToGame}
+          extraGames={extraGames}
+          roomNavigationRequest={roomNavigationRequest}
+          onRoomNavigationRequestHandled={handleRoomNavigationRequestHandled}
+        />
       ) : (
         <>
           <GamePage

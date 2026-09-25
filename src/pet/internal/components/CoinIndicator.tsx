@@ -4,7 +4,7 @@ interface CoinIndicatorProps {
   amount: number;
 }
 
-const PixelCoinBag = () => (
+export const PixelCoinBag = () => (
   <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-8 sm:w-8" aria-hidden="true" shapeRendering="crispEdges">
     <path fill="#8b5a2b" d="M8 2h8v3h2v3h-2v2h3v3h2v7h-2v2H5v-2H3v-7h2v-3h3V8H6V5h2z" />
     <path fill="#f7b733" d="M8 6h8v3H8zM7 11h10v2h2v7H5v-7h2z" />
