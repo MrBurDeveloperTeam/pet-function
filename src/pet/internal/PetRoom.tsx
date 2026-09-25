@@ -44,8 +44,8 @@ const ROOM_EXITS: Partial<Record<RoomType, RoomExit[]>> = {
     { direction: 'left', destination: RoomType.BEDROOM, label: 'Go to bedroom' },
   ],
   [RoomType.KITCHEN]: [
-    { direction: 'left', destination: RoomType.PLAYROOM, label: 'Go outside' },
-    { direction: 'right', destination: RoomType.GAMES, label: 'Go to games room' },
+    { direction: 'left', destination: RoomType.GAMES, label: 'Go to games room' },
+    { direction: 'right', destination: RoomType.PLAYROOM, label: 'Go outside' },
   ],
 };
 
@@ -80,7 +80,6 @@ const INDOOR_PET_KEYBOARD_SPEED = 360;
 const INDOOR_PET_MOUSE_SPEED = 520;
 const INDOOR_PET_STOP_DISTANCE = 2;
 const ROOM_TRANSITION_LOADING_MS = 1800;
-const ROOM_BACKGROUND_ASPECT_RATIO = 1862 / 845;
 
 const INDOOR_FLOOR_LANES: Partial<Record<RoomType, { min: number; max: number }>> = {
   [RoomType.KITCHEN]: { min: 0.14, max: 0.86 },
@@ -96,11 +95,10 @@ const BEDROOM_BED_BOTTOM_OFFSET = 96;
 
 const SLEEP_WAKE_DURATION_MS = 760;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
-const getRoomSceneHorizontalBounds = (width: number, height: number) => {
-  const sceneWidth = Math.min(width, height * ROOM_BACKGROUND_ASPECT_RATIO);
-  const sceneLeft = (width - sceneWidth) / 2;
-  return { sceneLeft, sceneWidth };
-};
+const getRoomSceneHorizontalBounds = (width: number, _height: number) => ({
+  sceneLeft: 0,
+  sceneWidth: width,
+});
 
 interface PetRoomProps {
   onNavigateToGame: (gameId: string) => void;
@@ -986,7 +984,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ onNavigateToGame, extraGames }
           inset: 0,
           width: '100%',
           height: '100%',
-          objectFit: 'contain',
+          objectFit: 'cover',
           objectPosition: 'center center',
           imageRendering: 'pixelated',
           pointerEvents: 'none',
