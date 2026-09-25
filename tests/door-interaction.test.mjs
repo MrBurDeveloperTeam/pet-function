@@ -14,13 +14,15 @@ const outlinesSource = readFileSync(
 test('room doors lead to their requested destinations', () => {
   assert.match(roomSource, /\[RoomType\.BATHROOM\]: \{ direction: 'left', destination: RoomType\.BEDROOM, label: 'Go to bedroom through the door' \}/);
   assert.match(roomSource, /\[RoomType\.KITCHEN\]: \{ direction: 'right', destination: RoomType\.PLAYROOM, label: 'Go outside through the door' \}/);
-  assert.match(roomSource, /\[RoomType\.GAMES\]: \{ direction: 'left', destination: RoomType\.PLAYROOM, label: 'Go outside through the door' \}/);
+  assert.match(roomSource, /\[RoomType\.GAMES\]: \{ direction: 'left', destination: RoomType\.TOWN_HOME, label: 'Go home through the door' \}/);
+  assert.match(roomSource, /\[RoomType\.TOWN_HOME\]: \{ direction: 'right', destination: RoomType\.GAMES, label: 'Enter the games room' \}/);
 });
 
 test('doors use clickable pulsing contours', () => {
   assert.match(outlinesSource, /action: 'door', label: 'Go to bedroom through the bathroom door'/);
   assert.match(outlinesSource, /action: 'door', label: 'Go outside through the kitchen door'/);
-  assert.match(outlinesSource, /action: 'door', label: 'Go outside through the games room door'/);
+  assert.match(outlinesSource, /action: 'door', label: 'Go home through the games room door'/);
+  assert.match(outlinesSource, /action: 'door', label: 'Enter the games room through the home door'/);
   assert.match(outlinesSource, /className="pet-interaction-outline"/);
   assert.match(outlinesSource, /onClick=\{\(\) => onActivate\(action\)\}/);
 });

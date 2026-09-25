@@ -1249,6 +1249,16 @@
   stroke-width: 2.5;
 }
 
+.snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='door'] {
+  stroke: #ffeab0;
+  stroke-width: 1.5;
+}
+
+.snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='door']:hover,
+.snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='door']:focus-visible {
+  stroke-width: 2;
+}
+
 .snabbb-molar-experience .pet-room-loading-sky {
   image-rendering: pixelated;
 }

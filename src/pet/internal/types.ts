@@ -68,6 +68,9 @@ export enum RoomType {
   PLAYROOM = 'PLAYROOM',
   GARDEN = 'GARDEN',
   GAMES = 'GAMES',
+  TOWN_HOME = 'TOWN_HOME',
+  SHOPPING_STREET = 'SHOPPING_STREET',
+  SPORTS_GROUND = 'SPORTS_GROUND',
 }
 
 export interface GameState {

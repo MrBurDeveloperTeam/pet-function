@@ -7,25 +7,33 @@ interface BallProps {
     position: { x: number; y: number };
     isDragging: boolean;
     onPointerDown: (e: React.PointerEvent) => void;
+    imageSrc?: string;
     color?: string;
     icon?: string;
 }
 
-const Ball: React.FC<BallProps> = ({ position, isDragging, onPointerDown, color, icon }) => {
+const Ball: React.FC<BallProps> = ({ position, isDragging, onPointerDown, imageSrc, color, icon }) => {
     return (
         <div
             onPointerDown={onPointerDown}
-            className={`absolute w-[60px] h-[60px] rounded-full cursor-grab active:cursor-grabbing touch-none z-50 flex items-center justify-center select-none transition-transform ${icon ? '' : 'shadow-2xl border-2 border-white/50'
+            className={`absolute w-[60px] h-[60px] cursor-grab active:cursor-grabbing touch-none z-50 flex items-center justify-center select-none transition-transform ${imageSrc || icon ? '' : 'rounded-full shadow-2xl border-2 border-white/50'
                 }`}
             style={{
                 left: position.x,
                 top: position.y,
                 transform: 'translate(-50%, -50%)',
-                background: icon ? 'none' : (color || 'radial-gradient(circle at 30% 30%, #ff6b6b, #c92a2a)'),
+                background: imageSrc || icon ? 'none' : (color || 'radial-gradient(circle at 30% 30%, #ff6b6b, #c92a2a)'),
                 transition: isDragging ? 'none' : 'transform 0.1s linear'
             }}
         >
-            {icon ? (
+            {imageSrc ? (
+                <img
+                    src={imageSrc}
+                    alt=""
+                    draggable={false}
+                    className="h-[60px] w-[60px] pointer-events-none select-none object-contain [image-rendering:pixelated]"
+                />
+            ) : icon ? (
                 <span className="text-[60px] leading-none pointer-events-none drop-shadow-md">{icon}</span>
             ) : (
                 <>

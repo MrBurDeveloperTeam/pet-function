@@ -7,7 +7,7 @@ const petRoomSource = readFileSync(
   'utf8',
 );
 
-test('all five room backgrounds cover the desktop viewport without exposed edges', () => {
+test('all room backgrounds cover the desktop viewport without exposed edges', () => {
   assert.match(petRoomSource, /src=\{ROOM_BACKGROUNDS\[currentRoom\]\}/);
   assert.match(
     petRoomSource,
@@ -42,17 +42,17 @@ test('keyboard movement supports all four arrow keys within room bounds', () => 
 });
 
 test('each indoor room keeps the cat inside its calibrated floor depth', () => {
-  assert.match(petRoomSource, /\[RoomType\.KITCHEN\]: \{ min: -0\.03, max: 0\.26 \}/);
-  assert.match(petRoomSource, /\[RoomType\.BATHROOM\]: \{ min: 0\.02, max: 0\.3 \}/);
-  assert.match(petRoomSource, /\[RoomType\.BEDROOM\]: \{ min: -0\.08, max: 0\.15 \}/);
-  assert.match(petRoomSource, /\[RoomType\.GAMES\]: \{ min: -0\.07, max: 0\.24 \}/);
+  assert.match(petRoomSource, /\[RoomType\.KITCHEN\]: \{ min: 0\.02, max: 0\.31 \}/);
+  assert.match(petRoomSource, /\[RoomType\.BATHROOM\]: \{ min: 0\.05, max: 0\.33 \}/);
+  assert.match(petRoomSource, /\[RoomType\.BEDROOM\]: \{ min: -0\.13, max: 0\.15 \}/);
+  assert.match(petRoomSource, /\[RoomType\.GAMES\]: \{ min: -0\.07, max: 0\.34 \}/);
 });
 
 test('indoor cats use room-specific rug placements and a smaller bedroom scale', () => {
-  assert.match(petRoomSource, /\[RoomType\.KITCHEN\]: \{ x: 0\.48, y: 0\.11 \}/);
-  assert.match(petRoomSource, /\[RoomType\.BATHROOM\]: \{ x: 0\.48, y: 0\.28 \}/);
+  assert.match(petRoomSource, /\[RoomType\.KITCHEN\]: \{ x: 0\.48, y: 0\.16 \}/);
+  assert.match(petRoomSource, /\[RoomType\.BATHROOM\]: \{ x: 0\.48, y: 0\.31 \}/);
   assert.match(petRoomSource, /\[RoomType\.BEDROOM\]: \{ x: 0\.5, y: -0\.04 \}/);
   assert.match(petRoomSource, /\[RoomType\.GAMES\]: \{ x: 0\.48, y: 0\.06 \}/);
-  assert.match(petRoomSource, /const BEDROOM_PET_SCALE_MULTIPLIER = 0\.8/);
+  assert.match(petRoomSource, /const BEDROOM_PET_SCALE_MULTIPLIER = 0\.76/);
   assert.match(petRoomSource, /displayScale=\{bedroomSceneScale \* BEDROOM_PET_SCALE_MULTIPLIER\}/);
 });

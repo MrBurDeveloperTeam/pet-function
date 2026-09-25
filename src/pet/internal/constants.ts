@@ -32,6 +32,9 @@ export const ROOM_THEMES: Record<RoomTypeT, { bg: string; accent: string; icon: 
   [RoomType.PLAYROOM]: { bg: 'bg-gradient-to-br from-[#FDF2F8] via-[#FCE7F3] to-[#F9A8D4]', accent: 'text-pink-600', icon: '🎮' },
   [RoomType.GARDEN]: { bg: 'bg-gradient-to-br from-[#F0FDF4] via-[#DCFCE7] to-[#86EFAC]', accent: 'text-emerald-600', icon: '🌳' },
   [RoomType.GAMES]: { bg: 'bg-gradient-to-br from-[#EEF2FF] via-[#E0E7FF] to-[#C7D2FE]', accent: 'text-indigo-600', icon: '🕹️' },
+  [RoomType.TOWN_HOME]: { bg: 'bg-gradient-to-br from-[#ecfccb] via-[#d9f99d] to-[#86efac]', accent: 'text-lime-700', icon: '🏡' },
+  [RoomType.SHOPPING_STREET]: { bg: 'bg-gradient-to-br from-[#fff7d6] via-[#fde68a] to-[#fdba74]', accent: 'text-amber-700', icon: '🏪' },
+  [RoomType.SPORTS_GROUND]: { bg: 'bg-gradient-to-br from-[#dcfce7] via-[#bbf7d0] to-[#6ee7b7]', accent: 'text-emerald-700', icon: '🏟️' },
 };
 
 export const FOOD_ITEMS: FoodItem[] = [

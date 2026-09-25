@@ -79,6 +79,9 @@ const PixelRoomIcon = ({ room, className = '' }: { room: RoomType; className?: s
   if (room === RoomType.BATHROOM) return <svg {...common}><path fill="#22b8cf" d="M3 9h18v9H3zM5 18h3v3H5zM16 18h3v3h-3zM5 5h3v4H5zM7 3h6v3H7z" /><path fill="#dffbff" d="M5 11h14v3H5z" /></svg>;
   if (room === RoomType.PLAYROOM) return <svg {...common}><path fill="#65a30d" d="M10 2h4v4h4v4h3v5h-7v7h-4v-7H3v-5h3V6h4z" /><path fill="#a3e635" d="M8 7h3v3H8zM14 8h3v3h-3z" /><path fill="#854d0e" d="M10 15h4v7h-4z" /></svg>;
   if (room === RoomType.BEDROOM) return <svg {...common}><path fill="#6366f1" d="M3 5h3v14H3zM6 9h15v10H6zM8 6h6v5H8zM3 18h19v3H3z" /><path fill="#eef2ff" d="M9 7h4v3H9z" /></svg>;
+  if (room === RoomType.TOWN_HOME) return <svg {...common}><path fill="#b45309" d="M2 11 12 3l10 8v10H2z" /><path fill="#fef3c7" d="M6 11h12v8H6z" /><path fill="#78350f" d="M10 13h4v8h-4z" /></svg>;
+  if (room === RoomType.SHOPPING_STREET) return <svg {...common}><path fill="#f59e0b" d="M3 8h18v13H3z" /><path fill="#fff7d6" d="M6 12h5v5H6zM14 11h4v10h-4z" /><path fill="#dc2626" d="M2 5h20v5H2z" /></svg>;
+  if (room === RoomType.SPORTS_GROUND) return <svg {...common}><path fill="#059669" d="M3 5h18v14H3z" /><path fill="#fef3c7" d="M5 8h14v8H5z" /><path fill="#ef4444" d="M2 3h20v3H2zM2 18h20v3H2z" /></svg>;
   return <svg {...common}><path fill="#8b5cf6" d="M5 7h14v3h3v8h-5v-3H7v3H2v-8h3z" /><path fill="#fff" d="M7 10h2v2h2v2H9v2H7v-2H5v-2h2zM16 11h2v2h-2zM18 13h2v2h-2z" /></svg>;
 };
 
@@ -113,6 +116,9 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
     { room: RoomType.PLAYROOM, label: 'Outside', colors: 'border-lime-700 bg-lime-100 text-lime-800' },
     { room: RoomType.BEDROOM, label: 'Bedroom', colors: 'border-indigo-700 bg-indigo-100 text-indigo-800' },
     { room: RoomType.GAMES, label: 'Games', colors: 'border-violet-700 bg-violet-100 text-violet-800' },
+    { room: RoomType.TOWN_HOME, label: 'Town Home', colors: 'border-amber-700 bg-amber-100 text-amber-800' },
+    { room: RoomType.SHOPPING_STREET, label: 'Shopping', colors: 'border-rose-700 bg-rose-100 text-rose-800' },
+    { room: RoomType.SPORTS_GROUND, label: 'Sports', colors: 'border-emerald-700 bg-emerald-100 text-emerald-800' },
   ];
 
   const handleRoomMapNavigate = (room: RoomType) => {

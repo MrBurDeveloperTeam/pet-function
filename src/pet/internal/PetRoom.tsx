@@ -23,8 +23,10 @@ import { getPetOption } from './petOptions';
 import poopUrl from '../../assets/pet/poop.png';
 import { ROOM_BACKGROUNDS } from './roomBackgrounds';
 import { RoomInteractionOutlines } from './components/RoomInteractionOutlines';
+import { resolveItemPixelImage } from './components/FoodItemVisual';
+import { constrainOutdoorPosition, OUTDOOR_INITIAL_PLACEMENT, OUTDOOR_ROOMS } from './outdoorNavigation';
 
-type RoomExitDirection = 'left' | 'right' | 'down';
+type RoomExitDirection = 'left' | 'right' | 'up' | 'down';
 
 interface RoomExit {
   direction: RoomExitDirection;
@@ -51,10 +53,26 @@ const ROOM_EXITS: Partial<Record<RoomType, RoomExit[]>> = {
   [RoomType.PLAYROOM]: [
     { direction: 'left', destination: RoomType.GAMES, label: 'Go to games room' },
   ],
+  [RoomType.TOWN_HOME]: [
+    { direction: 'left', destination: RoomType.SHOPPING_STREET, label: 'Go to shopping street' },
+  ],
+  [RoomType.SHOPPING_STREET]: [
+    { direction: 'right', destination: RoomType.TOWN_HOME, label: 'Go home' },
+    { direction: 'down', destination: RoomType.SPORTS_GROUND, label: 'Go to sports ground' },
+  ],
+  [RoomType.SPORTS_GROUND]: [
+    { direction: 'up', destination: RoomType.SHOPPING_STREET, label: 'Go to shopping street' },
+  ],
 };
 
 const PixelSceneArrow = ({ direction }: { direction: RoomExitDirection }) => {
-  const rotation = direction === 'left' ? 'rotate(180 12 12)' : direction === 'down' ? 'rotate(90 12 12)' : undefined;
+  const rotation = direction === 'left'
+    ? 'rotate(180 12 12)'
+    : direction === 'down'
+      ? 'rotate(90 12 12)'
+      : direction === 'up'
+        ? 'rotate(-90 12 12)'
+        : undefined;
 
   return (
     <svg viewBox="0 0 24 24" className="h-7 w-7 sm:h-9 sm:w-9" aria-hidden="true" shapeRendering="crispEdges">
@@ -73,16 +91,17 @@ const PixelPaw = () => (
 );
 
 const SOAP_RUBS_TO_LATHER = 5;
+const BUBBLES_PER_SOAP_RUB = 4;
 const SOAP_RUB_INTERVAL_MS = 220;
 const CLEAN_GAIN_PER_BATH_CYCLE = 25;
-const MAX_BUBBLES = SOAP_RUBS_TO_LATHER;
+const MAX_BUBBLES = SOAP_RUBS_TO_LATHER * BUBBLES_PER_SOAP_RUB;
 const RINSE_COMPLETE_THRESHOLD = Math.ceil(MAX_BUBBLES * 0.05);
 const POOP_REWARD_COINS = 5;
 const POOP_RESPAWN_MS = 2 * 60 * 60 * 1000;
 const POOP_NEXT_SPAWN_KEY = 'virtual_pet_next_poop_at';
 const OUTSIDE_PET_SCALE = 0.75;
 const INDOOR_PET_SCALE = 0.72;
-const BEDROOM_PET_SCALE_MULTIPLIER = 0.8;
+const BEDROOM_PET_SCALE_MULTIPLIER = 0.76;
 const INDOOR_PET_OFFSET_Y = 32;
 const INDOOR_PET_KEYBOARD_SPEED = 360;
 const INDOOR_PET_MOUSE_SPEED = 520;
@@ -98,27 +117,29 @@ const INDOOR_FLOOR_LANES: Partial<Record<RoomType, { min: number; max: number }>
 };
 
 const INDOOR_FLOOR_DEPTH: Partial<Record<RoomType, { min: number; max: number }>> = {
-  [RoomType.KITCHEN]: { min: -0.03, max: 0.26 },
-  [RoomType.BATHROOM]: { min: 0.02, max: 0.3 },
-  [RoomType.BEDROOM]: { min: -0.08, max: 0.15 },
-  [RoomType.GAMES]: { min: -0.07, max: 0.24 },
+  [RoomType.KITCHEN]: { min: 0.02, max: 0.31 },
+  [RoomType.BATHROOM]: { min: 0.05, max: 0.33 },
+  [RoomType.BEDROOM]: { min: -0.13, max: 0.15 },
+  [RoomType.GAMES]: { min: -0.07, max: 0.34 },
 };
 
 const ROOM_DOOR_EXITS: Partial<Record<RoomType, RoomExit>> = {
   [RoomType.BATHROOM]: { direction: 'left', destination: RoomType.BEDROOM, label: 'Go to bedroom through the door' },
   [RoomType.KITCHEN]: { direction: 'right', destination: RoomType.PLAYROOM, label: 'Go outside through the door' },
-  [RoomType.GAMES]: { direction: 'left', destination: RoomType.PLAYROOM, label: 'Go outside through the door' },
+  [RoomType.GAMES]: { direction: 'left', destination: RoomType.TOWN_HOME, label: 'Go home through the door' },
+  [RoomType.TOWN_HOME]: { direction: 'right', destination: RoomType.GAMES, label: 'Enter the games room' },
 };
 
-const ROOM_DOOR_PROXIMITY: Partial<Record<RoomType, { min: number; max: number }>> = {
+const ROOM_DOOR_PROXIMITY: Partial<Record<RoomType, { min: number; max: number; minY?: number; maxY?: number }>> = {
   [RoomType.BATHROOM]: { min: 0.14, max: 0.25 },
   [RoomType.KITCHEN]: { min: 0.72, max: 0.9 },
   [RoomType.GAMES]: { min: 0.12, max: 0.25 },
+  [RoomType.TOWN_HOME]: { min: 0.48, max: 0.62, minY: 0.34, maxY: 0.58 },
 };
 
 const INDOOR_INITIAL_PLACEMENT: Partial<Record<RoomType, { x: number; y: number }>> = {
-  [RoomType.KITCHEN]: { x: 0.48, y: 0.11 },
-  [RoomType.BATHROOM]: { x: 0.48, y: 0.28 },
+  [RoomType.KITCHEN]: { x: 0.48, y: 0.16 },
+  [RoomType.BATHROOM]: { x: 0.48, y: 0.31 },
   [RoomType.BEDROOM]: { x: 0.5, y: -0.04 },
   [RoomType.GAMES]: { x: 0.48, y: 0.06 },
 };
@@ -347,12 +368,13 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, [activeBedId, setActiveBedId]);
 
   useEffect(() => {
-    if (currentRoom !== RoomType.PLAYROOM || !playAreaRef.current) return;
+    if (!OUTDOOR_ROOMS.has(currentRoom) || !playAreaRef.current) return;
 
     const rect = playAreaRef.current.getBoundingClientRect();
+    const placement = OUTDOOR_INITIAL_PLACEMENT[currentRoom] || { x: 0.5, y: 0.55 };
     const initialPos = {
-      x: rect.width / 2,
-      y: Math.max(190, rect.height / 2),
+      x: rect.width * placement.x,
+      y: rect.height * placement.y,
     };
     outsidePetPosRef.current = initialPos;
     setOutsidePetPos(initialPos);
@@ -400,7 +422,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const startRoomTransition = (exit: RoomExit) => {
     if (roomTransition || isRoomTransitionLoading) return;
 
-    if (currentRoom === RoomType.PLAYROOM) {
+    if (OUTDOOR_ROOMS.has(currentRoom)) {
       const area = playAreaRef.current;
       if (!area) {
         setCurrentRoom(exit.destination);
@@ -411,14 +433,36 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
       const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
       const petHalfWidth = (192 * OUTSIDE_PET_SCALE) / 2;
+      const petHalfHeight = (208 * OUTSIDE_PET_SCALE) / 2;
       outsideMovementKeysRef.current = { left: false, right: false, up: false, down: false };
       outsideBallTargetRef.current = null;
-      outsidePointerTargetRef.current = {
+      const edgeTarget = {
         x: exit.direction === 'left'
           ? sceneLeft + petHalfWidth
-          : sceneLeft + sceneWidth - petHalfWidth,
-        y: outsidePetPosRef.current.y,
+          : exit.direction === 'right'
+            ? sceneLeft + sceneWidth - petHalfWidth
+            : exit.direction === 'down' && currentRoom === RoomType.SHOPPING_STREET
+              ? sceneLeft + sceneWidth * 0.33
+              : exit.direction === 'up' && currentRoom === RoomType.SPORTS_GROUND
+                ? sceneLeft + sceneWidth * 0.5
+            : outsidePetPosRef.current.x,
+        y: exit.direction === 'left' && currentRoom === RoomType.TOWN_HOME
+          ? rect.height * 0.30
+          : exit.direction === 'right' && currentRoom === RoomType.SHOPPING_STREET
+            ? rect.height * 0.50
+            : exit.direction === 'up'
+          ? petHalfHeight
+          : exit.direction === 'down'
+            ? rect.height - petHalfHeight
+            : outsidePetPosRef.current.y,
       };
+      outsidePointerTargetRef.current = constrainOutdoorPosition(
+        currentRoom,
+        outsidePetPosRef.current,
+        edgeTarget,
+        rect.width,
+        rect.height,
+      );
       setRoomTransition(exit);
       return;
     }
@@ -475,16 +519,16 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, [bedroomSceneScale, indoorPetX, isRoomTransitionLoading, roomTransition]);
 
   useEffect(() => {
-    if (currentRoom !== RoomType.PLAYROOM || !roomTransition || isRoomTransitionLoading) return;
+    if (!OUTDOOR_ROOMS.has(currentRoom) || !roomTransition || isRoomTransitionLoading) return;
 
     const target = outsidePointerTargetRef.current;
-    if (!target || Math.abs(outsidePetPos.x - target.x) > INDOOR_PET_STOP_DISTANCE + 1) return;
+    if (!target || Math.hypot(outsidePetPos.x - target.x, outsidePetPos.y - target.y) > INDOOR_PET_STOP_DISTANCE + 1) return;
 
     outsidePointerTargetRef.current = null;
     setLoadingAnimationKey((key) => key + 1);
     setIsRoomTransitionLoading(true);
     setOutsidePetPose('idle');
-  }, [currentRoom, isRoomTransitionLoading, outsidePetPos.x, roomTransition]);
+  }, [currentRoom, isRoomTransitionLoading, outsidePetPos.x, outsidePetPos.y, roomTransition]);
 
   useEffect(() => {
     if (!roomTransition || !isRoomTransitionLoading) return;
@@ -500,7 +544,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, [isRoomTransitionLoading, onRoomNavigationRequestHandled, roomTransition, setCurrentRoom]);
 
   useEffect(() => {
-    if (currentRoom === RoomType.PLAYROOM) return;
+    if (OUTDOOR_ROOMS.has(currentRoom)) return;
 
     const area = playAreaRef.current;
     if (!area) return;
@@ -536,7 +580,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, [bedroomSceneScale, currentRoom]);
 
   useEffect(() => {
-    if (currentRoom === RoomType.PLAYROOM || showShopModal || showGamesMenu || showBathroomMenu || showFoodMenu || isSleeping) {
+    if (OUTDOOR_ROOMS.has(currentRoom) || showShopModal || showGamesMenu || showBathroomMenu || showFoodMenu || isSleeping) {
       indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
       indoorPetTargetXRef.current = null;
       setIndoorPetPose('idle');
@@ -649,8 +693,12 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       const area = playAreaRef.current;
       if (!area) return;
       const rect = area.getBoundingClientRect();
-      const petXRatio = indoorPetXRef.current / Math.max(rect.width, 1);
+      const isOutdoorRoom = OUTDOOR_ROOMS.has(currentRoom);
+      const petXRatio = (isOutdoorRoom ? outsidePetPosRef.current.x : indoorPetXRef.current) / Math.max(rect.width, 1);
+      const petYRatio = (isOutdoorRoom ? outsidePetPosRef.current.y : rect.height / 2) / Math.max(rect.height, 1);
       if (petXRatio < doorProximity.min || petXRatio > doorProximity.max) return;
+      if (doorProximity.minY !== undefined && petYRatio < doorProximity.minY) return;
+      if (doorProximity.maxY !== undefined && petYRatio > doorProximity.maxY) return;
 
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -837,7 +885,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     ) return;
 
     const bounds = getIndoorPetBounds();
-    if (currentRoom === RoomType.PLAYROOM) {
+    if (OUTDOOR_ROOMS.has(currentRoom)) {
       const rect = playAreaRef.current?.getBoundingClientRect();
       if (!rect) return;
       const petHalfWidth = (192 * OUTSIDE_PET_SCALE) / 2;
@@ -845,10 +893,17 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
       const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
       outsideBallTargetRef.current = null;
-      outsidePointerTargetRef.current = {
+      const requestedTarget = {
         x: clamp(e.clientX - rect.left, sceneLeft + petHalfWidth, sceneLeft + sceneWidth - petHalfWidth),
         y: clamp(e.clientY - rect.top, petHalfHeight, rect.height - petHalfHeight),
       };
+      outsidePointerTargetRef.current = constrainOutdoorPosition(
+        currentRoom,
+        outsidePetPosRef.current,
+        requestedTarget,
+        rect.width,
+        rect.height,
+      );
       return;
     }
 
@@ -890,16 +945,20 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             }
 
             if (now - lastBubbleTime.current > SOAP_RUB_INTERVAL_MS) {
-              const newBubble: Bubble = {
-                id: now,
-                x: clamp(relX + (Math.random() * 20 - 10), 36, 164),
-                y: clamp(relY + (Math.random() * 20 - 10), 20, 190),
-                size: Math.random() * 12 + 7
-              };
-
               setBubbles(prev => {
                 if (prev.length >= MAX_BUBBLES) return prev;
-                return [...prev, newBubble];
+                const bubbleCount = Math.min(BUBBLES_PER_SOAP_RUB, MAX_BUBBLES - prev.length);
+                const newBubbles: Bubble[] = Array.from({ length: bubbleCount }, (_, index) => {
+                  const angle = ((Math.PI * 2) / bubbleCount) * index + (Math.random() * 0.45);
+                  const radius = 9 + (Math.random() * 23);
+                  return {
+                    id: (now * 10) + index,
+                    x: clamp(relX + (Math.cos(angle) * radius), 36, 164),
+                    y: clamp(relY + (Math.sin(angle) * radius), 20, 190),
+                    size: Math.random() * 11 + 8,
+                  };
+                });
+                return [...prev, ...newBubbles];
               });
               lastBubbleTime.current = now;
             }
@@ -1101,7 +1160,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, []);
 
   useEffect(() => {
-    if (currentRoom !== RoomType.PLAYROOM || showShopModal || isSleeping) {
+    if (!OUTDOOR_ROOMS.has(currentRoom) || showShopModal || isSleeping) {
       outsideMovementKeysRef.current = { left: false, right: false, up: false, down: false };
       outsidePointerTargetRef.current = null;
       return;
@@ -1113,20 +1172,20 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (roomTransition) return;
-      if (isEditableTarget(event.target) || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      if (isEditableTarget(event.target) || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's', 'A', 'D', 'W', 'S'].includes(event.key)) return;
       event.preventDefault();
       outsidePointerTargetRef.current = null;
       outsideBallTargetRef.current = null;
-      if (event.key === 'ArrowLeft') outsideMovementKeysRef.current.left = true;
-      if (event.key === 'ArrowRight') outsideMovementKeysRef.current.right = true;
-      if (event.key === 'ArrowUp') outsideMovementKeysRef.current.up = true;
-      if (event.key === 'ArrowDown') outsideMovementKeysRef.current.down = true;
+      if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') outsideMovementKeysRef.current.left = true;
+      if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') outsideMovementKeysRef.current.right = true;
+      if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') outsideMovementKeysRef.current.up = true;
+      if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') outsideMovementKeysRef.current.down = true;
     };
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowLeft') outsideMovementKeysRef.current.left = false;
-      if (event.key === 'ArrowRight') outsideMovementKeysRef.current.right = false;
-      if (event.key === 'ArrowUp') outsideMovementKeysRef.current.up = false;
-      if (event.key === 'ArrowDown') outsideMovementKeysRef.current.down = false;
+      if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') outsideMovementKeysRef.current.left = false;
+      if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') outsideMovementKeysRef.current.right = false;
+      if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') outsideMovementKeysRef.current.up = false;
+      if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') outsideMovementKeysRef.current.down = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -1139,7 +1198,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, [currentRoom, isSleeping, roomTransition, showShopModal]);
 
   useEffect(() => {
-    if (currentRoom !== RoomType.PLAYROOM) {
+    if (!OUTDOOR_ROOMS.has(currentRoom)) {
       cancelAnimationFrame(outsidePetRaf.current);
       setOutsidePetPose('idle');
       return;
@@ -1182,7 +1241,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       }
 
       if (horizontalDirection !== 0 || verticalDirection !== 0) {
-        const next = {
+        const requestedNext = {
           x: clamp(
             current.x + horizontalDirection * INDOOR_PET_KEYBOARD_SPEED * elapsedSeconds,
             outsideMinX,
@@ -1194,6 +1253,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             rect.height - petHeight / 2
           ),
         };
+        const next = constrainOutdoorPosition(currentRoom, current, requestedNext, rect.width, rect.height);
         outsidePetPosRef.current = next;
         setOutsidePetPos(next);
         setOutsidePetPose(horizontalDirection < 0 ? 'run-left' : 'run-right');
@@ -1218,10 +1278,11 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         const speed = pointerTarget
           ? Math.min(distance, INDOOR_PET_MOUSE_SPEED * elapsedSeconds)
           : Math.min(7, Math.max(2, distance * 0.045));
-        const next = {
+        const requestedNext = {
           x: clamp(current.x + (dx / distance) * speed, outsideMinX, outsideMaxX),
           y: clamp(current.y + (dy / distance) * speed, petHeight / 2, rect.height - petHeight / 2),
         };
+        const next = constrainOutdoorPosition(currentRoom, current, requestedNext, rect.width, rect.height);
 
         outsidePetPosRef.current = next;
         setOutsidePetPos(next);
@@ -1291,7 +1352,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             ? isStackedGamesExit
               ? 'right-3 top-1/2 sm:right-6'
               : 'right-3 top-1/2 -translate-y-1/2 sm:right-6'
-            : 'bottom-[clamp(7rem,18dvh,9.5rem)] left-1/2 -translate-x-1/2';
+            : exit.direction === 'up'
+              ? 'left-1/2 top-[clamp(10rem,22dvh,12rem)] -translate-x-1/2'
+              : 'bottom-[clamp(7rem,18dvh,9.5rem)] left-1/2 -translate-x-1/2';
         const stackedGamesStyle = isStackedGamesExit
           ? {
               transform: exit.destination === RoomType.BEDROOM
@@ -1458,7 +1521,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
       {/* The Pet */}
       <div ref={playAreaRef} className="relative flex min-h-0 w-full flex-1 items-center justify-center">
-        {currentRoom === RoomType.PLAYROOM ? (
+        {OUTDOOR_ROOMS.has(currentRoom) ? (
           <div
             className="absolute z-20"
             style={{
@@ -1625,6 +1688,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           position={ballPos}
           isDragging={isDraggingBall}
           onPointerDown={handleBallDown}
+          imageSrc={resolveItemPixelImage(TOY_ITEMS.find(t => t.id === activeBallId) || TOY_ITEMS[0])}
           color={TOY_ITEMS.find(t => t.id === activeBallId)?.color}
           icon={TOY_ITEMS.find(t => t.id === activeBallId)?.icon}
         />

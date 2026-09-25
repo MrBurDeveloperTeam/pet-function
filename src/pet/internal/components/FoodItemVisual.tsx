@@ -148,12 +148,15 @@ const FOOD_PIXEL_IMAGES: Record<string, string> = {
   'tennis ball': tennisBallPixelUrl,
 };
 
+export const resolveItemPixelImage = (item: Pick<FoodItem, 'id' | 'label'>) =>
+  FOOD_PIXEL_IMAGES[item.id.toLowerCase()] ?? FOOD_PIXEL_IMAGES[item.label.toLowerCase()];
+
 export const FoodItemVisual: React.FC<FoodItemVisualProps> = ({
   item,
   imageClassName,
   emojiClassName,
 }) => {
-  const imageUrl = FOOD_PIXEL_IMAGES[item.id.toLowerCase()] ?? FOOD_PIXEL_IMAGES[item.label.toLowerCase()];
+  const imageUrl = resolveItemPixelImage(item);
   const [failedImageUrl, setFailedImageUrl] = React.useState<string | null>(null);
 
   if (imageUrl && failedImageUrl !== imageUrl) {
