@@ -31,3 +31,16 @@ test('keyboard and pointer movement share authored outdoor collision constraints
   assert.match(petRoomSource, /const next = constrainOutdoorPosition\(currentRoom, current, requestedNext/);
   assert.match(petRoomSource, /'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's'/);
 });
+
+test('town scenes use half-size cats and a collapsible top status control', () => {
+  assert.match(petRoomSource, /const TOWN_PET_SCALE = OUTSIDE_PET_SCALE \* 0\.5/);
+  assert.match(petRoomSource, /displayScale=\{getOutdoorPetScale\(currentRoom\)\}/);
+  assert.match(petRoomSource, /aria-label=\{showTownStats \? 'Hide pet status' : 'Show pet status'\}/);
+  assert.match(petRoomSource, /showTownStats && <StatsBar stats=\{stats\}/);
+});
+
+test('Space activates a nearby town road exit while exit arrows remain clickable', () => {
+  assert.match(petRoomSource, /event\.code === 'Space' && TOWN_ROOMS\.has\(currentRoom\)/);
+  assert.match(petRoomSource, /startRoomTransition\(nearbyExit\)/);
+  assert.match(petRoomSource, /onClick=\{\(\) => startRoomTransition\(exit\)\}/);
+});

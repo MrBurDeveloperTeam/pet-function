@@ -53,12 +53,20 @@ adds 25 Clean points, so four soap-and-rinse cycles fill an empty Clean meter.
 Bathroom, Kitchen, and Games doors share the same slow pulsing contour as other
 room objects. Click activates the door directly; Space activates it only while the
 cat is beside it. Bathroom leads to Bedroom, while Kitchen and Games lead Outside.
+Shopping Street owns the purchase entry points. Its first storefront opens only
+Healthy, Breakfast, Meals, Drinks, and Sweets; its second storefront opens only
+Toys and Beds. Their traced door contours are clickable, while Space opens the
+nearby store when the cat is beside its entrance. The shop closes from its close
+control, Escape, or a second Space press. Do not render a persistent global Shop
+button or a Kitchen shortcut into the purchase catalog.
 
 Room artwork is owned by src/pet/internal/roomBackgrounds.ts and shipped from
 public/pet-function/rooms through prepare-pet. The user's output folders supply the five selected images.
 Outside maps to PLAYROOM (and the legacy GARDEN room). Render decorative artwork
 behind all interactions with bottom-centered cover sizing and pixelated scaling.
 Preserve pet movement, equipped beds, room controls and sleep dimming.
+The interactive Outside ball renders at 120px with a matching 60px physics
+radius so its enlarged pixel artwork stays fully inside the viewport.
 
 Keep the fixed pet overlay, room navigation, landscape cleanup and game overlays.
 Meowdoku opens above the pet and closes back to the still-mounted Games room.

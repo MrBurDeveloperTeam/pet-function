@@ -1,7 +1,7 @@
 import { RoomType } from '../types';
 
 // Traced in the rooms-wide artwork coordinate system; slice matches object-fit: cover.
-type RoomInteractionAction = 'food' | 'bath' | 'games' | 'door';
+type RoomInteractionAction = 'food' | 'bath' | 'games' | 'door' | 'food-shop' | 'furniture-shop';
 
 const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label: string; d: string }[]>> = {
   [RoomType.KITCHEN]: [
@@ -16,10 +16,16 @@ const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label:
     { action: 'games', label: 'Play games on the television', d: 'M914 216 H923 V212 H1065 L1079 218 V333 L1072 341 V350 H919 V342 H908 L901 334 V226 L906 219 Z' },
     { action: 'games', label: 'Play games on the left arcade machine', d: 'M597 220 H683 L691 216 L703 225 V329 L692 347 V451 L686 462 H587 V352 L598 336 L605 263 L597 257 Z' },
     { action: 'games', label: 'Play games on the right arcade machine', d: 'M707 220 H791 L798 216 L814 225 V450 L803 461 H697 V351 L706 333 L711 263 L704 253 Z' },
-    { action: 'door', label: 'Go home through the games room door', d: 'M257 101 L366 126 L379 141 V472 L366 486 L257 471 Z' },
+    // The door sits on the receding left wall: its upper and lower rails follow a
+    // 20-degree rise, so the visible frame reads at the requested 70-degree angle.
+    { action: 'door', label: 'Go home through the games room door', d: 'M257 101 L366 141 L366 486 L257 446 Z' },
   ],
   [RoomType.TOWN_HOME]: [
     { action: 'door', label: 'Enter the games room through the home door', d: 'M989 178 H1086 V347 H989 Z' },
+  ],
+  [RoomType.SHOPPING_STREET]: [
+    { action: 'food-shop', label: 'Open the food shop', d: 'M593 286 H657 V439 H593 Z' },
+    { action: 'furniture-shop', label: 'Open the furniture shop', d: 'M905 284 H970 V439 H905 Z' },
   ],
 };
 

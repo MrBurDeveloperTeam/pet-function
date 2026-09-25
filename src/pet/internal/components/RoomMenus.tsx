@@ -8,7 +8,6 @@
  * header); the host must keep serving `public/games/**` exactly as today.
  */
 import React, { useRef } from 'react';
-import { Plus } from 'lucide-react';
 import { FoodItem, ToolType, ExtraGame } from '../types';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import soapUrl from '../../../assets/pet/soap.png';
@@ -18,7 +17,6 @@ import { FoodItemVisual } from './FoodItemVisual';
 interface FoodMenuProps {
     onDragStart: (e: React.PointerEvent, item: FoodItem) => void;
     inventory: Record<string, number>;
-    onOpenShop: () => void;
     onClose: () => void;
     items: FoodItem[];
 }
@@ -40,7 +38,7 @@ const isKitchenFoodItem = (item: FoodItem) => {
     );
 };
 
-export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOpenShop, onClose, items }) => {
+export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onClose, items }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const availableItems = items.filter(item => isKitchenFoodItem(item) && (inventory[item.id] || 0) > 0);
 
@@ -76,13 +74,9 @@ export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOp
                     className="flex h-22 min-w-0 flex-1 snap-x items-center gap-4 overflow-x-auto overflow-y-hidden px-4 pt-3 [scrollbar-width:thin] [scrollbar-color:#8b5a2b_transparent] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#8b5a2b]"
                 >
                     {availableItems.length === 0 && (
-                        <button
-                            type="button"
-                            onClick={onOpenShop}
-                            className="mb-2 flex h-16 w-44 shrink-0 items-center justify-center border-[3px] border-dashed border-[#8b5a2b] bg-[#fff8df] px-4 text-center text-[15px] font-black tracking-wider text-orange-700 shadow-[3px_3px_0_#8b5a2b] transition-colors hover:bg-orange-100"
-                        >
-                            No food yet!
-                        </button>
+                        <div className="mb-2 flex h-16 w-52 shrink-0 items-center justify-center border-[3px] border-dashed border-[#8b5a2b] bg-[#fff8df] px-4 text-center text-[13px] font-black tracking-wide text-orange-700 shadow-[3px_3px_0_#8b5a2b]">
+                            Visit the Food Shop in Shopping Street
+                        </div>
                     )}
                     {availableItems.map((item) => (
                         <div
@@ -100,16 +94,6 @@ export const FoodMenu: React.FC<FoodMenuProps> = ({ onDragStart, inventory, onOp
                             </div>
                         </div>
                     ))}
-                    {availableItems.length > 0 && (
-                        <button
-                            type="button"
-                            onClick={onOpenShop}
-                            className="mb-2 flex h-16 w-16 shrink-0 items-center justify-center border-[3px] border-dashed border-[#8b5a2b] bg-[#fff8df] text-[#8b725e] shadow-[3px_3px_0_#8b5a2b] transition-transform active:translate-x-1 active:translate-y-1 active:shadow-none"
-                            aria-label="Buy more food"
-                        >
-                            <Plus className="h-8 w-8" strokeWidth={3} />
-                        </button>
-                    )}
                 </div>
             </div>
         </div>

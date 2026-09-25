@@ -10,17 +10,15 @@ import { RoomType, FoodItem, Bubble, ToolType, ExtraGame } from './types';
 import { ROOM_THEMES, TOY_ITEMS } from './constants';
 import Pet, { PetPose } from './components/Pet';
 import StatsBar from './components/StatsBar';
-import BottomControls from './components/BottomControls';
 import { FoodMenu, BathroomMenu, GamesMenu } from './components/RoomMenus';
 import DragLayer from './components/DragLayer';
 import Ball from './components/Ball';
 import ShopModal from './components/ShopModal';
-import { useGameState, getPetStorageKey } from '../runtime/SharedPetRuntime';
+import { useGameState } from '../runtime/SharedPetRuntime';
 import { useBallPhysics } from './hooks/useBallPhysics';
 import LevelIndicator from './components/LevelIndicator';
 import CoinIndicator from './components/CoinIndicator';
 import { getPetOption } from './petOptions';
-import poopUrl from '../../assets/pet/poop.png';
 import { ROOM_BACKGROUNDS } from './roomBackgrounds';
 import { RoomInteractionOutlines } from './components/RoomInteractionOutlines';
 import { resolveItemPixelImage } from './components/FoodItemVisual';
@@ -96,10 +94,14 @@ const SOAP_RUB_INTERVAL_MS = 220;
 const CLEAN_GAIN_PER_BATH_CYCLE = 25;
 const MAX_BUBBLES = SOAP_RUBS_TO_LATHER * BUBBLES_PER_SOAP_RUB;
 const RINSE_COMPLETE_THRESHOLD = Math.ceil(MAX_BUBBLES * 0.05);
-const POOP_REWARD_COINS = 5;
-const POOP_RESPAWN_MS = 2 * 60 * 60 * 1000;
-const POOP_NEXT_SPAWN_KEY = 'virtual_pet_next_poop_at';
 const OUTSIDE_PET_SCALE = 0.75;
+const TOWN_PET_SCALE = OUTSIDE_PET_SCALE * 0.5;
+const TOWN_ROOMS = new Set<RoomType>([
+  RoomType.TOWN_HOME,
+  RoomType.SHOPPING_STREET,
+  RoomType.SPORTS_GROUND,
+]);
+const getOutdoorPetScale = (room: RoomType) => TOWN_ROOMS.has(room) ? TOWN_PET_SCALE : OUTSIDE_PET_SCALE;
 const INDOOR_PET_SCALE = 0.72;
 const BEDROOM_PET_SCALE_MULTIPLIER = 0.76;
 const INDOOR_PET_OFFSET_Y = 32;
@@ -119,7 +121,7 @@ const INDOOR_FLOOR_LANES: Partial<Record<RoomType, { min: number; max: number }>
 const INDOOR_FLOOR_DEPTH: Partial<Record<RoomType, { min: number; max: number }>> = {
   [RoomType.KITCHEN]: { min: 0.02, max: 0.31 },
   [RoomType.BATHROOM]: { min: 0.05, max: 0.33 },
-  [RoomType.BEDROOM]: { min: -0.13, max: 0.15 },
+  [RoomType.BEDROOM]: { min: -0.16, max: 0.15 },
   [RoomType.GAMES]: { min: -0.07, max: 0.34 },
 };
 
@@ -174,7 +176,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 }) => {
   // --- Custom Hooks for Logic ---
   const {
-    userId,
     stats, setStats,
     petName,
     currentRoom, setCurrentRoom,
@@ -182,14 +183,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     isEating, setIsEating,
     isPlaying, setIsPlaying,
     inventory, buyItem, consumeItem,
-    addXP, addCoins, activeBallId, setActiveBallId, activeBedId, setActiveBedId,
+    addXP, activeBallId, setActiveBallId, activeBedId, setActiveBedId,
     foodItems, isFoodLoading, currencyRate, assetUrls
   } = useGameState();
-  // PERSIST-4: the poop-spawn timer is account-sensitive Pet room state
-  // (it gates the `POOP_REWARD_COINS` earn mechanic), so it goes through
-  // the same `getPetStorageKey` scoping as every other Pet cache key —
-  // see that helper's own doc comment in SharedPetRuntime.tsx.
-  const poopNextSpawnKey = getPetStorageKey(userId, POOP_NEXT_SPAWN_KEY);
   const activePet = getPetOption(petName, assetUrls?.spriteSheets);
 
   const {
@@ -213,10 +209,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   // --- Local UI State ---
   const [showFoodMenu, setShowFoodMenu] = useState(false);
   const [showBathroomMenu, setShowBathroomMenu] = useState(false);
-  const [showShopModal, setShowShopModal] = useState(false);
+  const [activeShop, setActiveShop] = useState<'food' | 'furniture' | null>(null);
+  const showShopModal = activeShop !== null;
   const [showGamesMenu, setShowGamesMenu] = useState(false);
-  const [isPoopVisible, setIsPoopVisible] = useState(false);
-  const [showPoopReward, setShowPoopReward] = useState(false);
   const [bedroomSceneScale, setBedroomSceneScale] = useState(1);
 
 
@@ -234,6 +229,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const [indoorPetPose, setIndoorPetPose] = useState<PetPose>('idle');
   const [roomTransition, setRoomTransition] = useState<RoomExit | null>(null);
   const [isRoomTransitionLoading, setIsRoomTransitionLoading] = useState(false);
+  const [showTownStats, setShowTownStats] = useState(false);
   useEffect(() => {
     onLoadingChange?.(isRoomTransitionLoading);
     return () => onLoadingChange?.(false);
@@ -385,6 +381,10 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     if (currentRoom !== RoomType.GAMES) setShowGamesMenu(false);
   }, [currentRoom]);
 
+  useEffect(() => {
+    setShowTownStats(false);
+  }, [currentRoom]);
+
   const getIndoorPetBounds = () => {
     const area = playAreaRef.current;
     const lane = INDOOR_FLOOR_LANES[currentRoom];
@@ -432,8 +432,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       const rect = area.getBoundingClientRect();
       const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
       const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
-      const petHalfWidth = (192 * OUTSIDE_PET_SCALE) / 2;
-      const petHalfHeight = (208 * OUTSIDE_PET_SCALE) / 2;
+      const outdoorPetScale = getOutdoorPetScale(currentRoom);
+      const petHalfWidth = (192 * outdoorPetScale) / 2;
+      const petHalfHeight = (208 * outdoorPetScale) / 2;
       outsideMovementKeysRef.current = { left: false, right: false, up: false, down: false };
       outsideBallTargetRef.current = null;
       const edgeTarget = {
@@ -489,7 +490,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     setShowFoodMenu(false);
     setShowBathroomMenu(false);
     setShowGamesMenu(false);
-    setShowShopModal(false);
+    setActiveShop(null);
     setRoomTransition({
       direction: 'down',
       destination: roomNavigationRequest.destination,
@@ -803,29 +804,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     return () => window.removeEventListener('keydown', handleRoomMenuClose);
   }, [showBathroomMenu, showFoodMenu, showGamesMenu]);
 
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const syncPoopVisibility = () => {
-      const nextSpawnAt = Number((poopNextSpawnKey ? localStorage.getItem(poopNextSpawnKey) : null) || 0);
-      const now = Date.now();
-
-      if (!nextSpawnAt || now >= nextSpawnAt) {
-        setIsPoopVisible(true);
-        return;
-      }
-
-      setIsPoopVisible(false);
-      timeoutId = setTimeout(syncPoopVisibility, nextSpawnAt - now);
-    };
-
-    syncPoopVisibility();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, []);
-
   // Manage Soaped State (Hysteresis)
   useEffect(() => {
     if (bubbles.length >= MAX_BUBBLES) {
@@ -888,8 +866,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     if (OUTDOOR_ROOMS.has(currentRoom)) {
       const rect = playAreaRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const petHalfWidth = (192 * OUTSIDE_PET_SCALE) / 2;
-      const petHalfHeight = (208 * OUTSIDE_PET_SCALE) / 2;
+      const outdoorPetScale = getOutdoorPetScale(currentRoom);
+      const petHalfWidth = (192 * outdoorPetScale) / 2;
+      const petHalfHeight = (208 * outdoorPetScale) / 2;
       const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
       const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
       outsideBallTargetRef.current = null;
@@ -1076,26 +1055,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     setStats(prev => ({ ...prev, happiness: Math.min(100, prev.happiness + 5) }));
   };
 
-  const handlePoopClick = (e: React.PointerEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const nextSpawnAt = Date.now() + POOP_RESPAWN_MS;
-    if (poopNextSpawnKey) localStorage.setItem(poopNextSpawnKey, String(nextSpawnAt));
-    setIsPoopVisible(false);
-    setShowPoopReward(false);
-    window.setTimeout(() => setShowPoopReward(true), 0);
-    window.setTimeout(() => setShowPoopReward(false), 1500);
-    // Routed through the runtime's atomic addCoins (repository.mutateCoins)
-    // instead of a raw setStats — a bare local setStats here is never
-    // persisted, so the next loadSnapshot hydration (re-entering Virtual
-    // Pet, F5, another tab) silently overwrites it with the still-stale
-    // authoritative DB balance.
-    addCoins(POOP_REWARD_COINS);
-  };
-
-
-
   // Room switching cleanup & auto-show menus
   useEffect(() => {
     setShowFoodMenu(false);
@@ -1172,6 +1131,39 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (roomTransition) return;
+      if (event.code === 'Space' && TOWN_ROOMS.has(currentRoom) && !event.repeat) {
+        if (isEditableTarget(event.target)) return;
+        if (event.target instanceof Element && event.target.closest('button, [role="button"]')) return;
+        const area = playAreaRef.current;
+        if (!area) return;
+        const rect = area.getBoundingClientRect();
+        const x = outsidePetPosRef.current.x / Math.max(rect.width, 1);
+        const y = outsidePetPosRef.current.y / Math.max(rect.height, 1);
+        if (currentRoom === RoomType.SHOPPING_STREET && y >= 0.35 && y <= 0.72) {
+          const nearbyShop = Math.abs(x - 0.336) <= 0.07
+            ? 'food'
+            : Math.abs(x - 0.503) <= 0.07
+              ? 'furniture'
+              : null;
+          if (nearbyShop) {
+            event.preventDefault();
+            event.stopPropagation();
+            setActiveShop(nearbyShop);
+            return;
+          }
+        }
+        const nearbyExit = roomExits.find((exit) => {
+          if (exit.direction === 'left') return x <= 0.09 && y >= 0.16 && y <= 0.43;
+          if (exit.direction === 'right') return x >= 0.91 && y >= 0.27 && y <= 0.67;
+          if (exit.direction === 'down') return y >= 0.88 && x >= 0.22 && x <= 0.45;
+          return y <= 0.13 && x >= 0.40 && x <= 0.60;
+        });
+        if (!nearbyExit) return;
+        event.preventDefault();
+        event.stopPropagation();
+        startRoomTransition(nearbyExit);
+        return;
+      }
       if (isEditableTarget(event.target) || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's', 'A', 'D', 'W', 'S'].includes(event.key)) return;
       event.preventDefault();
       outsidePointerTargetRef.current = null;
@@ -1195,7 +1187,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
       outsideMovementKeysRef.current = { left: false, right: false, up: false, down: false };
     };
-  }, [currentRoom, isSleeping, roomTransition, showShopModal]);
+  }, [currentRoom, isSleeping, roomExits, roomTransition, showShopModal]);
 
   useEffect(() => {
     if (!OUTDOOR_ROOMS.has(currentRoom)) {
@@ -1216,8 +1208,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       const elapsedSeconds = Math.min((frameAt - lastFrameAt) / 1000, 0.05);
       lastFrameAt = frameAt;
       const current = outsidePetPosRef.current;
-      const petWidth = 192 * OUTSIDE_PET_SCALE;
-      const petHeight = 208 * OUTSIDE_PET_SCALE;
+      const outdoorPetScale = getOutdoorPetScale(currentRoom);
+      const petWidth = 192 * outdoorPetScale;
+      const petHeight = 208 * outdoorPetScale;
       const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
       const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
       const outsideMinX = sceneLeft + petWidth / 2;
@@ -1396,6 +1389,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           if (action === 'food') setShowFoodMenu(true);
           if (action === 'bath') setShowBathroomMenu(true);
           if (action === 'games') setShowGamesMenu(true);
+          if (action === 'food-shop') setActiveShop('food');
+          if (action === 'furniture-shop') setActiveShop('furniture');
         }}
       />
 
@@ -1489,7 +1484,23 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       <CoinIndicator amount={stats.coins || 0} />
 
       {/* Stats HUD (Top Center) */}
-      <StatsBar stats={stats} />
+      {TOWN_ROOMS.has(currentRoom) ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowTownStats((visible) => !visible)}
+            className="absolute left-1/2 top-3 z-40 flex h-11 w-11 -translate-x-1/2 items-center justify-center border-4 border-[#684427] bg-[#ffe8a3] shadow-[4px_4px_0_#3f2a1b] transition-[transform,filter] hover:brightness-105 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#fff4bd] active:translate-y-1 active:shadow-none sm:h-12 sm:w-12"
+            aria-label={showTownStats ? 'Hide pet status' : 'Show pet status'}
+            aria-expanded={showTownStats}
+            data-pet-movement-block
+          >
+            <PixelSceneArrow direction={showTownStats ? 'up' : 'down'} />
+          </button>
+          {showTownStats && <StatsBar stats={stats} className="!top-[72px] sm:!top-20" />}
+        </>
+      ) : (
+        <StatsBar stats={stats} />
+      )}
 
       {/* Soap/Shower Progress (Bathroom) */}
       {currentRoom === RoomType.BATHROOM && (bubbles.length > 0 || isSoapedUp) && (
@@ -1540,7 +1551,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
               isHoveredWithFood={false}
               bubbles={[]}
               lookAt={isBallMoving ? ballPos : null}
-              displayScale={OUTSIDE_PET_SCALE}
+              displayScale={getOutdoorPetScale(currentRoom)}
               showDirtyEffects={false}
               sleepLabelClassName="-top-4 -right-2"
               spriteSheetUrl={activePet.spriteSheetUrl}
@@ -1637,34 +1648,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         )}
 
         {/* Room Specific Decor */}
-        {currentRoom === RoomType.BATHROOM && (
-          <div className="absolute bottom-10 right-10 opacity-50 text-6xl animate-float">🦆</div>
-        )}
-        {currentRoom === RoomType.BATHROOM && isPoopVisible && (
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-            onClick={handlePoopClick}
-            className="absolute left-1/2 top-1/2 z-40 translate-x-[140px] translate-y-[110px] rounded-2xl p-2 transition-transform duration-200 hover:scale-110 active:scale-95"
-            aria-label="Collect poop for 5 coins"
-            title="+5 coins"
-          >
-            <img
-              src={assetUrls?.care?.poop ?? poopUrl}
-              alt=""
-              draggable={false}
-              className="h-[80px] w-[80px] object-contain drop-shadow-xl"
-            />
-          </button>
-        )}
-        {currentRoom === RoomType.BATHROOM && showPoopReward && (
-          <div className="pointer-events-none absolute left-1/2 top-1/2 z-50 translate-x-[150px] translate-y-[78px]">
-            <div className="animate-poop-reward rounded-full bg-amber-400 px-3 py-1.5 text-[14px] font-black tracking-wider text-white">
-              +5 coins
-            </div>
-          </div>
-        )}
         {currentRoom === RoomType.GAMES && (
           // Icon removed as requested
           null
@@ -1699,10 +1682,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         <FoodMenu
           onDragStart={handleDragStartItem}
           inventory={inventory}
-          onOpenShop={() => {
-            setShowFoodMenu(false);
-            setShowShopModal(true);
-          }}
           onClose={() => setShowFoodMenu(false)}
           items={foodItems}
         />
@@ -1735,15 +1714,11 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         isSoapedUp={isSoapedUp}
       />
 
-      {/* Bottom Controls */}
-      <BottomControls
-        onOpenShop={() => setShowShopModal(true)}
-      />
-
       {/* Modals */}
       <ShopModal
         isOpen={showShopModal}
-        onClose={() => setShowShopModal(false)}
+        onClose={() => setActiveShop(null)}
+        shopType={activeShop || 'food'}
         items={foodItems}
         inventory={inventory}
         activeBallId={activeBallId}

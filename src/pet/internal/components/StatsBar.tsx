@@ -3,6 +3,7 @@ import { PetStats } from '../types';
 
 interface StatsBarProps {
   stats: PetStats;
+  className?: string;
 }
 
 type StatIcon = 'hunger' | 'energy' | 'happy' | 'clean';
@@ -33,8 +34,8 @@ const ProgressBar = ({ value, color, icon, label }: { value: number; color: stri
   </div>
 );
 
-const StatsBar: React.FC<StatsBarProps> = ({ stats }) => (
-  <div className="absolute left-4 right-4 top-[72px] z-30 border-4 border-[#5f543e] bg-[#fff3c4]/95 px-3 py-2 shadow-[5px_5px_0_rgba(53,45,31,0.45)] sm:left-1/2 sm:right-auto sm:top-6 sm:w-80 sm:-translate-x-1/2 sm:px-4 sm:py-3">
+const StatsBar: React.FC<StatsBarProps> = ({ stats, className = '' }) => (
+  <div className={`absolute left-4 right-4 top-[72px] z-30 border-4 border-[#5f543e] bg-[#fff3c4]/95 px-3 py-2 shadow-[5px_5px_0_rgba(53,45,31,0.45)] sm:left-1/2 sm:right-auto sm:top-6 sm:w-80 sm:-translate-x-1/2 sm:px-4 sm:py-3 ${className}`}>
     <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:gap-x-6 sm:gap-y-3">
       <ProgressBar value={stats.hunger} color="bg-orange-500" icon="hunger" label="Hunger" />
       <ProgressBar value={stats.energy} color="bg-blue-500" icon="energy" label="Energy" />

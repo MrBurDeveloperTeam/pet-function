@@ -44,8 +44,13 @@ test('keyboard movement supports all four arrow keys within room bounds', () => 
 test('each indoor room keeps the cat inside its calibrated floor depth', () => {
   assert.match(petRoomSource, /\[RoomType\.KITCHEN\]: \{ min: 0\.02, max: 0\.31 \}/);
   assert.match(petRoomSource, /\[RoomType\.BATHROOM\]: \{ min: 0\.05, max: 0\.33 \}/);
-  assert.match(petRoomSource, /\[RoomType\.BEDROOM\]: \{ min: -0\.13, max: 0\.15 \}/);
+  assert.match(petRoomSource, /\[RoomType\.BEDROOM\]: \{ min: -0\.16, max: 0\.15 \}/);
   assert.match(petRoomSource, /\[RoomType\.GAMES\]: \{ min: -0\.07, max: 0\.34 \}/);
+});
+
+test('bathroom keeps the decorative duck and poop pickup hidden', () => {
+  assert.doesNotMatch(petRoomSource, /🦆/);
+  assert.doesNotMatch(petRoomSource, /Collect poop for 5 coins/);
 });
 
 test('indoor cats use room-specific rug placements and a smaller bedroom scale', () => {

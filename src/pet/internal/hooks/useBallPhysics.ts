@@ -24,7 +24,7 @@ export const useBallPhysics = (currentRoom: RoomType) => {
                     setBallPos(prev => {
                         let { x, y } = prev;
                         let { vx, vy } = ballVel.current;
-                        const radius = 30; // Ball radius
+                        const radius = 60; // 120px Outside ball radius
                         const floor = window.innerHeight;
                         const walls = window.innerWidth;
 
