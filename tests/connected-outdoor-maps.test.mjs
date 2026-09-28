@@ -37,10 +37,20 @@ test('town scenes use half-size cats and a collapsible top status control', () =
   assert.match(petRoomSource, /displayScale=\{getOutdoorPetScale\(currentRoom\)\}/);
   assert.match(petRoomSource, /aria-label=\{showTownStats \? 'Hide pet status' : 'Show pet status'\}/);
   assert.match(petRoomSource, /showTownStats && <StatsBar stats=\{stats\}/);
+  assert.match(petRoomSource, /const PixelStatsToggle/);
+  assert.match(petRoomSource, /<PixelStatsToggle expanded=\{showTownStats\}/);
+  assert.match(petRoomSource, /h-8 w-8/);
 });
 
 test('Space activates a nearby town road exit while exit arrows remain clickable', () => {
   assert.match(petRoomSource, /event\.code === 'Space' && TOWN_ROOMS\.has\(currentRoom\)/);
   assert.match(petRoomSource, /startRoomTransition\(nearbyExit\)/);
   assert.match(petRoomSource, /onClick=\{\(\) => startRoomTransition\(exit\)\}/);
+});
+
+test('sports ground return stays left of center and the cat cannot enter the stadium', () => {
+  assert.match(petRoomSource, /isSportsGroundReturn/);
+  assert.match(petRoomSource, /left-\[39%\] top-8/);
+  assert.match(navigationSource, /\{ x: 0\.54, y: 0\.19 \}, \{ x: 0\.46, y: 0\.19 \}/);
+  assert.match(navigationSource, /RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.14 \}/);
 });

@@ -21,6 +21,7 @@ import CoinIndicator from './components/CoinIndicator';
 import { getPetOption } from './petOptions';
 import { ROOM_BACKGROUNDS } from './roomBackgrounds';
 import { RoomInteractionOutlines } from './components/RoomInteractionOutlines';
+import { FishingGame } from './components/FishingGame';
 import { resolveItemPixelImage } from './components/FoodItemVisual';
 import { constrainOutdoorPosition, OUTDOOR_INITIAL_PLACEMENT, OUTDOOR_ROOMS } from './outdoorNavigation';
 
@@ -61,6 +62,13 @@ const ROOM_EXITS: Partial<Record<RoomType, RoomExit[]>> = {
   [RoomType.SPORTS_GROUND]: [
     { direction: 'up', destination: RoomType.SHOPPING_STREET, label: 'Go to shopping street' },
   ],
+  [RoomType.FISHING_POND]: [
+    { direction: 'left', destination: RoomType.TOWN_HOME, label: 'Return home' },
+  ],
+};
+
+const TOWN_HOME_FISHING_EXIT: RoomExit = {
+  direction: 'down', destination: RoomType.FISHING_POND, label: 'Go fishing at the pond',
 };
 
 const PixelSceneArrow = ({ direction }: { direction: RoomExitDirection }) => {
@@ -100,6 +108,7 @@ const TOWN_ROOMS = new Set<RoomType>([
   RoomType.TOWN_HOME,
   RoomType.SHOPPING_STREET,
   RoomType.SPORTS_GROUND,
+  RoomType.FISHING_POND,
 ]);
 const getOutdoorPetScale = (room: RoomType) => TOWN_ROOMS.has(room) ? TOWN_PET_SCALE : OUTSIDE_PET_SCALE;
 const INDOOR_PET_SCALE = 0.72;
@@ -125,6 +134,17 @@ const INDOOR_FLOOR_DEPTH: Partial<Record<RoomType, { min: number; max: number }>
   [RoomType.GAMES]: { min: -0.07, max: 0.34 },
 };
 
+const PixelStatsToggle = ({ expanded }: { expanded: boolean }) => (
+  <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden="true" shapeRendering="crispEdges">
+    <path fill="#fff0a8" d="M3 3h14v9H3z" />
+    <path fill="#55351f" d="M2 2h16v11H2V2Zm2 2v7h12V4H4Zm1 1h3v1H5V5Zm4 0h6v1H9V5ZM5 8h5v1H5V8Zm6 0h4v1h-4V8Z" />
+    <path
+      fill="#55351f"
+      d={expanded ? 'M7 18v-2H5v-2h10v2h-2v2h-2v-2H9v2H7Z' : 'M7 14v2H5v2h10v-2h-2v-2h-2v2H9v-2H7Z'}
+    />
+  </svg>
+);
+
 const ROOM_DOOR_EXITS: Partial<Record<RoomType, RoomExit>> = {
   [RoomType.BATHROOM]: { direction: 'left', destination: RoomType.BEDROOM, label: 'Go to bedroom through the door' },
   [RoomType.KITCHEN]: { direction: 'right', destination: RoomType.PLAYROOM, label: 'Go outside through the door' },
@@ -149,6 +169,8 @@ const INDOOR_INITIAL_PLACEMENT: Partial<Record<RoomType, { x: number; y: number 
 const BEDROOM_SCENE_WIDTH = 560;
 const BEDROOM_SCENE_HEIGHT = 430;
 const BEDROOM_BED_BOTTOM_OFFSET = 96;
+const BEDROOM_SLEEP_TARGET_X_RATIO = 0.5;
+const BEDROOM_SLEEP_TARGET_Y_RATIO = -0.3;
 
 const SLEEP_WAKE_DURATION_MS = 760;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -182,8 +204,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     isSleeping, setIsSleeping,
     isEating, setIsEating,
     isPlaying, setIsPlaying,
-    inventory, buyItem, consumeItem,
-    addXP, activeBallId, setActiveBallId, activeBedId, setActiveBedId,
+    inventory, buyItem, consumeItem, grantItem,
+    addXP, addCoins, activeBallId, setActiveBallId, activeBedId, setActiveBedId,
     foodItems, isFoodLoading, currencyRate, assetUrls
   } = useGameState();
   const activePet = getPetOption(petName, assetUrls?.spriteSheets);
@@ -227,6 +249,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const [indoorPetX, setIndoorPetX] = useState(0);
   const [indoorPetYOffset, setIndoorPetYOffset] = useState(0);
   const [indoorPetPose, setIndoorPetPose] = useState<PetPose>('idle');
+  const [isWalkingToBedroomBed, setIsWalkingToBedroomBed] = useState(false);
+  const [isReturningFromBedroomBed, setIsReturningFromBedroomBed] = useState(false);
   const [roomTransition, setRoomTransition] = useState<RoomExit | null>(null);
   const [isRoomTransitionLoading, setIsRoomTransitionLoading] = useState(false);
   const [showTownStats, setShowTownStats] = useState(false);
@@ -252,6 +276,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const indoorPetXRef = useRef(indoorPetX);
   const indoorPetYOffsetRef = useRef(indoorPetYOffset);
   const indoorPetTargetXRef = useRef<number | null>(null);
+  const indoorPetTargetYOffsetRef = useRef<number | null>(null);
   const indoorPetRaf = useRef<number>(0);
   const indoorMovementKeysRef = useRef({ left: false, right: false, up: false, down: false });
   const ballPosRef = useRef(ballPos);
@@ -438,7 +463,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       outsideMovementKeysRef.current = { left: false, right: false, up: false, down: false };
       outsideBallTargetRef.current = null;
       const edgeTarget = {
-        x: exit.direction === 'left'
+        x: exit.destination === RoomType.FISHING_POND
+          ? sceneLeft + sceneWidth * 0.44
+          : exit.direction === 'left'
           ? sceneLeft + petHalfWidth
           : exit.direction === 'right'
             ? sceneLeft + sceneWidth - petHalfWidth
@@ -447,7 +474,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
               : exit.direction === 'up' && currentRoom === RoomType.SPORTS_GROUND
                 ? sceneLeft + sceneWidth * 0.5
             : outsidePetPosRef.current.x,
-        y: exit.direction === 'left' && currentRoom === RoomType.TOWN_HOME
+        y: exit.destination === RoomType.FISHING_POND
+          ? rect.height * 0.55
+          : exit.direction === 'left' && currentRoom === RoomType.TOWN_HOME
           ? rect.height * 0.30
           : exit.direction === 'right' && currentRoom === RoomType.SHOPPING_STREET
             ? rect.height * 0.50
@@ -476,6 +505,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
     indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
     indoorPetTargetXRef.current = exit.direction === 'left' ? bounds.min : bounds.max;
+    indoorPetTargetYOffsetRef.current = null;
     setRoomTransition(exit);
   };
 
@@ -562,6 +592,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       indoorPetXRef.current = nextX;
       indoorPetYOffsetRef.current = nextYOffset;
       indoorPetTargetXRef.current = null;
+      indoorPetTargetYOffsetRef.current = null;
       setIndoorPetX(nextX);
       setIndoorPetYOffset(nextYOffset);
       setIndoorPetPose('idle');
@@ -584,6 +615,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     if (OUTDOOR_ROOMS.has(currentRoom) || showShopModal || showGamesMenu || showBathroomMenu || showFoodMenu || isSleeping) {
       indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
       indoorPetTargetXRef.current = null;
+      indoorPetTargetYOffsetRef.current = null;
       setIndoorPetPose('idle');
       return;
     }
@@ -594,10 +626,11 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (roomTransition) return;
+      if (roomTransition || isWalkingToBedroomBed || isReturningFromBedroomBed) return;
       if (isEditableTarget(event.target) || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
       event.preventDefault();
       indoorPetTargetXRef.current = null;
+      indoorPetTargetYOffsetRef.current = null;
       if (event.key === 'ArrowLeft') indoorMovementKeysRef.current.left = true;
       if (event.key === 'ArrowRight') indoorMovementKeysRef.current.right = true;
       if (event.key === 'ArrowUp') indoorMovementKeysRef.current.up = true;
@@ -645,16 +678,30 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             );
           }
           nextPose = horizontalDirection < 0 ? 'run-left' : 'run-right';
-        } else if (indoorPetTargetXRef.current !== null) {
-          const targetX = clamp(indoorPetTargetXRef.current, bounds.min, bounds.max);
-          const delta = targetX - currentX;
-          if (Math.abs(delta) <= INDOOR_PET_STOP_DISTANCE) {
+        } else if (indoorPetTargetXRef.current !== null || indoorPetTargetYOffsetRef.current !== null) {
+          const targetX = indoorPetTargetXRef.current === null
+            ? currentX
+            : clamp(indoorPetTargetXRef.current, bounds.min, bounds.max);
+          const targetYOffset = indoorPetTargetYOffsetRef.current ?? currentYOffset;
+          const deltaX = targetX - currentX;
+          const deltaY = targetYOffset - currentYOffset;
+          const distance = Math.hypot(deltaX, deltaY);
+          if (distance <= INDOOR_PET_STOP_DISTANCE) {
             nextX = targetX;
+            nextYOffset = targetYOffset;
             indoorPetTargetXRef.current = null;
+            indoorPetTargetYOffsetRef.current = null;
+            if (isWalkingToBedroomBed) {
+              setIsWalkingToBedroomBed(false);
+              setIsSleeping(true);
+            } else if (isReturningFromBedroomBed) {
+              setIsReturningFromBedroomBed(false);
+            }
           } else {
-            const travel = Math.min(Math.abs(delta), INDOOR_PET_MOUSE_SPEED * elapsedSeconds);
-            nextX = currentX + Math.sign(delta) * travel;
-            nextPose = delta < 0 ? 'run-left' : 'run-right';
+            const travel = Math.min(distance, INDOOR_PET_MOUSE_SPEED * elapsedSeconds);
+            nextX = currentX + (deltaX / distance) * travel;
+            nextYOffset = currentYOffset + (deltaY / distance) * travel;
+            nextPose = deltaX < 0 ? 'run-left' : 'run-right';
           }
         }
 
@@ -679,7 +726,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       cancelAnimationFrame(indoorPetRaf.current);
       indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
     };
-  }, [bedroomSceneScale, currentRoom, isSleeping, roomTransition, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
+  }, [bedroomSceneScale, currentRoom, isReturningFromBedroomBed, isSleeping, isWalkingToBedroomBed, roomTransition, setIsSleeping, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
 
   useEffect(() => {
     const doorExit = ROOM_DOOR_EXITS[currentRoom];
@@ -708,6 +755,29 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
     window.addEventListener('keydown', handleDoorInteraction);
     return () => window.removeEventListener('keydown', handleDoorInteraction);
+  }, [currentRoom, isSleeping, roomTransition, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
+
+  useEffect(() => {
+    if (currentRoom !== RoomType.TOWN_HOME || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu || isSleeping || roomTransition) return;
+
+    const handleFishingInteraction = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+      const area = playAreaRef.current;
+      if (!area) return;
+      const rect = area.getBoundingClientRect();
+      const petXRatio = outsidePetPosRef.current.x / Math.max(rect.width, 1);
+      const petYRatio = outsidePetPosRef.current.y / Math.max(rect.height, 1);
+      const isNearFishingDock = petXRatio >= 0.36 && petXRatio <= 0.52 && petYRatio >= 0.43 && petYRatio <= 0.64;
+      if (!isNearFishingDock) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      startRoomTransition(TOWN_HOME_FISHING_EXIT);
+    };
+
+    window.addEventListener('keydown', handleFishingInteraction);
+    return () => window.removeEventListener('keydown', handleFishingInteraction);
   }, [currentRoom, isSleeping, roomTransition, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
 
   useEffect(() => {
@@ -853,6 +923,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     if (
       showShopModal ||
       isSleeping ||
+      isWalkingToBedroomBed ||
+      isReturningFromBedroomBed ||
       roomTransition ||
       e.button !== 0 ||
       !pointerTarget ||
@@ -888,6 +960,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
     if (!bounds || e.clientY < bounds.rect.top || e.clientY > bounds.rect.bottom) return;
     indoorPetTargetXRef.current = clamp(e.clientX - bounds.rect.left, bounds.min, bounds.max);
+    indoorPetTargetYOffsetRef.current = null;
   };
 
   const handleAppPointerMove = (e: React.PointerEvent) => {
@@ -1048,6 +1121,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   void handlePlay;
 
   const handlePetClick = () => {
+    if (isWalkingToBedroomBed || isReturningFromBedroomBed) return;
     if (isSleeping) {
       setIsSleeping(false);
       return;
@@ -1055,9 +1129,62 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     setStats(prev => ({ ...prev, happiness: Math.min(100, prev.happiness + 5) }));
   };
 
+  const turnBedroomLightOff = () => {
+    if (currentRoom !== RoomType.BEDROOM || isSleeping || isWalkingToBedroomBed || isReturningFromBedroomBed) return;
+
+    const bounds = getIndoorPetBounds();
+    if (!bounds) {
+      setIsSleeping(true);
+      return;
+    }
+
+    indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
+    indoorPetTargetXRef.current = clamp(
+      bounds.rect.width * BEDROOM_SLEEP_TARGET_X_RATIO,
+      bounds.min,
+      bounds.max
+    );
+    indoorPetTargetYOffsetRef.current = bounds.rect.height * BEDROOM_SLEEP_TARGET_Y_RATIO;
+    setIndoorPetPose(
+      indoorPetTargetXRef.current < indoorPetXRef.current ? 'run-left' : 'run-right'
+    );
+    setIsReturningFromBedroomBed(false);
+    setIsWalkingToBedroomBed(true);
+  };
+
+  const turnBedroomLightOn = () => {
+    setIsSleeping(false);
+    setIsWalkingToBedroomBed(false);
+
+    const bounds = getIndoorPetBounds();
+    const placement = INDOOR_INITIAL_PLACEMENT[RoomType.BEDROOM];
+    if (!bounds || !placement) {
+      indoorPetTargetXRef.current = null;
+      indoorPetTargetYOffsetRef.current = null;
+      setIsReturningFromBedroomBed(false);
+      setIndoorPetPose('idle');
+      return;
+    }
+
+    indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
+    indoorPetTargetXRef.current = clamp(bounds.rect.width * placement.x, bounds.min, bounds.max);
+    indoorPetTargetYOffsetRef.current = bounds.rect.height * placement.y;
+    setIndoorPetPose(
+      indoorPetTargetXRef.current < indoorPetXRef.current ? 'run-left' : 'run-right'
+    );
+    setIsReturningFromBedroomBed(true);
+  };
+
+  const isBedroomLightOff = isSleeping || isWalkingToBedroomBed;
+
   // Room switching cleanup & auto-show menus
   useEffect(() => {
     setShowFoodMenu(false);
+    if (currentRoom !== RoomType.BEDROOM) {
+      indoorPetTargetYOffsetRef.current = null;
+      setIsWalkingToBedroomBed(false);
+      setIsReturningFromBedroomBed(false);
+    }
 
     setShowBathroomMenu(false);
     if (currentRoom !== RoomType.BATHROOM) {
@@ -1339,6 +1466,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
       {roomExits.map((exit) => {
         const isStackedGamesExit = currentRoom === RoomType.GAMES && exit.direction === 'right';
+        const isSportsGroundReturn = currentRoom === RoomType.SPORTS_GROUND && exit.direction === 'up';
         const positionClass = exit.direction === 'left'
           ? 'left-3 top-1/2 -translate-y-1/2 sm:left-6'
           : exit.direction === 'right'
@@ -1346,7 +1474,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
               ? 'right-3 top-1/2 sm:right-6'
               : 'right-3 top-1/2 -translate-y-1/2 sm:right-6'
             : exit.direction === 'up'
-              ? 'left-1/2 top-[clamp(10rem,22dvh,12rem)] -translate-x-1/2'
+              ? isSportsGroundReturn
+                ? 'left-[39%] top-8 -translate-x-1/2 sm:top-10'
+                : 'left-1/2 top-[clamp(10rem,22dvh,12rem)] -translate-x-1/2'
               : 'bottom-[clamp(7rem,18dvh,9.5rem)] left-1/2 -translate-x-1/2';
         const stackedGamesStyle = isStackedGamesExit
           ? {
@@ -1391,6 +1521,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           if (action === 'games') setShowGamesMenu(true);
           if (action === 'food-shop') setActiveShop('food');
           if (action === 'furniture-shop') setActiveShop('furniture');
+          if (action === 'fishing') startRoomTransition(TOWN_HOME_FISHING_EXIT);
         }}
       />
 
@@ -1442,7 +1573,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       )}
 
       {/* Dark Overlay for Sleep Mode (Global) */}
-      {currentRoom === RoomType.BEDROOM && isSleeping && (
+      {currentRoom === RoomType.BEDROOM && isBedroomLightOff && (
         <div className="absolute inset-0 bg-black/60 z-20 pointer-events-none transition-all duration-700 animate-in fade-in" />
       )}
 
@@ -1460,15 +1591,16 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             onPointerUp={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
-              setIsSleeping(!isSleeping);
+              if (isBedroomLightOff) turnBedroomLightOn();
+              else turnBedroomLightOff();
             }}
             className="pointer-events-auto -mt-1 flex h-[clamp(44px,8dvh,56px)] w-[clamp(44px,8dvh,56px)] touch-manipulation items-center justify-center text-[clamp(36px,8dvh,60px)] outline-none transition-transform duration-300 hover:scale-110 active:scale-95"
-            title={isSleeping ? 'Turn On' : 'Turn Off'}
-            aria-label={isSleeping ? 'Turn on bedroom light' : 'Turn off bedroom light'}
+            title={isBedroomLightOff ? 'Turn On' : 'Turn Off'}
+            aria-label={isBedroomLightOff ? 'Turn on bedroom light' : 'Turn off bedroom light'}
           >
             <span
               className={`rotate-180 transition-all duration-500 ${
-                isSleeping
+                isBedroomLightOff
                   ? 'grayscale opacity-50'
                   : 'drop-shadow-[0_0_20px_rgba(255,235,59,0.8)]'
               }`}
@@ -1489,14 +1621,14 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           <button
             type="button"
             onClick={() => setShowTownStats((visible) => !visible)}
-            className="absolute left-1/2 top-3 z-40 flex h-11 w-11 -translate-x-1/2 items-center justify-center border-4 border-[#684427] bg-[#ffe8a3] shadow-[4px_4px_0_#3f2a1b] transition-[transform,filter] hover:brightness-105 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#fff4bd] active:translate-y-1 active:shadow-none sm:h-12 sm:w-12"
+            className="absolute left-1/2 top-2 z-40 flex h-8 w-8 -translate-x-1/2 items-center justify-center border-[3px] border-[#684427] bg-[#ffe8a3] shadow-[3px_3px_0_#3f2a1b] transition-[transform,filter] hover:brightness-105 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#fff4bd] active:translate-y-0.5 active:shadow-none sm:h-9 sm:w-9"
             aria-label={showTownStats ? 'Hide pet status' : 'Show pet status'}
             aria-expanded={showTownStats}
             data-pet-movement-block
           >
-            <PixelSceneArrow direction={showTownStats ? 'up' : 'down'} />
+            <PixelStatsToggle expanded={showTownStats} />
           </button>
-          {showTownStats && <StatsBar stats={stats} className="!top-[72px] sm:!top-20" />}
+          {showTownStats && <StatsBar stats={stats} className="!top-[54px] sm:!top-[58px]" />}
         </>
       ) : (
         <StatsBar stats={stats} />
@@ -1532,7 +1664,16 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
       {/* The Pet */}
       <div ref={playAreaRef} className="relative flex min-h-0 w-full flex-1 items-center justify-center">
-        {OUTDOOR_ROOMS.has(currentRoom) ? (
+        {currentRoom === RoomType.FISHING_POND ? (
+          <FishingGame
+            petId={activePet.id}
+            onCatch={(fishId, coins, xp) => {
+              grantItem(fishId, 1);
+              addCoins(coins);
+              addXP(xp);
+            }}
+          />
+        ) : OUTDOOR_ROOMS.has(currentRoom) ? (
           <div
             className="absolute z-20"
             style={{
@@ -1563,6 +1704,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
               clickRow={activePet.clickRow}
               clickFrames={activePet.clickFrames}
               clickDuration={activePet.clickDuration}
+              eatingRow={activePet.eatingRow}
+              eatingFrames={activePet.eatingFrames}
+              eatingDuration={activePet.eatingDuration}
               pose={outsidePetPose}
               onClick={handlePetClick}
             />
@@ -1597,7 +1741,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                     : null
                 }
                 displayScale={bedroomSceneScale * BEDROOM_PET_SCALE_MULTIPLIER}
-                sleepVisualOffsetY={72 * bedroomSceneScale * BEDROOM_PET_SCALE_MULTIPLIER}
+                sleepVisualOffsetY={0}
                 sleepLabelClassName="top-24 right-14"
                 spriteSheetUrl={activePet.spriteSheetUrl}
                 mouthPosition={activePet.mouthPosition}
@@ -1608,6 +1752,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                 clickRow={activePet.clickRow}
                 clickFrames={activePet.clickFrames}
                 clickDuration={activePet.clickDuration}
+                eatingRow={activePet.eatingRow}
+                eatingFrames={activePet.eatingFrames}
+                eatingDuration={activePet.eatingDuration}
                 pose={indoorPetPose}
                 onClick={handlePetClick}
               />
@@ -1641,6 +1788,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
               clickRow={activePet.clickRow}
               clickFrames={activePet.clickFrames}
               clickDuration={activePet.clickDuration}
+              eatingRow={activePet.eatingRow}
+              eatingFrames={activePet.eatingFrames}
+              eatingDuration={activePet.eatingDuration}
               pose={indoorPetPose}
               onClick={handlePetClick}
             />

@@ -59,6 +59,28 @@ Toys and Beds. Their traced door contours are clickable, while Space opens the
 nearby store when the cat is beside its entrance. The shop closes from its close
 control, Escape, or a second Space press. Do not render a persistent global Shop
 button or a Kitchen shortcut into the purchase catalog.
+Town Home, Shopping Street, and Sports Ground use a compact status-panel toggle
+at the top center. Its meter-and-chevron glyph must remain visually distinct
+from the large block arrows used for scene travel.
+Sports Ground keeps the return arrow beside the upper-left tree near the centered
+approach road. The cat may walk only on that approach road and stops before the
+stadium entrance; the track, field, seating, and stadium interior are blocked.
+The stadium's central arched entrance has a fitted pulsing preview contour. It is
+visual-only until the future interior scene is implemented, so it must not accept
+click, Space, Enter, or focus interaction yet.
+The pond beside Town Home's wooden dock uses a traced shoreline contour. Clicking
+the pond, or pressing Space while the cat is beside the dock, enters Fishing Pond.
+Fishing Pond places the dock at the bottom and the water above it, with the selected
+cat represented by its own rear-view pixel sprite. The cat and fishing rod are
+separate image layers: `petId` chooses one of six cat backs, while `equippedRodId`
+chooses the rod, so future purchasable rods can replace the held equipment without
+regenerating any cat artwork. Its fast power pointer stops on click or
+Space: white has a 60% miss rate, while green awards 2-5 coins, orange 6-10, and red
+10-20. Successful catches select one of six visibly different species: Pond Fish,
+Perch, Catfish, Rainbow Trout, Koi Fish, or Golden Fish. White and green favor
+common fish, orange introduces trout and koi, and red can award koi or the rare
+Golden Fish. The exact species appears in the result and is added as its own item
+in the existing Food inventory, where it can be fed to the pet.
 
 Room artwork is owned by src/pet/internal/roomBackgrounds.ts and shipped from
 public/pet-function/rooms through prepare-pet. The user's output folders supply the five selected images.

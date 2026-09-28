@@ -22,7 +22,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { PetStats, RoomType, FoodItem, type PetAssetUrls } from '../internal/types';
-import { BED_ITEMS, INITIAL_STATS, XP_TO_LEVEL_UP, INITIAL_INVENTORY, FOOD_ITEMS, TOY_ITEMS } from '../internal/constants';
+import { BED_ITEMS, INITIAL_STATS, XP_TO_LEVEL_UP, INITIAL_INVENTORY, FOOD_ITEMS, TOY_ITEMS, FISHING_REWARD_ITEMS } from '../internal/constants';
 import { DEFAULT_PET_ID, normalizePetId } from '../internal/petOptions';
 import type { PetRepository } from '../../contracts/petRepository';
 import type { PetSaveSnapshot } from '../../contracts/pet';
@@ -139,6 +139,8 @@ interface GameStateContextType {
     inventory: Record<string, number>;
     buyItem: (itemId: string, price: number) => boolean;
     consumeItem: (itemId: string) => void;
+    /** Grants an earned item without charging coins, for shared mini-game rewards. */
+    grantItem: (itemId: string, quantity?: number) => void;
     addXP: (amount: number) => void;
     /** Coin-only earn (positive) or spend (negative) not tied to a shop
      *  purchase — e.g. a mini-game's coin reward. Persists atomically and
@@ -476,7 +478,11 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             try {
                 const items = await repository.loadCatalog();
                 if (items && items.length > 0) {
-                    setFoodItems(items);
+                    const fishingRewardIds = new Set(FISHING_REWARD_ITEMS.map(item => item.id));
+                    setFoodItems([
+                        ...items.filter(item => !fishingRewardIds.has(item.id)),
+                        ...FISHING_REWARD_ITEMS,
+                    ]);
                 }
             } catch (err) {
                 console.error('Failed to load shop items:', err);
@@ -981,6 +987,16 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
         }
     };
 
+    const grantItem = (itemId: string, quantity = 1) => {
+        const safeQuantity = Math.max(1, Math.floor(quantity));
+        let nextInventory: Record<string, number> = {};
+        setInventory(prev => {
+            nextInventory = { ...prev, [itemId]: (prev[itemId] || 0) + safeQuantity };
+            return nextInventory;
+        });
+        void persistInventoryDelta(itemId, safeQuantity, nextInventory);
+    };
+
     return (
         <GameStateContext.Provider value={{
             userId,
@@ -997,6 +1013,7 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             inventory,
             buyItem,
             consumeItem,
+            grantItem,
             addXP,
             addCoins,
             activeBallId,

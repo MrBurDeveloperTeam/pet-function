@@ -1,9 +1,9 @@
 import { RoomType } from '../types';
 
 // Traced in the rooms-wide artwork coordinate system; slice matches object-fit: cover.
-type RoomInteractionAction = 'food' | 'bath' | 'games' | 'door' | 'food-shop' | 'furniture-shop';
+type RoomInteractionAction = 'food' | 'bath' | 'games' | 'door' | 'food-shop' | 'furniture-shop' | 'fishing';
 
-const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label: string; d: string }[]>> = {
+const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label: string; d: string; interactive?: boolean }[]>> = {
   [RoomType.KITCHEN]: [
     { action: 'food', label: 'Open food inventory', d: 'M365 177 H521 L535 185 L543 201 V495 L533 510 H528 V523 H506 V513 H378 V523 H358 V510 L349 500 V194 L355 183 Z' },
     { action: 'door', label: 'Go outside through the kitchen door', d: 'M1444 107 H1708 V519 H1444 Z' },
@@ -16,16 +16,25 @@ const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label:
     { action: 'games', label: 'Play games on the television', d: 'M914 216 H923 V212 H1065 L1079 218 V333 L1072 341 V350 H919 V342 H908 L901 334 V226 L906 219 Z' },
     { action: 'games', label: 'Play games on the left arcade machine', d: 'M597 220 H683 L691 216 L703 225 V329 L692 347 V451 L686 462 H587 V352 L598 336 L605 263 L597 257 Z' },
     { action: 'games', label: 'Play games on the right arcade machine', d: 'M707 220 H791 L798 216 L814 225 V450 L803 461 H697 V351 L706 333 L711 263 L704 253 Z' },
-    // The door sits on the receding left wall: its upper and lower rails follow a
-    // 20-degree rise, so the visible frame reads at the requested 70-degree angle.
-    { action: 'door', label: 'Go home through the games room door', d: 'M257 101 L366 141 L366 486 L257 446 Z' },
+    // Trace the outside of the perspective door frame: the left jamb starts
+    // higher, the right jamb starts lower, and the threshold rises to the right.
+    { action: 'door', label: 'Go home through the games room door', d: 'M257 101 L366 141 L366 446 L257 486 Z' },
   ],
   [RoomType.TOWN_HOME]: [
-    { action: 'door', label: 'Enter the games room through the home door', d: 'M989 178 H1086 V347 H989 Z' },
+    { action: 'door', label: 'Enter the games room through the home door', d: 'M988 340 V253 C988 227 1003 214 1022 214 C1042 214 1057 229 1057 253 V340 Z' },
+    { action: 'fishing', label: 'Go fishing from the wooden dock', d: 'M234 604 C249 540 293 500 365 490 C440 479 493 513 566 511 C639 509 682 493 744 516 L748 552 L862 563 L871 522 C928 526 979 550 1030 584 C1084 620 1131 650 1165 690 C1112 736 1040 760 944 766 C833 773 744 745 654 747 C552 749 480 779 380 760 C298 744 244 688 234 604 Z' },
   ],
   [RoomType.SHOPPING_STREET]: [
-    { action: 'food-shop', label: 'Open the food shop', d: 'M593 286 H657 V439 H593 Z' },
-    { action: 'furniture-shop', label: 'Open the furniture shop', d: 'M905 284 H970 V439 H905 Z' },
+    { action: 'food-shop', label: 'Open the food shop', d: 'M592 406 V316 C592 290 607 277 624 277 C642 277 657 291 657 316 V406 Z' },
+    { action: 'furniture-shop', label: 'Open the furniture shop', d: 'M899 405 V312 C899 288 914 275 930 275 C948 275 962 289 962 313 V405 Z' },
+  ],
+  [RoomType.SPORTS_GROUND]: [
+    {
+      action: 'door',
+      label: 'Sports stadium entrance coming soon',
+      d: 'M846 283 V203 C846 160 882 136 931 136 C980 136 1016 160 1016 203 V283 Z',
+      interactive: false,
+    },
   ],
 };
 
@@ -38,7 +47,7 @@ export function RoomInteractionOutlines({ room, hidden, onActivate }: {
   return (
     <svg viewBox="0 0 1862 845" preserveAspectRatio="xMidYMid slice"
       className="pet-interaction-outlines" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 15, pointerEvents: 'none' }}>
-      {outlines[room]!.map(({ action, label, d }) => (
+      {outlines[room]!.map(({ action, label, d, interactive = true }) => interactive ? (
         <path key={label} d={d} className="pet-interaction-outline" role="button"
           tabIndex={0} aria-label={label} data-pet-interaction-action={action} data-pet-movement-block
           vectorEffect="non-scaling-stroke"
@@ -51,6 +60,9 @@ export function RoomInteractionOutlines({ room, hidden, onActivate }: {
               if (!event.repeat) onActivate(action);
             }
           }} />
+      ) : (
+        <path key={label} d={d} className="pet-interaction-outline pet-interaction-outline-preview"
+          aria-label={label} data-pet-interaction-action={action} vectorEffect="non-scaling-stroke" />
       ))}
     </svg>
   );

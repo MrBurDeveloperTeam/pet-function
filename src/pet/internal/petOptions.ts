@@ -34,6 +34,9 @@ export interface PetOption {
   clickRow: number;
   clickFrames: number;
   clickDuration: string;
+  eatingRow: number;
+  eatingFrames: number;
+  eatingDuration: string;
 }
 
 export const PET_OPTIONS: PetOption[] = [
@@ -52,6 +55,9 @@ export const PET_OPTIONS: PetOption[] = [
     clickRow: 3,
     clickFrames: 4,
     clickDuration: '0.72s',
+    eatingRow: 9,
+    eatingFrames: 4,
+    eatingDuration: '0.88s',
   },
   {
     id: 'silverbelt',
@@ -68,6 +74,9 @@ export const PET_OPTIONS: PetOption[] = [
     clickRow: 3,
     clickFrames: 4,
     clickDuration: '0.72s',
+    eatingRow: 9,
+    eatingFrames: 4,
+    eatingDuration: '0.88s',
   },
   {
     id: 'fastrat',
@@ -84,6 +93,9 @@ export const PET_OPTIONS: PetOption[] = [
     clickRow: 3,
     clickFrames: 4,
     clickDuration: '0.72s',
+    eatingRow: 9,
+    eatingFrames: 4,
+    eatingDuration: '0.88s',
   },
   {
     id: 'gulu',
@@ -100,6 +112,9 @@ export const PET_OPTIONS: PetOption[] = [
     clickRow: 8,
     clickFrames: 6,
     clickDuration: '1.0s',
+    eatingRow: 9,
+    eatingFrames: 4,
+    eatingDuration: '0.88s',
   },
   {
     id: 'munchkin',
@@ -116,6 +131,9 @@ export const PET_OPTIONS: PetOption[] = [
     clickRow: 3,
     clickFrames: 4,
     clickDuration: '0.72s',
+    eatingRow: 9,
+    eatingFrames: 4,
+    eatingDuration: '0.88s',
   },
   {
     id: 'mochi',
@@ -132,6 +150,9 @@ export const PET_OPTIONS: PetOption[] = [
     clickRow: 3,
     clickFrames: 4,
     clickDuration: '0.72s',
+    eatingRow: 9,
+    eatingFrames: 4,
+    eatingDuration: '0.88s',
   },
 ];
 

@@ -32,6 +32,9 @@ interface PetProps {
   clickRow?: number;
   clickFrames?: number;
   clickDuration?: string;
+  eatingRow?: number;
+  eatingFrames?: number;
+  eatingDuration?: string;
   pose?: PetPose;
   onClick: () => void;
 }
@@ -40,7 +43,7 @@ const DEFAULT_SPRITESHEET_URL = CAT_SPRITE_SHEET_URLS.mallow;
 const FRAME_WIDTH = 192;
 const FRAME_HEIGHT = 208;
 const SHEET_COLUMNS = 8;
-const SHEET_ROWS = 9;
+const SHEET_ROWS = 10;
 const DISPLAY_SCALE = 1.5;
 const SLEEP_ROW = 5;
 const SLEEP_FRAME_MS = 180;
@@ -77,7 +80,6 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
   sleepVisualOffsetY = 0,
   sleepLabelClassName = 'top-4 right-14',
   spriteSheetUrl = DEFAULT_SPRITESHEET_URL,
-  mouthPosition = { left: '46%', top: '46.5%' },
   idleFrames = SPRITES.idle.frames,
   idleDuration = SPRITES.idle.duration,
   sleepInFrames = DEFAULT_SLEEP_IN_FRAMES,
@@ -85,6 +87,9 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
   clickRow = SPRITES.click.row,
   clickFrames = SPRITES.click.frames,
   clickDuration = SPRITES.click.duration,
+  eatingRow = 9,
+  eatingFrames = 4,
+  eatingDuration = '0.88s',
   pose = 'idle',
   onClick
 }, ref) => {
@@ -99,6 +104,11 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
     frames: clickFrames,
     duration: clickDuration,
   }), [clickDuration, clickFrames, clickRow]);
+  const eatingSprite = useMemo(() => ({
+    row: eatingRow,
+    frames: eatingFrames,
+    duration: eatingDuration,
+  }), [eatingDuration, eatingFrames, eatingRow]);
   const idleSprite = useMemo(() => ({
     ...SPRITES.idle,
     frames: idleFrames,
@@ -106,10 +116,11 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
   }), [idleDuration, idleFrames]);
 
   const sprite = useMemo(() => {
+    if (isEating && !isSleeping && sleepFrame === null) return eatingSprite;
     if (isClickReacting && !isSleeping && sleepFrame === null) return clickSprite;
     if (pose === 'idle') return idleSprite;
     return SPRITES[pose] || idleSprite;
-  }, [clickSprite, idleSprite, isClickReacting, isSleeping, pose, sleepFrame]);
+  }, [clickSprite, eatingSprite, idleSprite, isClickReacting, isEating, isSleeping, pose, sleepFrame]);
 
   useEffect(() => {
     sleepTimersRef.current.forEach(clearTimeout);
@@ -161,8 +172,6 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
   };
 
   const isVeryDirty = stats.hygiene < 30;
-  const showOpenMouth = isEating || !!isHoveredWithFood;
-  const showChewingEffect = isEating;
   const viewportWidth = typeof window === 'undefined' ? 0 : window.innerWidth;
   const viewportHeight = typeof window === 'undefined' ? 0 : window.innerHeight;
   const lookOffsetX = lookAt ? Math.max(-8, Math.min(8, (lookAt.x - viewportWidth / 2) / 80)) : 0;
@@ -179,12 +188,13 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
   const spriteBackgroundPosition = sleepFrame !== null
     ? `-${sleepFrame * FRAME_WIDTH}px -${SLEEP_ROW * FRAME_HEIGHT}px`
     : `0 -${sprite.row * FRAME_HEIGHT}px`;
-  const isClickSprite = isClickReacting && !isSleeping && sleepFrame === null;
+  const isClickSprite = (isClickReacting || isEating) && !isSleeping && sleepFrame === null;
   const clickFrameDistance = FRAME_WIDTH * Math.max(0, sprite.frames - 1);
-  // Keep the fixed mouth overlay aligned with the same sprite frame while eating.
-  const spriteAnimation = sleepFrame !== null || showOpenMouth
+  const spriteAnimation = sleepFrame !== null
     ? 'none'
-    : isClickSprite
+    : isEating
+      ? `mallow-vpet-sprite ${sprite.duration} steps(${sprite.frames}) infinite`
+      : isClickSprite
       ? `mallow-vpet-click ${sprite.duration} steps(${sprite.frames - 1}, end) 1 forwards`
       : `mallow-vpet-sprite ${sprite.duration} steps(${sprite.frames}) infinite`;
 
@@ -232,21 +242,6 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
           className="absolute left-1/2 bottom-7 -z-10 h-12 w-56 -translate-x-1/2 rounded-full bg-slate-900/10 blur-xl"
           aria-hidden="true"
         />
-
-        {showOpenMouth && (
-          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-            <span
-              className={[
-                'mallow-chew-mouth absolute',
-                showChewingEffect ? 'mallow-chew-mouth-active' : 'mallow-chew-mouth-idle',
-              ].join(' ')}
-              style={{
-                left: mouthPosition.left,
-                top: mouthPosition.top,
-              }}
-            />
-          </div>
-        )}
 
         {showDirtyEffects && !isSleepVisual && isVeryDirty && (
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
@@ -361,31 +356,6 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
           }
           to {
             background-position-x: var(--click-frame-distance);
-          }
-        }
-
-        .mallow-chew-mouth {
-          width: 28px;
-          height: 22px;
-          border-radius: 999px;
-          background: #3b160b;
-          box-shadow: inset 0 -5px 0 rgba(255, 160, 160, 0.7), 0 1px 2px rgba(0, 0, 0, 0.18);
-        }
-
-        .mallow-chew-mouth-idle {
-          transform: translateX(-50%) scaleY(0.72);
-        }
-
-        .mallow-chew-mouth-active {
-          animation: mallow-chew-mouth 0.34s ease-in-out infinite;
-        }
-
-        @keyframes mallow-chew-mouth {
-          0%, 100% {
-            transform: translateX(-50%) scaleY(0.72);
-          }
-          50% {
-            transform: translateX(-50%) scaleY(1.05);
           }
         }
 

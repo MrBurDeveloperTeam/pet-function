@@ -58,6 +58,12 @@ const redBallPixelUrl = itemAssetUrl('red-ball-pixel.png');
 const rugbyBallPixelUrl = itemAssetUrl('rugby-ball-pixel.png');
 const soccerBallPixelUrl = itemAssetUrl('soccer-ball-pixel.png');
 const tennisBallPixelUrl = itemAssetUrl('tennis-ball-pixel.png');
+const pondFishPixelUrl = itemAssetUrl('pond-fish-pixel.png');
+const perchPixelUrl = itemAssetUrl('perch-pixel.png');
+const catfishPixelUrl = itemAssetUrl('catfish-pixel.png');
+const rainbowTroutPixelUrl = itemAssetUrl('rainbow-trout-pixel.png');
+const koiFishPixelUrl = itemAssetUrl('koi-fish-pixel.png');
+const goldenFishPixelUrl = itemAssetUrl('golden-fish-pixel.png');
 
 interface FoodItemVisualProps {
   item: Pick<FoodItem, 'id' | 'icon' | 'label'>;
@@ -146,6 +152,16 @@ const FOOD_PIXEL_IMAGES: Record<string, string> = {
   'soccer ball': soccerBallPixelUrl,
   ball_tennis: tennisBallPixelUrl,
   'tennis ball': tennisBallPixelUrl,
+  pond_fish: pondFishPixelUrl,
+  'pond fish': pondFishPixelUrl,
+  perch: perchPixelUrl,
+  catfish: catfishPixelUrl,
+  rainbow_trout: rainbowTroutPixelUrl,
+  'rainbow trout': rainbowTroutPixelUrl,
+  koi_fish: koiFishPixelUrl,
+  'koi fish': koiFishPixelUrl,
+  golden_fish: goldenFishPixelUrl,
+  'golden fish': goldenFishPixelUrl,
 };
 
 export const resolveItemPixelImage = (item: Pick<FoodItem, 'id' | 'label'>) =>

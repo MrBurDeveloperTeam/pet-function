@@ -71,6 +71,7 @@ export enum RoomType {
   TOWN_HOME = 'TOWN_HOME',
   SHOPPING_STREET = 'SHOPPING_STREET',
   SPORTS_GROUND = 'SPORTS_GROUND',
+  FISHING_POND = 'FISHING_POND',
 }
 
 export interface GameState {

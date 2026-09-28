@@ -35,9 +35,20 @@ export const ROOM_THEMES: Record<RoomTypeT, { bg: string; accent: string; icon: 
   [RoomType.TOWN_HOME]: { bg: 'bg-gradient-to-br from-[#ecfccb] via-[#d9f99d] to-[#86efac]', accent: 'text-lime-700', icon: '🏡' },
   [RoomType.SHOPPING_STREET]: { bg: 'bg-gradient-to-br from-[#fff7d6] via-[#fde68a] to-[#fdba74]', accent: 'text-amber-700', icon: '🏪' },
   [RoomType.SPORTS_GROUND]: { bg: 'bg-gradient-to-br from-[#dcfce7] via-[#bbf7d0] to-[#6ee7b7]', accent: 'text-emerald-700', icon: '🏟️' },
+  [RoomType.FISHING_POND]: { bg: 'bg-gradient-to-br from-[#d9f99d] via-[#7dd3fc] to-[#38bdf8]', accent: 'text-sky-700', icon: '🎣' },
 };
 
+export const FISHING_REWARD_ITEMS: FoodItem[] = [
+  { id: 'pond_fish', icon: '🐟', label: 'Pond Fish', hunger: 18, xp: 8, happiness: 3, price: 0, category: 'Healthy', levelReq: 1 },
+  { id: 'perch', icon: '🐠', label: 'Perch', hunger: 20, xp: 9, happiness: 4, price: 0, category: 'Healthy', levelReq: 1 },
+  { id: 'catfish', icon: '🐟', label: 'Catfish', hunger: 22, xp: 10, happiness: 4, price: 0, category: 'Healthy', levelReq: 1 },
+  { id: 'rainbow_trout', icon: '🐠', label: 'Rainbow Trout', hunger: 25, xp: 12, happiness: 5, price: 0, category: 'Healthy', levelReq: 1 },
+  { id: 'koi_fish', icon: '🐟', label: 'Koi Fish', hunger: 26, xp: 14, happiness: 6, price: 0, category: 'Healthy', levelReq: 1 },
+  { id: 'golden_fish', icon: '🐠', label: 'Golden Fish', hunger: 30, xp: 18, happiness: 10, price: 0, category: 'Healthy', levelReq: 1 },
+];
+
 export const FOOD_ITEMS: FoodItem[] = [
+  ...FISHING_REWARD_ITEMS,
   // Breakfast
   { id: 'toast', icon: '🍞', label: 'Toast', hunger: 10, xp: 5, price: 5, category: 'Breakfast', levelReq: 1 },
   { id: 'egg', icon: '🍳', label: 'Egg', hunger: 15, xp: 5, price: 10, category: 'Breakfast', levelReq: 2 },

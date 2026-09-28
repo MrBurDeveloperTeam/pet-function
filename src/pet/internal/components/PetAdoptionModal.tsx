@@ -96,7 +96,7 @@ const PetAdoptionModal: React.FC = () => {
                     height: 56,
                     backgroundImage: `url("${previewUrl}")`,
                     backgroundRepeat: 'no-repeat',
-                    backgroundSize: `${192 * 8 * 0.27}px ${208 * 9 * 0.27}px`,
+                    backgroundSize: `${192 * 8 * 0.27}px ${208 * 10 * 0.27}px`,
                     backgroundPosition: '0 0',
                     imageRendering: 'pixelated',
                   }}

@@ -9,6 +9,7 @@ const outside = '/pet-function/rooms-wide/outside.png';
 const townHome = '/pet-function/rooms-wide/town-home.png';
 const shoppingStreet = '/pet-function/rooms-wide/shopping-street.png';
 const sportsGround = '/pet-function/rooms-wide/sports-ground.png';
+const fishingPond = '/pet-function/rooms-wide/fishing-pond.png';
 
 // Outside navigation uses PLAYROOM; GARDEN shares the outdoor artwork.
 export const ROOM_BACKGROUNDS: Record<RoomType, string> = {
@@ -21,4 +22,5 @@ export const ROOM_BACKGROUNDS: Record<RoomType, string> = {
   [RoomType.TOWN_HOME]: townHome,
   [RoomType.SHOPPING_STREET]: shoppingStreet,
   [RoomType.SPORTS_GROUND]: sportsGround,
+  [RoomType.FISHING_POND]: fishingPond,
 };
