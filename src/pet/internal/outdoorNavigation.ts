@@ -34,7 +34,7 @@ const WALKABLE_POLYGONS: Partial<Record<RoomType, Polygon[]>> = {
   [RoomType.SPORTS_GROUND]: [
     [
       { x: 0.46, y: 0 }, { x: 0.54, y: 0 },
-      { x: 0.54, y: 0.19 }, { x: 0.46, y: 0.19 },
+      { x: 0.54, y: 0.095 }, { x: 0.46, y: 0.095 },
     ],
   ],
 };
@@ -43,7 +43,7 @@ export const OUTDOOR_INITIAL_PLACEMENT: Partial<Record<RoomType, NormalizedPoint
   [RoomType.PLAYROOM]: { x: 0.5, y: 0.55 },
   [RoomType.TOWN_HOME]: { x: 0.55, y: 0.48 },
   [RoomType.SHOPPING_STREET]: { x: 0.84, y: 0.53 },
-  [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.14 },
+  [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.075 },
 };
 
 const pointInPolygon = (point: NormalizedPoint, polygon: Polygon) => {

@@ -3,6 +3,14 @@ import type { PetId } from '../petOptions';
 
 type FishingBand = 'white' | 'green' | 'orange' | 'red';
 type FishingPhase = 'ready' | 'waiting' | 'power' | 'reeling' | 'result';
+const FISHING_TUTORIAL_STORAGE_KEY = 'pet-function:fishing-tutorial-complete-v1';
+const FISHING_TUTORIAL_STEPS = [
+  { title: 'Cast the line', detail: 'Press Space or click the cast panel. Then wait until a fish bites and the ! appears.', target: 'cast' },
+  { title: 'Choose your power', detail: 'When the pointer moves across the meter, press Space or click it. Orange and red zones can catch rarer fish.', target: 'control' },
+  { title: 'Reel the fish closer', detail: 'Hold Space or hold the reel button to reduce Distance. Reach 0m to catch the fish.', target: 'control' },
+  { title: 'Watch line tension', detail: 'Release Space when tension enters the red danger zone. Resume reeling after the tension falls.', target: 'control' },
+  { title: 'Collect the reward', detail: 'A successful catch gives fish, coins and XP. Select Fish again to start another round.', target: 'result' },
+] as const;
 export type FishingRodId = 'beginner_rod' | 'forest_rod' | 'carbon_rod' | 'crystal_rod' | 'legendary_rod';
 interface FishingSpecies { id: string; label: string; image: string; rarity: number }
 interface FishingResult { caught: boolean; coins: number; xp: number; band: FishingBand; fish: FishingSpecies | null }
@@ -76,9 +84,18 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
   const [holding, setHolding] = useState(false);
   const [result, setResult] = useState<FishingResult | null>(null);
   const [motionTime, setMotionTime] = useState(0);
+  const [tutorialStep, setTutorialStep] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(FISHING_TUTORIAL_STORAGE_KEY) === 'true' ? null : 0;
+  });
   const directionRef = useRef(1), previousTimeRef = useRef<number | null>(null), reelingStartRef = useRef(0), phaseRef = useRef<FishingPhase>('ready'), tensionRef = useRef(18);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { tensionRef.current = tension; }, [tension]);
+
+  const closeTutorial = useCallback(() => {
+    window.localStorage.setItem(FISHING_TUTORIAL_STORAGE_KEY, 'true');
+    setTutorialStep(null);
+  }, []);
 
   const prepareCast = useCallback(() => { setPhase('ready'); setResult(null); setHolding(false); setPointer(0); setDistance(72); setTension(18); setFishStruggle(85); previousTimeRef.current = null; }, []);
   const castLine = useCallback(() => { setPhase('waiting'); setResult(null); setHolding(false); setPointer(0); setDistance(72); setTension(18); setFishStruggle(85); previousTimeRef.current = null; }, []);
@@ -134,22 +151,33 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
   const selectPower = useCallback(() => { if (phase !== 'power') return; const band = resolveBand(pointer); setSelectedBand(band); setDistance(62 + Math.abs(pointer - 50) * 0.45); setTension(66); tensionRef.current = 66; setFishStruggle(85); setHolding(false); previousTimeRef.current = null; reelingStartRef.current = performance.now(); setPhase('reeling'); }, [phase, pointer]);
   useEffect(() => {
     const editable = (event: KeyboardEvent) => Boolean((event.target instanceof HTMLElement ? event.target : null)?.closest('input,textarea,select,[contenteditable="true"]'));
-    const down = (event: KeyboardEvent) => { if (event.code !== 'Space' || editable(event)) return; event.preventDefault(); event.stopImmediatePropagation(); if (phaseRef.current === 'ready' && !event.repeat) castLine(); else if (phaseRef.current === 'power' && !event.repeat) selectPower(); else if (phaseRef.current === 'reeling') setHolding(true); else if (phaseRef.current === 'result' && !event.repeat) prepareCast(); };
+    const down = (event: KeyboardEvent) => { if (event.code !== 'Space' || editable(event)) return; if (tutorialStep !== null) { event.preventDefault(); event.stopImmediatePropagation(); return; } event.preventDefault(); event.stopImmediatePropagation(); if (phaseRef.current === 'ready' && !event.repeat) castLine(); else if (phaseRef.current === 'power' && !event.repeat) selectPower(); else if (phaseRef.current === 'reeling') setHolding(true); else if (phaseRef.current === 'result' && !event.repeat) prepareCast(); };
     const up = (event: KeyboardEvent) => { if (event.code === 'Space') setHolding(false); };
     window.addEventListener('keydown', down, true); window.addEventListener('keyup', up, true); return () => { window.removeEventListener('keydown', down, true); window.removeEventListener('keyup', up, true); };
-  }, [castLine, prepareCast, selectPower]);
+  }, [castLine, prepareCast, selectPower, tutorialStep]);
 
   const movementStruggle = Math.sin(motionTime / 217) * 0.52 + Math.sin(motionTime / 83) * 0.31 + Math.sin(motionTime / 47) * 0.17;
+  const tutorialPreviewPhase: FishingPhase | null = tutorialStep === null
+    ? null
+    : tutorialStep === 1
+      ? 'power'
+      : tutorialStep === 2 || tutorialStep === 3
+        ? 'reeling'
+        : tutorialStep === 4
+          ? 'result'
+          : 'ready';
+  const displayPhase = tutorialPreviewPhase || phase;
+  const tutorialResult: FishingResult = { caught: true, coins: 8, xp: 10, band: 'orange', fish: FISH_SPECIES.rainbow_trout };
   const struggleScale = 0.35 + fishStruggle / 100 * 0.65;
-  const sway = phase === 'reeling' ? movementStruggle * struggleScale * Math.min(1, distance / 28) : 0;
-  const idleBob = phase === 'waiting' ? Math.sin(motionTime / 360) * 0.35 : 0;
-  const hookedBob = phase === 'power' ? Math.sin(motionTime / 91) * 0.7 + Math.sin(motionTime / 43) * 0.25 : 0;
-  const reelBob = phase === 'reeling' ? (Math.sin(motionTime / 137) * 0.48 + Math.sin(motionTime / 59) * 0.22) * Math.min(1, distance / 25) : 0;
-  const landing = phase === 'result' && Boolean(result?.caught);
+  const sway = displayPhase === 'reeling' ? movementStruggle * struggleScale * Math.min(1, distance / 28) : 0;
+  const idleBob = displayPhase === 'waiting' ? Math.sin(motionTime / 360) * 0.35 : 0;
+  const hookedBob = displayPhase === 'power' ? Math.sin(motionTime / 91) * 0.7 + Math.sin(motionTime / 43) * 0.25 : 0;
+  const reelBob = displayPhase === 'reeling' ? (Math.sin(motionTime / 137) * 0.48 + Math.sin(motionTime / 59) * 0.22) * Math.min(1, distance / 25) : 0;
+  const landing = displayPhase === 'result' && Boolean((tutorialStep === 4 ? tutorialResult : result)?.caught);
   const bobberLeft = 50 + sway * 11;
   // Cast deep into the pond. During reeling,
   // the shared bobber/ripple/line endpoint travels continuously back to shore.
-  const bobberTop = phase === 'reeling' || landing ? 62 - distance * 0.31 : 31;
+  const bobberTop = displayPhase === 'reeling' || landing ? 62 - distance * 0.31 : 31;
   const bobberVisualTop = bobberTop + idleBob + hookedBob + reelBob;
   const rodTipLeft = 57 + sway * 1.8;
   const rodTipTop = 66 - Math.abs(sway) * 0.7;
@@ -158,27 +186,63 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
       @keyframes fishingRippleLocal { 0% { opacity:.95; transform:scale(.34) } 72% { opacity:.14 } 100% { opacity:0; transform:scale(1) } }
       @keyframes fishingBaitLocal { 0%,100% { transform:translateX(-50%) rotate(-9deg) } 50% { transform:translateX(-50%) rotate(11deg) } }
     `}</style>
-    {phase !== 'ready' && <div className="fishing-ripples" style={{ position: 'absolute', zIndex: 20, left: `${bobberLeft}%`, top: `${bobberVisualTop}%`, width: 'clamp(90px, 10vw, 150px)', height: 'clamp(32px, 3.8vw, 56px)', pointerEvents: 'none', transform: 'translate(-50%, -50%)' }} aria-hidden="true">
+    {displayPhase !== 'ready' && <div className="fishing-ripples" style={{ position: 'absolute', zIndex: 20, left: `${bobberLeft}%`, top: `${bobberVisualTop}%`, width: 'clamp(90px, 10vw, 150px)', height: 'clamp(32px, 3.8vw, 56px)', pointerEvents: 'none', transform: 'translate(-50%, -50%)' }} aria-hidden="true">
       <span className="fishing-ripple fishing-ripple--one" style={{ position: 'absolute', inset: 0, border: '3px solid rgba(236,255,255,.95)', borderRadius: '50%', transformOrigin: 'center', animation: 'fishingRippleLocal 2.2s ease-out infinite' }} />
       <span className="fishing-ripple fishing-ripple--two" style={{ position: 'absolute', inset: 0, border: '3px solid rgba(255,255,255,.9)', borderRadius: '50%', transformOrigin: 'center', animation: 'fishingRippleLocal 2.2s 1.1s ease-out infinite' }} />
     </div>}
-    {phase !== 'ready' && <div className="fishing-bobber" style={{ position: 'absolute', zIndex: 26, left: `${bobberLeft}%`, top: `${bobberVisualTop}%`, width: 24, height: 52, pointerEvents: 'none', filter: 'drop-shadow(2px 3px 0 rgba(42,27,17,.45))', transform: 'translate(-50%, -50%)' }} aria-label="Fishing bobber and bait">
+    {displayPhase !== 'ready' && <div className="fishing-bobber" style={{ position: 'absolute', zIndex: 26, left: `${bobberLeft}%`, top: `${bobberVisualTop}%`, width: 24, height: 52, pointerEvents: 'none', filter: 'drop-shadow(2px 3px 0 rgba(42,27,17,.45))', transform: 'translate(-50%, -50%)' }} aria-label="Fishing bobber and bait">
       <span className="fishing-bobber__antenna" style={{ position: 'absolute', top: 0, left: '50%', width: 5, height: 14, border: '1px solid #3e281a', background: '#fff3ae', transform: 'translateX(-50%)' }} />
       <span className="fishing-bobber__float" style={{ position: 'absolute', top: 11, left: '50%', width: 21, height: 21, overflow: 'hidden', border: '3px solid #4a2c1d', borderRadius: '50%', background: 'linear-gradient(to bottom,#fff5cf 0 48%,#ef493d 49% 100%)', transform: 'translateX(-50%)' }} />
       <span className="fishing-bobber__hook-line" style={{ position: 'absolute', top: 31, left: '50%', width: 2, height: 13, background: '#3d3026', transform: 'translateX(-50%)' }} />
       <span className="fishing-bobber__bait" style={{ position: 'absolute', top: 42, left: '50%', width: 10, height: 8, border: '2px solid #70401f', borderRadius: '55% 45%', background: '#f3b842', transformOrigin: 'top center', animation: 'fishingBaitLocal 680ms ease-in-out infinite' }} />
     </div>}
-    {phase !== 'ready' && <svg className="pointer-events-none absolute inset-0 z-[15] h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d={`M ${rodTipLeft} ${rodTipTop} Q ${55 + sway * 4} 52 ${bobberLeft} ${bobberVisualTop}`} fill="none" stroke="#4b3825" strokeWidth="0.09" opacity="0.9" /></svg>}
+    {displayPhase !== 'ready' && <svg className="pointer-events-none absolute inset-0 z-[15] h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d={`M ${rodTipLeft} ${rodTipTop} Q ${55 + sway * 4} 52 ${bobberLeft} ${bobberVisualTop}`} fill="none" stroke="#4b3825" strokeWidth="0.09" opacity="0.9" /></svg>}
     <div
       className="absolute bottom-0 left-1/2 z-30 -translate-x-1/2"
       style={{ width: 'clamp(210px, 29dvh, 300px)', height: 'clamp(248px, 35dvh, 355px)', bottom: '5%' }}
       aria-hidden="true"
-    >{phase === 'power' && <div className="absolute -left-7 -top-8 z-40 animate-bounce text-5xl font-black text-[#fff6c9] [filter:drop-shadow(3px_3px_0_#5a2f1b)]">!</div>}<FishingCatBack petId={petId} rodId={equippedRodId} sway={sway} landing={landing} /></div>
-    {phase === 'ready' && <Notice title="Ready to cast" detail="Press Space to cast the line" />}
-    {phase === 'waiting' && <Notice title="Waiting for a fish..." detail="Watch the bobber and wait for the !" />}
-    {phase === 'power' && <PowerMeter pointer={pointer} onSelect={selectPower} />}
-    {phase === 'reeling' && <ReelMeter distance={distance} tension={tension} fishStruggle={fishStruggle} holding={holding} onHolding={setHolding} />}
-    {phase === 'result' && result && <ResultCard result={result} onAgain={prepareCast} />}
+    >{displayPhase === 'power' && <div className="absolute -left-7 -top-8 z-40 animate-bounce text-5xl font-black text-[#fff6c9] [filter:drop-shadow(3px_3px_0_#5a2f1b)]">!</div>}<FishingCatBack petId={petId} rodId={equippedRodId} sway={sway} landing={landing} /></div>
+    {displayPhase === 'ready' && <Notice title="Ready to cast" detail="Press Space to cast the line" />}
+    {displayPhase === 'waiting' && <Notice title="Waiting for a fish..." detail="Watch the bobber and wait for the !" />}
+    {displayPhase === 'power' && <PowerMeter pointer={tutorialStep === 1 ? 50 : pointer} onSelect={tutorialStep === null ? selectPower : () => {}} />}
+    {displayPhase === 'reeling' && <ReelMeter distance={tutorialStep === 2 ? 42 : distance} tension={tutorialStep === 3 ? 84 : 48} fishStruggle={tutorialStep === 3 ? 88 : 46} holding={tutorialStep === 2} onHolding={tutorialStep === null ? setHolding : () => {}} />}
+    {displayPhase === 'result' && (tutorialStep === 4 || result) && <ResultCard result={tutorialStep === 4 ? tutorialResult : result!} onAgain={tutorialStep === null ? prepareCast : () => {}} />}
+    <button type="button" onClick={() => setTutorialStep(0)} className="absolute right-3 top-32 z-[65] flex h-10 w-10 items-center justify-center border-4 border-[#5a3a22] bg-[#fff3bd] text-lg font-black text-[#51341f] shadow-[3px_3px_0_#5a3a22]" aria-label="Open fishing tutorial">?</button>
+    {tutorialStep !== null && (
+      <FishingTutorial
+        step={tutorialStep}
+        onBack={() => setTutorialStep(current => current === null ? 0 : Math.max(0, current - 1))}
+        onNext={() => tutorialStep === FISHING_TUTORIAL_STEPS.length - 1 ? closeTutorial() : setTutorialStep(tutorialStep + 1)}
+        onSkip={closeTutorial}
+      />
+    )}
+  </div>;
+};
+
+const FishingTutorial = ({ step, onBack, onNext, onSkip }: { step: number; onBack: () => void; onNext: () => void; onSkip: () => void }) => {
+  const item = FISHING_TUTORIAL_STEPS[step];
+  const highlightClass = item.target === 'cast'
+    ? 'bottom-[4%] left-1/2 h-[42%] w-[34%] -translate-x-1/2'
+    : item.target === 'result'
+      ? 'left-1/2 top-[7%] h-[22%] w-[48%] -translate-x-1/2'
+      : 'right-[1%] top-1/2 h-[48%] w-[min(290px,40%)] -translate-y-1/2';
+  return <div className="absolute inset-0 z-[70] overflow-hidden" role="dialog" aria-modal="true" aria-label="Fishing tutorial">
+    <div className={`pointer-events-none absolute border-4 border-[#ffe45c] shadow-[0_0_0_4px_#5a3a22,0_0_0_9999px_rgba(23,37,24,.75),0_0_24px_8px_rgba(255,228,92,.8)] ${highlightClass}`} aria-hidden="true" />
+    <section className="absolute left-1/2 top-1/2 w-[min(390px,calc(100%_-_2rem))] -translate-x-1/2 -translate-y-1/2 border-4 border-[#5a3a22] bg-[#fff3bd] p-4 text-[#51341f] shadow-[7px_7px_0_rgba(40,25,15,.72)]">
+      <div className="mb-3 flex items-center justify-between gap-3 border-b-4 border-dashed border-[#c0843d] pb-2">
+        <strong className="text-xs font-black uppercase tracking-[0.13em]">Fishing tutorial</strong>
+        <span className="border-2 border-[#5a3a22] bg-[#f6a83b] px-2 py-1 text-[10px] font-black">{step + 1} / {FISHING_TUTORIAL_STEPS.length}</span>
+      </div>
+      <h2 className="text-lg font-black uppercase">{item.title}</h2>
+      <p className="mt-2 text-sm font-bold leading-6">{item.detail}</p>
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <button type="button" onClick={onSkip} className="px-2 py-2 text-[10px] font-black uppercase underline">Skip tutorial</button>
+        <div className="flex gap-2">
+          <button type="button" onClick={onBack} disabled={step === 0} className="border-2 border-[#5a3a22] bg-[#fff8dc] px-3 py-2 text-[10px] font-black uppercase disabled:opacity-40">Back</button>
+          <button type="button" onClick={onNext} className="border-2 border-[#5a3a22] bg-[#f6a83b] px-4 py-2 text-[10px] font-black uppercase shadow-[3px_3px_0_#5a3a22]">{step === FISHING_TUTORIAL_STEPS.length - 1 ? 'Start fishing' : 'Next'}</button>
+        </div>
+      </div>
+    </section>
   </div>;
 };
 

@@ -26,7 +26,7 @@ const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label:
   ],
   [RoomType.SHOPPING_STREET]: [
     { action: 'food-shop', label: 'Open the food shop', d: 'M592 406 V316 C592 290 607 277 624 277 C642 277 657 291 657 316 V406 Z' },
-    { action: 'furniture-shop', label: 'Open the furniture shop', d: 'M899 405 V312 C899 288 914 275 930 275 C948 275 962 289 962 313 V405 Z' },
+    { action: 'furniture-shop', label: 'Open the furniture shop', d: 'M899 405 V275 H962 V405 Z' },
   ],
   [RoomType.SPORTS_GROUND]: [
     {

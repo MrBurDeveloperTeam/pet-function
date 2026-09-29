@@ -4,6 +4,7 @@ dist/
 .DS_Store
 baseline.tar
 migration-backups/
+godot/**/.godot/
 .env
 .env.*
 !.env.example

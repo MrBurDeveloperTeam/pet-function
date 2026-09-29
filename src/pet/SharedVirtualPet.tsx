@@ -82,8 +82,38 @@ const PixelRoomIcon = ({ room, className = '' }: { room: RoomType; className?: s
   if (room === RoomType.TOWN_HOME) return <svg {...common}><path fill="#b45309" d="M2 11 12 3l10 8v10H2z" /><path fill="#fef3c7" d="M6 11h12v8H6z" /><path fill="#78350f" d="M10 13h4v8h-4z" /></svg>;
   if (room === RoomType.SHOPPING_STREET) return <svg {...common}><path fill="#f59e0b" d="M3 8h18v13H3z" /><path fill="#fff7d6" d="M6 12h5v5H6zM14 11h4v10h-4z" /><path fill="#dc2626" d="M2 5h20v5H2z" /></svg>;
   if (room === RoomType.SPORTS_GROUND) return <svg {...common}><path fill="#059669" d="M3 5h18v14H3z" /><path fill="#fef3c7" d="M5 8h14v8H5z" /><path fill="#ef4444" d="M2 3h20v3H2zM2 18h20v3H2z" /></svg>;
+  if (room === RoomType.FISHING_POND) return <svg {...common}><path fill="#0891b2" d="M2 12h20v8H2z" /><path fill="#67e8f9" d="M4 14h5v2H4zM12 17h7v2h-7z" /><path fill="#65a30d" d="M5 8h3v5H5zM16 6h3v7h-3z" /><path fill="#854d0e" d="M6 5h1v8H6zM17 3h1v10h-1z" /></svg>;
   return <svg {...common}><path fill="#8b5cf6" d="M5 7h14v3h3v8h-5v-3H7v3H2v-8h3z" /><path fill="#fff" d="M7 10h2v2h2v2H9v2H7v-2H5v-2h2zM16 11h2v2h-2zM18 13h2v2h-2z" /></svg>;
 };
+
+const PixelCatMapMarker = () => (
+  <svg viewBox="0 0 32 30" className="h-9 w-9 drop-shadow-[2px_2px_0_#4b2d1b]" aria-hidden="true" shapeRendering="crispEdges">
+    <path fill="#4b2d1b" d="M4 4h5V1h4v3h6V1h4v3h5v20h-3v3h-5v2h-8v-2H7v-3H4z" />
+    <path fill="#d6d3d1" d="M7 6h4V4h2v3h6V4h2v2h4v16h-3v3H10v-3H7z" />
+    <path fill="#737373" d="M12 7h2v5h-2zM18 7h2v5h-2zM9 9h2v3H9zM21 9h2v3h-2z" />
+    <path fill="#84cc16" d="M10 14h4v4h-4zM18 14h4v4h-4z" />
+    <path fill="#1c1917" d="M12 15h2v3h-2zM18 15h2v3h-2zM14 20h4v2h-4z" />
+    <path fill="#fda4af" d="M15 18h3v2h-3z" />
+  </svg>
+);
+
+const ROOM_MAP_ITEMS = [
+  { room: RoomType.SHOPPING_STREET, label: 'Shopping', x: 20, y: 35, color: '#e11d48' },
+  { room: RoomType.SPORTS_GROUND, label: 'Sports', x: 20, y: 72, color: '#059669' },
+  { room: RoomType.TOWN_HOME, label: 'Town Home', x: 81, y: 38, color: '#b45309' },
+] as const;
+
+const ROOM_MAP_ROUTES = [
+  [20, 35, 81, 38], [20, 35, 20, 72],
+] as const;
+
+const INDOOR_ROOM_ITEMS = [
+  { room: RoomType.KITCHEN, label: 'Kitchen', colors: 'border-orange-700 bg-orange-100 text-orange-800' },
+  { room: RoomType.BATHROOM, label: 'Bathroom', colors: 'border-cyan-700 bg-cyan-100 text-cyan-800' },
+  { room: RoomType.PLAYROOM, label: 'Outside', colors: 'border-lime-700 bg-lime-100 text-lime-800' },
+  { room: RoomType.BEDROOM, label: 'Bedroom', colors: 'border-indigo-700 bg-indigo-100 text-indigo-800' },
+  { room: RoomType.GAMES, label: 'Games', colors: 'border-violet-700 bg-violet-100 text-violet-800' },
+] as const;
 
 interface VirtualPetContentProps {
   onClose: () => void;
@@ -109,17 +139,10 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   const [roomNavigationRequest, setRoomNavigationRequest] = useState<{ destination: RoomType; requestId: number } | null>(null);
   const enteredFullscreenRef = useRef(false);
   const { currentRoom, setCurrentRoom } = useGameState();
-
-  const roomMapItems = [
-    { room: RoomType.KITCHEN, label: 'Kitchen', colors: 'border-orange-700 bg-orange-100 text-orange-800' },
-    { room: RoomType.BATHROOM, label: 'Bathroom', colors: 'border-cyan-700 bg-cyan-100 text-cyan-800' },
-    { room: RoomType.PLAYROOM, label: 'Outside', colors: 'border-lime-700 bg-lime-100 text-lime-800' },
-    { room: RoomType.BEDROOM, label: 'Bedroom', colors: 'border-indigo-700 bg-indigo-100 text-indigo-800' },
-    { room: RoomType.GAMES, label: 'Games', colors: 'border-violet-700 bg-violet-100 text-violet-800' },
-    { room: RoomType.TOWN_HOME, label: 'Town Home', colors: 'border-amber-700 bg-amber-100 text-amber-800' },
-    { room: RoomType.SHOPPING_STREET, label: 'Shopping', colors: 'border-rose-700 bg-rose-100 text-rose-800' },
-    { room: RoomType.SPORTS_GROUND, label: 'Sports', colors: 'border-emerald-700 bg-emerald-100 text-emerald-800' },
-  ];
+  const showOutdoorTravelMap = currentRoom === RoomType.TOWN_HOME
+    || currentRoom === RoomType.SHOPPING_STREET
+    || currentRoom === RoomType.SPORTS_GROUND
+    || currentRoom === RoomType.FISHING_POND;
 
   const handleRoomMapNavigate = (room: RoomType) => {
     if (isRoomLoading || roomNavigationRequest) return;
@@ -270,29 +293,83 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
           {showRoomMap && !isRoomLoading && !roomNavigationRequest && (
             <>
               <button type="button" className="fixed inset-0 z-[64] cursor-default" onClick={() => setShowRoomMap(false)} aria-label="Close map" />
-              <div className="absolute left-3 top-[4.25rem] z-[70] w-[min(19rem,calc(100vw-1.5rem))] border-4 border-[#6b4423] bg-[#fff3bd] p-2 shadow-[6px_6px_0_rgba(51,35,20,0.55)] sm:left-6 sm:top-[6.25rem] sm:w-80 sm:p-3">
+              <div className={`absolute left-3 top-[4.25rem] z-[70] border-4 border-[#6b4423] bg-[#fff3bd] p-2 shadow-[6px_6px_0_rgba(51,35,20,0.55)] sm:left-6 sm:top-[6.25rem] sm:p-3 ${showOutdoorTravelMap ? 'w-[min(42rem,calc(100vw-1.5rem))]' : 'w-[min(19rem,calc(100vw-1.5rem))] sm:w-80'}`}>
                 <div className="mb-2 flex items-center gap-2 border-b-4 border-dashed border-[#b77935] px-1 pb-2 text-[#5c3a1e]">
                   <PixelMapIcon className="h-6 w-6" />
-                  <span className="text-sm font-black uppercase tracking-[0.12em]">Choose a place</span>
+                  <span className="text-sm font-black uppercase tracking-[0.12em]">{showOutdoorTravelMap ? 'Travel map' : 'Choose a place'}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {roomMapItems.map(({ room, label, colors }) => {
+                {!showOutdoorTravelMap ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {INDOOR_ROOM_ITEMS.map(({ room, label, colors }) => {
+                      const isActive = currentRoom === room;
+                      return (
+                        <button
+                          key={room}
+                          type="button"
+                          onClick={() => handleRoomMapNavigate(room)}
+                          disabled={isActive}
+                          className={`relative flex min-h-20 flex-col items-center justify-center gap-1 border-2 p-2 font-black uppercase shadow-[3px_3px_0_rgba(82,55,30,0.35)] transition-transform hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:min-h-24 ${isActive ? colors : 'border-[#9a6b3f] bg-[#fffaf0] text-[#5c3a1e]'}`}
+                          aria-current={isActive ? 'location' : undefined}
+                        >
+                          {isActive && <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center bg-emerald-500 text-[10px] leading-none text-white">✓</span>}
+                          <PixelRoomIcon room={room} className="h-8 w-8 sm:h-10 sm:w-10" />
+                          <span className="text-[9px] tracking-[0.08em] sm:text-[11px]">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                <div className="relative aspect-[16/10] min-h-[18rem] overflow-hidden border-[3px] border-[#8b5a2b] bg-[#9fd064] shadow-inner [image-rendering:pixelated] sm:min-h-[25rem]">
+                  <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(90deg,#406b2d_1px,transparent_1px),linear-gradient(#406b2d_1px,transparent_1px)] [background-size:12px_12px]" />
+                  <div
+                    className="absolute left-0 top-0 h-[53%] w-[34%] border-b-4 border-r-4 border-[#6d963c] bg-cover bg-center [image-rendering:pixelated]"
+                    style={{ backgroundImage: "linear-gradient(rgba(255,236,177,.15),rgba(255,236,177,.15)),url('/pet-function/rooms-wide/shopping-street.png')" }}
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="absolute bottom-0 left-0 h-[47%] w-[34%] border-r-4 border-t-4 border-[#587f37] bg-cover bg-center [image-rendering:pixelated]"
+                    style={{ backgroundImage: "linear-gradient(rgba(40,104,54,.08),rgba(40,104,54,.08)),url('/pet-function/rooms-wide/sports-ground.png')" }}
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="absolute right-0 top-0 h-full w-[66%] border-l-4 border-[#6d963c] bg-cover bg-center [image-rendering:pixelated]"
+                    style={{ backgroundImage: "linear-gradient(rgba(255,230,155,.08),rgba(255,230,155,.08)),url('/pet-function/rooms-wide/town-home.png')" }}
+                    aria-hidden="true"
+                  />
+
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
+                    {ROOM_MAP_ROUTES.map(([x1, y1, x2, y2], index) => (
+                      <g key={index}>
+                        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#7a4a20" strokeWidth="4.2" strokeLinecap="square" />
+                        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#f4c867" strokeWidth="2.5" strokeLinecap="square" />
+                      </g>
+                    ))}
+                  </svg>
+
+                  {ROOM_MAP_ITEMS.map(({ room, label, x, y, color }) => {
                     const isActive = currentRoom === room;
                     return (
                       <button
                         key={room}
                         type="button"
                         onClick={() => handleRoomMapNavigate(room)}
-                        className={`relative flex min-h-20 flex-col items-center justify-center gap-1 border-2 p-2 font-black uppercase shadow-[3px_3px_0_rgba(82,55,30,0.35)] transition-transform hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:min-h-24 ${isActive ? colors : 'border-[#9a6b3f] bg-[#fffaf0] text-[#5c3a1e]'}`}
+                        disabled={isActive}
+                        style={{ left: `${x}%`, top: `${y}%`, borderColor: color }}
+                        className={`absolute flex h-12 w-14 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center border-[3px] bg-[#fff8dc] font-black uppercase text-[#4b2d1b] shadow-[3px_3px_0_#69401f] transition-transform sm:h-16 sm:w-[4.5rem] ${isActive ? 'z-20 scale-110 bg-[#ffe58a]' : 'z-10 hover:-translate-y-[55%] hover:brightness-110 active:translate-x-[calc(-50%+2px)] active:translate-y-[calc(-50%+2px)] active:shadow-none'}`}
                         aria-current={isActive ? 'location' : undefined}
+                        aria-label={`${label}${isActive ? ', current location' : ''}`}
                       >
-                        {isActive && <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center bg-emerald-500 text-[10px] leading-none text-white">✓</span>}
-                        <PixelRoomIcon room={room} className="h-8 w-8 sm:h-10 sm:w-10" />
-                        <span className="text-[9px] tracking-[0.08em] sm:text-[11px]">{label}</span>
+                        {isActive && <span className="absolute -top-9 left-1/2 -translate-x-1/2"><PixelCatMapMarker /></span>}
+                        <PixelRoomIcon room={room} className="h-5 w-5 sm:h-7 sm:w-7" />
+                        <span className="text-[7px] leading-none tracking-[0.04em] sm:text-[9px]">{label}</span>
                       </button>
                     );
                   })}
+                  <div className="pointer-events-none absolute bottom-1 left-2 border-2 border-[#6b4423] bg-[#fff3bd]/90 px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-[#5c3a1e] sm:text-[10px]">
+                    Cat head = you are here
+                  </div>
                 </div>
+                )}
               </div>
             </>
           )}

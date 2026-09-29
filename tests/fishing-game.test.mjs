@@ -15,6 +15,10 @@ test('town pond contour opens the dedicated fishing scene by click or nearby Spa
   assert.match(roomSource, /action === 'fishing'/);
 });
 
+test('leaving the fishing pond starts the shared room loading animation immediately', () => {
+  assert.match(roomSource, /currentRoom === RoomType\.FISHING_POND[\s\S]*?setRoomTransition\(exit\);[\s\S]*?setLoadingAnimationKey\(\(key\) => key \+ 1\);[\s\S]*?setIsRoomTransitionLoading\(true\);[\s\S]*?return;/);
+});
+
 test('fishing power meter uses the requested difficulty and coin bands', () => {
   assert.match(fishingSource, /Math\.random\(\) >= 0\.6/);
   assert.match(fishingSource, /randomInt\(2, 5\)/);
@@ -33,6 +37,25 @@ test('fishing waits for a bite and then requires the fish to be reeled to zero d
   assert.match(fishingSource, /next >= 100/);
   assert.match(fishingSource, /setHolding\(true\)/);
   assert.match(fishingSource, /Hold Space to reel in/);
+});
+
+test('fishing includes a persistent step-by-step highlighted tutorial', () => {
+  assert.match(fishingSource, /FISHING_TUTORIAL_STEPS/);
+  assert.match(fishingSource, /Cast the line/);
+  assert.match(fishingSource, /Choose your power/);
+  assert.match(fishingSource, /Reel the fish closer/);
+  assert.match(fishingSource, /Watch line tension/);
+  assert.match(fishingSource, /Collect the reward/);
+  assert.match(fishingSource, /pet-function:fishing-tutorial-complete-v1/);
+  assert.match(fishingSource, /role="dialog" aria-modal="true" aria-label="Fishing tutorial"/);
+  assert.match(fishingSource, /Open fishing tutorial/);
+  assert.match(fishingSource, /const displayPhase = tutorialPreviewPhase \|\| phase/);
+  assert.match(fishingSource, /tutorialStep === 1 \? 50 : pointer/);
+  assert.match(fishingSource, /tutorialStep === 3 \? 84 : 48/);
+  assert.match(fishingSource, /tutorialStep === 4 \? tutorialResult : result!/);
+  assert.match(fishingSource, /right-3 top-32/);
+  assert.match(fishingSource, /0_0_0_9999px_rgba\(23,37,24,\.75\)/);
+  assert.doesNotMatch(fishingSource, /z-\[70\] bg-\[#172518\]\/75/);
 });
 
 test('continuous reeling builds tension and requires the player to release Space', () => {
@@ -71,11 +94,11 @@ test('bite feedback includes pond ripples, centered bobber motion, and an alert 
   assert.match(fishingSource, /fishing-bobber__float/);
   assert.match(fishingSource, /fishing-bobber__bait/);
   assert.match(fishingSource, /fishingRippleLocal/);
-  assert.match(fishingSource, /phase === 'waiting' \? Math\.sin/);
+  assert.match(fishingSource, /displayPhase === 'waiting' \? Math\.sin/);
   assert.match(fishingSource, /Math\.sin\(motionTime \/ 217\).*Math\.sin\(motionTime \/ 83\).*Math\.sin\(motionTime \/ 47\)/);
   assert.match(fishingSource, /top: `\$\{bobberVisualTop\}%`/);
   assert.match(fishingSource, /\$\{bobberLeft\} \$\{bobberVisualTop\}/);
-  assert.match(fishingSource, /phase === 'power' && <div className="absolute -left-7 -top-8/);
+  assert.match(fishingSource, /displayPhase === 'power' && <div className="absolute -left-7 -top-8/);
 });
 
 test('a successful catch grants coins and the selected feedable fish species', () => {
@@ -94,7 +117,7 @@ test('a successful catch grants coins and the selected feedable fish species', (
 
 test('fishing scene renders a rear-facing cat and fishing rod on the lower dock', () => {
   assert.match(fishingSource, /FishingCatBack/);
-  assert.match(fishingSource, /bobberTop = phase === 'reeling' \|\| landing \? 62 - distance \* 0\.31 : 31/);
+  assert.match(fishingSource, /bobberTop = displayPhase === 'reeling' \|\| landing \? 62 - distance \* 0\.31 : 31/);
   assert.match(fishingSource, /rodTipLeft = 57 \+ sway \* 1\.8/);
   assert.match(fishingSource, /scaleX\(\$\{Math\.max\(0, Math\.min\(100, distance\)\) \/ 100\}\)/);
   assert.match(fishingSource, /right: '2%', left: 'auto', top: '50%'/);

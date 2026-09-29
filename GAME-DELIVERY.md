@@ -1,5 +1,15 @@
 # Direct game delivery (E-learning pilot)
 
+## Godot game source
+
+The editable Godot project for the shared mole game lives at
+`godot/mole-game/project.godot`. Open that project when changing gameplay,
+scenes, scripts, or source artwork. Godot's generated `.godot` cache is ignored.
+
+Web exports belong in `public/games/mole-game/`. That directory is the runtime
+artifact served to every consuming mini app at `/games/mole-game/index.html`;
+do not treat the exported files as the editable game source.
+
 Development: scripts/vite-games.mjs serves /games/** directly from
 pet_function/public/games. No executable copies are created in E-learning/public.
 Shared game file edits are read on subsequent requests; reload the game to see them.

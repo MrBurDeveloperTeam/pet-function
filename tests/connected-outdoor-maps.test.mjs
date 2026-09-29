@@ -42,15 +42,27 @@ test('town scenes use half-size cats and a collapsible top status control', () =
   assert.match(petRoomSource, /h-8 w-8/);
 });
 
-test('Space activates a nearby town road exit while exit arrows remain clickable', () => {
-  assert.match(petRoomSource, /event\.code === 'Space' && TOWN_ROOMS\.has\(currentRoom\)/);
+test('reaching a town road edge automatically changes scene while exit arrows remain clickable', () => {
+  assert.match(petRoomSource, /const AUTO_TOWN_EXIT_ROOMS = new Set<RoomType>/);
+  assert.match(petRoomSource, /AUTO_TOWN_EXIT_ROOMS\.has\(currentRoom\)/);
   assert.match(petRoomSource, /startRoomTransition\(nearbyExit\)/);
+  assert.doesNotMatch(petRoomSource, /event\.code === 'Space' && TOWN_ROOMS\.has\(currentRoom\)/);
   assert.match(petRoomSource, /onClick=\{\(\) => startRoomTransition\(exit\)\}/);
+  assert.match(petRoomSource, /sportsTopExitY = \(\(208 \* getOutdoorPetScale\(currentRoom\)\) \/ 2\) \/ Math\.max\(rect\.height, 1\) \+ 0\.015/);
+  assert.match(petRoomSource, /isMovingTowardSportsExit = outsideMovementKeysRef\.current\.up/);
+  assert.match(petRoomSource, /isMovingTowardSportsExit && y <= sportsTopExitY/);
 });
 
 test('sports ground return stays left of center and the cat cannot enter the stadium', () => {
   assert.match(petRoomSource, /isSportsGroundReturn/);
   assert.match(petRoomSource, /left-\[39%\] top-8/);
-  assert.match(navigationSource, /\{ x: 0\.54, y: 0\.19 \}, \{ x: 0\.46, y: 0\.19 \}/);
-  assert.match(navigationSource, /RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.14 \}/);
+  assert.match(navigationSource, /\{ x: 0\.54, y: 0\.095 \}, \{ x: 0\.46, y: 0\.095 \}/);
+  assert.match(navigationSource, /RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.075 \}/);
+});
+
+test('town route entry positions depend on the scene the cat came from', () => {
+  assert.match(petRoomSource, /RoomType\.SHOPPING_STREET[\s\S]*?RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.075 \}/);
+  assert.match(petRoomSource, /RoomType\.SHOPPING_STREET[\s\S]*?RoomType\.TOWN_HOME\]: \{ x: 0\.14, y: 0\.30 \}/);
+  assert.match(petRoomSource, /RoomType\.SPORTS_GROUND[\s\S]*?RoomType\.SHOPPING_STREET\]: \{ x: 0\.33, y: 0\.82 \}/);
+  assert.match(petRoomSource, /outdoorEntryPlacementRef\.current\?\.room === currentRoom/);
 });

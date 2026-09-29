@@ -14,7 +14,8 @@ test('shopping street storefronts own the food and furniture catalogs', () => {
   assert.match(shopSource, /food: \['Healthy', 'Breakfast', 'Meals', 'Drinks', 'Sweets'\]/);
   assert.match(shopSource, /furniture: \['Toys', 'Beds'\]/);
   assert.match(outlinesSource, /M592 406 V316 C592 290 607 277 624 277/);
-  assert.match(outlinesSource, /M899 405 V312 C899 288 914 275 930 275/);
+  assert.match(outlinesSource, /M899 405 V275 H962 V405 Z/);
+  assert.doesNotMatch(outlinesSource, /action: 'furniture-shop'[^\n]*C899 288/);
 });
 
 test('store modal toggles with Space and closes with Escape while the global shop button is absent', () => {
