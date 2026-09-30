@@ -8,6 +8,7 @@ export const OUTDOOR_ROOMS = new Set<RoomType>([
   RoomType.TOWN_HOME,
   RoomType.SHOPPING_STREET,
   RoomType.SPORTS_GROUND,
+  RoomType.SPORTS_STADIUM,
 ]);
 
 // Coordinates are traced against the 1862x845 room artwork. Only the new
@@ -37,6 +38,13 @@ const WALKABLE_POLYGONS: Partial<Record<RoomType, Polygon[]>> = {
       { x: 0.54, y: 0.095 }, { x: 0.46, y: 0.095 },
     ],
   ],
+  [RoomType.SPORTS_STADIUM]: [
+    [
+      { x: 0.08, y: 0.31 }, { x: 0.92, y: 0.31 },
+      { x: 0.98, y: 0.78 }, { x: 0.84, y: 0.94 },
+      { x: 0.16, y: 0.94 }, { x: 0.02, y: 0.78 },
+    ],
+  ],
 };
 
 export const OUTDOOR_INITIAL_PLACEMENT: Partial<Record<RoomType, NormalizedPoint>> = {
@@ -44,6 +52,7 @@ export const OUTDOOR_INITIAL_PLACEMENT: Partial<Record<RoomType, NormalizedPoint
   [RoomType.TOWN_HOME]: { x: 0.55, y: 0.48 },
   [RoomType.SHOPPING_STREET]: { x: 0.84, y: 0.53 },
   [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.075 },
+  [RoomType.SPORTS_STADIUM]: { x: 0.5, y: 0.84 },
 };
 
 const pointInPolygon = (point: NormalizedPoint, polygon: Polygon) => {

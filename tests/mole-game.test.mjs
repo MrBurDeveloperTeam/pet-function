@@ -176,12 +176,13 @@ test('mole HUD uses a left-center scene arrow and keeps the top corners for the 
   const script = readFileSync(new URL('../godot/mole-game/scripts/main.gd', import.meta.url), 'utf8');
   assert.match(script, /Rect2\(18,331,64,64\)/);
   assert.doesNotMatch(script, /"<  OUTSIDE"/);
-  assert.match(gameSource, /godot-v6/);
+  assert.match(gameSource, /godot-v7/);
   assert.match(roomSource, /stats=\{stats\}/);
 });
 
 test('mole game has a reusable spotlight tutorial tied to the real advanced mechanics', () => {
   const script = readFileSync(new URL('../godot/mole-game/scripts/main.gd', import.meta.url), 'utf8');
+  const exportedPage = readFileSync(new URL('../public/games/mole-game/index.html', import.meta.url), 'utf8');
   assert.match(gameSource, /MOLE_TUTORIAL_STORAGE_KEY/);
   assert.match(gameSource, /MOLE_TUTORIAL_STEPS/);
   assert.match(gameSource, /Nine Burrows Training/);
@@ -211,7 +212,13 @@ test('mole game has a reusable spotlight tutorial tied to the real advanced mech
   assert.match(gameSource, /top: '7rem'/);
   assert.match(gameSource, /pointerEvents: 'auto'/);
   assert.match(gameSource, /type: 'tutorial-active' \| 'tutorial-complete' \| 'tutorial-step'/);
-  assert.match(script, /var tutorial_paused := false/);
+  assert.match(script, /var tutorial_paused := true/);
+  assert.match(script, /post_to_host\("game-ready"\)/);
+  assert.match(exportedPage, /type: 'game-ready'/);
+  assert.match(gameSource, /type: 'game-ready'/);
+  assert.match(gameSource, /event\.data\.type === 'game-ready'[\s\S]*?setLoaded\(true\)/);
+  assert.match(gameSource, /loaded && tutorialStep !== null/);
+  assert.doesNotMatch(gameSource, /onLoad=\{\(\) => setLoaded\(true\)\}/);
   assert.match(script, /JavaScriptBridge\.create_callback\(_on_host_message\)/);
   assert.match(script, /data\.type == "tutorial-active"/);
   assert.match(script, /data\.type == "tutorial-complete"/);

@@ -35,6 +35,7 @@ export const ROOM_THEMES: Record<RoomTypeT, { bg: string; accent: string; icon: 
   [RoomType.TOWN_HOME]: { bg: 'bg-gradient-to-br from-[#ecfccb] via-[#d9f99d] to-[#86efac]', accent: 'text-lime-700', icon: '🏡' },
   [RoomType.SHOPPING_STREET]: { bg: 'bg-gradient-to-br from-[#fff7d6] via-[#fde68a] to-[#fdba74]', accent: 'text-amber-700', icon: '🏪' },
   [RoomType.SPORTS_GROUND]: { bg: 'bg-gradient-to-br from-[#dcfce7] via-[#bbf7d0] to-[#6ee7b7]', accent: 'text-emerald-700', icon: '🏟️' },
+  [RoomType.SPORTS_STADIUM]: { bg: 'bg-gradient-to-br from-[#dbeafe] via-[#fde68a] to-[#f97316]', accent: 'text-blue-700', icon: '🏟️' },
   [RoomType.FISHING_POND]: { bg: 'bg-gradient-to-br from-[#d9f99d] via-[#7dd3fc] to-[#38bdf8]', accent: 'text-sky-700', icon: '🎣' },
 };
 

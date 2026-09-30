@@ -27,6 +27,7 @@ import { resolveItemPixelImage } from './components/FoodItemVisual';
 import { constrainOutdoorPosition, OUTDOOR_INITIAL_PLACEMENT, OUTDOOR_ROOMS } from './outdoorNavigation';
 
 type RoomExitDirection = 'left' | 'right' | 'up' | 'down';
+type StadiumActivity = 'football' | 'hurdle';
 
 interface RoomExit {
   direction: RoomExitDirection;
@@ -62,6 +63,9 @@ const ROOM_EXITS: Partial<Record<RoomType, RoomExit[]>> = {
   ],
   [RoomType.SPORTS_GROUND]: [
     { direction: 'up', destination: RoomType.SHOPPING_STREET, label: 'Go to shopping street' },
+  ],
+  [RoomType.SPORTS_STADIUM]: [
+    { direction: 'down', destination: RoomType.SPORTS_GROUND, label: 'Return to sports ground' },
   ],
   [RoomType.FISHING_POND]: [
     { direction: 'left', destination: RoomType.TOWN_HOME, label: 'Return home' },
@@ -104,11 +108,24 @@ const CLEAN_GAIN_PER_BATH_CYCLE = 25;
 const MAX_BUBBLES = SOAP_RUBS_TO_LATHER * BUBBLES_PER_SOAP_RUB;
 const RINSE_COMPLETE_THRESHOLD = Math.ceil(MAX_BUBBLES * 0.05);
 const OUTSIDE_PET_SCALE = 0.75;
+const STADIUM_ACTIVITY_POSITIONS: Record<StadiumActivity, { x: number; y: number }> = {
+  football: { x: 0.405, y: 0.49 },
+  hurdle: { x: 0.77, y: 0.70 },
+};
+const STADIUM_ACTIVITY_GAMES: Record<StadiumActivity, string> = {
+  football: 'stadium-football',
+  hurdle: 'stadium-hurdles',
+};
+const isNearStadiumActivity = (activity: StadiumActivity, x: number, y: number) => {
+  const target = STADIUM_ACTIVITY_POSITIONS[activity];
+  return Math.hypot((x - target.x) / 0.085, (y - target.y) / 0.11) <= 1;
+};
 const TOWN_PET_SCALE = OUTSIDE_PET_SCALE * 0.5;
 const TOWN_ROOMS = new Set<RoomType>([
   RoomType.TOWN_HOME,
   RoomType.SHOPPING_STREET,
   RoomType.SPORTS_GROUND,
+  RoomType.SPORTS_STADIUM,
   RoomType.FISHING_POND,
 ]);
 const AUTO_TOWN_EXIT_ROOMS = new Set<RoomType>([
@@ -123,6 +140,10 @@ const OUTDOOR_ROUTE_ENTRY_PLACEMENT: Partial<Record<RoomType, Partial<Record<Roo
   },
   [RoomType.SPORTS_GROUND]: {
     [RoomType.SHOPPING_STREET]: { x: 0.33, y: 0.82 },
+    [RoomType.SPORTS_STADIUM]: { x: 0.5, y: 0.84 },
+  },
+  [RoomType.SPORTS_STADIUM]: {
+    [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.075 },
   },
 };
 const getOutdoorPetScale = (room: RoomType) => TOWN_ROOMS.has(room) ? TOWN_PET_SCALE : OUTSIDE_PET_SCALE;
@@ -165,6 +186,8 @@ const ROOM_DOOR_EXITS: Partial<Record<RoomType, RoomExit>> = {
   [RoomType.KITCHEN]: { direction: 'right', destination: RoomType.PLAYROOM, label: 'Go outside through the door' },
   [RoomType.GAMES]: { direction: 'left', destination: RoomType.TOWN_HOME, label: 'Go home through the door' },
   [RoomType.TOWN_HOME]: { direction: 'right', destination: RoomType.GAMES, label: 'Enter the games room' },
+  [RoomType.SPORTS_GROUND]: { direction: 'up', destination: RoomType.SPORTS_STADIUM, label: 'Enter the sports stadium' },
+  [RoomType.SPORTS_STADIUM]: { direction: 'down', destination: RoomType.SPORTS_GROUND, label: 'Leave the sports stadium' },
 };
 
 const ROOM_DOOR_PROXIMITY: Partial<Record<RoomType, { min: number; max: number; minY?: number; maxY?: number }>> = {
@@ -172,6 +195,8 @@ const ROOM_DOOR_PROXIMITY: Partial<Record<RoomType, { min: number; max: number; 
   [RoomType.KITCHEN]: { min: 0.72, max: 0.9 },
   [RoomType.GAMES]: { min: 0.12, max: 0.25 },
   [RoomType.TOWN_HOME]: { min: 0.48, max: 0.62, minY: 0.34, maxY: 0.58 },
+  [RoomType.SPORTS_GROUND]: { min: 0.46, max: 0.54, minY: 0, maxY: 0.14 },
+  [RoomType.SPORTS_STADIUM]: { min: 0.38, max: 0.62, minY: 0.72, maxY: 0.96 },
 };
 
 const INDOOR_INITIAL_PLACEMENT: Partial<Record<RoomType, { x: number; y: number }>> = {
@@ -1317,6 +1342,33 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     };
   }, []);
 
+  const activateStadiumActivity = (activity: StadiumActivity) => {
+    if (currentRoom !== RoomType.SPORTS_STADIUM) return;
+    onNavigateToGame(STADIUM_ACTIVITY_GAMES[activity]);
+  };
+
+  useEffect(() => {
+    if (currentRoom !== RoomType.SPORTS_STADIUM || isSleeping || roomTransition) return;
+    const handleStadiumInteraction = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+      const area = playAreaRef.current;
+      if (!area) return;
+      const rect = area.getBoundingClientRect();
+      const x = outsidePetPosRef.current.x / Math.max(rect.width, 1);
+      const y = outsidePetPosRef.current.y / Math.max(rect.height, 1);
+      const activity = (Object.keys(STADIUM_ACTIVITY_POSITIONS) as StadiumActivity[])
+        .find((candidate) => isNearStadiumActivity(candidate, x, y));
+      if (!activity) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      activateStadiumActivity(activity);
+    };
+    window.addEventListener('keydown', handleStadiumInteraction);
+    return () => window.removeEventListener('keydown', handleStadiumInteraction);
+  }, [currentRoom, isSleeping, roomTransition]);
+
   useEffect(() => {
     if (!OUTDOOR_ROOMS.has(currentRoom) || showShopModal || showMoleGame || isSleeping) {
       outsideMovementKeysRef.current = { left: false, right: false, up: false, down: false };
@@ -1564,6 +1616,51 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           zIndex: -1,
         }}
       />
+
+      {currentRoom === RoomType.SPORTS_STADIUM && (
+        <>
+          {(['football', 'hurdle'] as StadiumActivity[]).map((activity) => {
+            const position = STADIUM_ACTIVITY_POSITIONS[activity];
+            const area = playAreaRef.current;
+            const width = area?.clientWidth || 1;
+            const height = area?.clientHeight || 1;
+            const isNearby = isNearStadiumActivity(
+              activity,
+              outsidePetPos.x / width,
+              outsidePetPos.y / height,
+            );
+            const isFootball = activity === 'football';
+            return (
+              <button
+                key={activity}
+                type="button"
+                className={`pet-stadium-activity absolute z-[12] -translate-x-1/2 -translate-y-1/2 border-0 bg-transparent p-0 outline-none ${isNearby ? 'is-nearby' : ''}`}
+                style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%` }}
+                aria-label={isFootball ? 'Enter the football game' : 'Enter the hurdle game'}
+                title={isFootball ? 'Enter the football game' : 'Enter the hurdle game'}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  activateStadiumActivity(activity);
+                }}
+                data-pet-movement-block
+              >
+                <span className={`pet-stadium-prompt ${isNearby ? 'is-visible' : ''}`}>
+                  {isNearby ? 'SPACE / CLICK TO ENTER' : isFootball ? 'FOOTBALL GAME' : 'HURDLE GAME'}
+                </span>
+                <img
+                  src={isFootball
+                    ? '/pet-function/items/soccer-ball-pixel.png'
+                    : '/pet-function/sports/stadium-hurdle.png'}
+                  alt=""
+                  draggable={false}
+                  className={`pet-stadium-object ${isFootball ? 'pet-stadium-football' : 'pet-stadium-hurdle'}`}
+                />
+              </button>
+            );
+          })}
+        </>
+      )}
 
       {roomExits.map((exit) => {
         const isStackedGamesExit = currentRoom === RoomType.GAMES && exit.direction === 'right';

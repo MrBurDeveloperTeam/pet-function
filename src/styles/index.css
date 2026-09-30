@@ -1264,6 +1264,64 @@
   cursor: default;
 }
 
+.snabbb-molar-experience .pet-stadium-activity {
+  cursor: pointer;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 5px 3px rgb(62 39 20 / 28%));
+}
+
+.snabbb-molar-experience .pet-stadium-object {
+  display: block;
+  object-fit: contain;
+  transition: filter 160ms ease, transform 160ms ease;
+  user-select: none;
+}
+
+.snabbb-molar-experience .pet-stadium-football { width: clamp(46px, 5.2vw, 82px); }
+.snabbb-molar-experience .pet-stadium-hurdle { width: clamp(118px, 12vw, 210px); }
+
+.snabbb-molar-experience .pet-stadium-activity:hover .pet-stadium-object,
+.snabbb-molar-experience .pet-stadium-activity:focus-visible .pet-stadium-object,
+.snabbb-molar-experience .pet-stadium-activity.is-nearby .pet-stadium-object {
+  filter: brightness(1.12) drop-shadow(0 0 8px #fff4a8);
+  transform: scale(1.07);
+}
+
+.snabbb-molar-experience .pet-stadium-prompt {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  z-index: 2;
+  min-width: max-content;
+  transform: translateX(-50%);
+  border: 3px solid #5b391f;
+  background: #fff0ad;
+  box-shadow: 3px 3px 0 #3b271a;
+  color: #51321d;
+  padding: 4px 8px;
+  font-size: clamp(9px, 0.8vw, 12px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  opacity: 0.82;
+  white-space: nowrap;
+}
+
+.snabbb-molar-experience .pet-stadium-prompt.is-visible {
+  background: #ffe05e;
+  opacity: 1;
+  animation: pet-stadium-prompt-pulse 700ms ease-in-out infinite alternate;
+}
+
+@keyframes pet-stadium-prompt-pulse {
+  from { transform: translateX(-50%) translateY(0); }
+  to { transform: translateX(-50%) translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snabbb-molar-experience .pet-stadium-prompt.is-visible { animation: none; }
+}
+
 .snabbb-molar-experience .pet-room-loading-sky {
   image-rendering: pixelated;
 }

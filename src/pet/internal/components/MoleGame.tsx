@@ -4,7 +4,7 @@ import { TiArrowBack } from 'react-icons/ti';
 import { PixelCoinBag } from './CoinIndicator';
 import type { PetStats } from '../types';
 
-const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v6';
+const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v7';
 const MOLE_GAME_SOURCE = 'pet-function:mole-game';
 const MOLE_TUTORIAL_STORAGE_KEY = 'pet-function:mole-tutorial-complete-v1';
 const MOLE_TUTORIAL_STEPS = [
@@ -56,7 +56,7 @@ const calculateTutorialTargetBounds = (step: number, viewportWidth: number, view
 
 type MoleGameMessage = {
   source: typeof MOLE_GAME_SOURCE;
-  type: 'game-started' | 'game-complete' | 'close' | 'tutorial-progress' | 'tutorial-target-bounds';
+  type: 'game-ready' | 'game-started' | 'game-complete' | 'close' | 'tutorial-progress' | 'tutorial-target-bounds';
   score?: number;
   coins?: number;
   xp?: number;
@@ -70,7 +70,7 @@ type MoleGameMessage = {
 const isMoleGameMessage = (value: unknown): value is MoleGameMessage => {
   if (!value || typeof value !== 'object') return false;
   const message = value as Partial<MoleGameMessage>;
-  return message.source === MOLE_GAME_SOURCE && (message.type === 'game-started' || message.type === 'game-complete' || message.type === 'close' || message.type === 'tutorial-progress' || message.type === 'tutorial-target-bounds');
+  return message.source === MOLE_GAME_SOURCE && (message.type === 'game-ready' || message.type === 'game-started' || message.type === 'game-complete' || message.type === 'close' || message.type === 'tutorial-progress' || message.type === 'tutorial-target-bounds');
 };
 
 export const PixelMoleMound = ({ onOpen }: { onOpen: () => void }) => (
@@ -168,6 +168,11 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
         onClose();
         return;
       }
+      if (event.data.type === 'game-ready') {
+        setLoaded(true);
+        if (tutorialStep === null) postTutorialState('tutorial-complete');
+        return;
+      }
       if (event.data.type === 'game-started') {
         rewardedRef.current = false;
         return;
@@ -201,7 +206,7 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
 
     window.addEventListener('message', receiveMessage);
     return () => window.removeEventListener('message', receiveMessage);
-  }, [onClose, onReward, postTutorialState]);
+  }, [onClose, onReward, postTutorialState, tutorialStep]);
 
   if (typeof document === 'undefined') return null;
 
@@ -225,7 +230,6 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
         className="h-full w-full border-0 bg-[#080503]"
         style={{ display: 'block', width: '100%', height: '100%', border: 0 }}
         allow="autoplay; fullscreen"
-        onLoad={() => setLoaded(true)}
       />
       <div className="pointer-events-none absolute inset-0 z-20">
         <div className="absolute left-3 top-3 sm:left-6 sm:top-6" style={{ pointerEvents: 'auto' }}>
@@ -250,7 +254,7 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
         </div>
         <MoleLevelBadge stats={stats} />
       </div>
-      <button
+      {loaded && <button
         type="button"
         onClick={() => setTutorialStep(0)}
         style={{
@@ -283,8 +287,8 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
       >
         <span aria-hidden="true" style={{ fontSize: '1.25rem', lineHeight: 1 }}>▤</span>
         GUIDE
-      </button>
-      {tutorialStep !== null && (
+      </button>}
+      {loaded && tutorialStep !== null && (
         <MoleGameTutorial
           step={tutorialStep}
           targetBounds={tutorialTargetBounds}

@@ -66,7 +66,7 @@ var next_blackout_at := 0.0
 var mud_time := 0.0
 var mud_throw_time := 0.0
 var next_mud_throw := 0.0
-var tutorial_paused := false
+var tutorial_paused := true
 var tutorial_step := -1
 var host_message_callback: JavaScriptObject
 
@@ -77,6 +77,7 @@ func _ready() -> void:
 	schedule_blackout()
 	update_scene_layout()
 	queue_redraw()
+	post_to_host("game-ready")
 
 func _process(delta: float) -> void:
 	update_scene_layout()

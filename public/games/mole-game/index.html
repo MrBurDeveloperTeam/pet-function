@@ -211,10 +211,10 @@ const engine = new Engine(GODOT_CONFIG);
 			},
 		}).then(() => {
 			setStatusMode('hidden');
+			window.parent.postMessage({ source: 'pet-function:mole-game', type: 'game-ready' }, window.location.origin);
 		}, displayFailureNotice);
 	}
 }());
 		</script>
 	</body>
 </html>
-

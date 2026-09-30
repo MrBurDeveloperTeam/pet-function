@@ -16,6 +16,8 @@ test('room doors lead to their requested destinations', () => {
   assert.match(roomSource, /\[RoomType\.KITCHEN\]: \{ direction: 'right', destination: RoomType\.PLAYROOM, label: 'Go outside through the door' \}/);
   assert.match(roomSource, /\[RoomType\.GAMES\]: \{ direction: 'left', destination: RoomType\.TOWN_HOME, label: 'Go home through the door' \}/);
   assert.match(roomSource, /\[RoomType\.TOWN_HOME\]: \{ direction: 'right', destination: RoomType\.GAMES, label: 'Enter the games room' \}/);
+  assert.match(roomSource, /\[RoomType\.SPORTS_GROUND\]: \{ direction: 'up', destination: RoomType\.SPORTS_STADIUM, label: 'Enter the sports stadium' \}/);
+  assert.match(roomSource, /\[RoomType\.SPORTS_STADIUM\]: \{ direction: 'down', destination: RoomType\.SPORTS_GROUND, label: 'Leave the sports stadium' \}/);
 });
 
 test('doors use clickable pulsing contours', () => {
@@ -36,11 +38,11 @@ test('town home prompt follows the stone arch instead of a wall-sized rectangle'
   assert.doesNotMatch(outlinesSource, /M989 178 H1086 V347 H989 Z/);
 });
 
-test('sports stadium door has a fitted visual-only preview contour', () => {
-  assert.match(outlinesSource, /label: 'Sports stadium entrance coming soon'/);
+test('sports stadium entrances use fitted clickable contours', () => {
+  assert.match(outlinesSource, /label: 'Enter the sports stadium'/);
   assert.match(outlinesSource, /M846 283 V203 C846 160 882 136 931 136 C980 136 1016 160 1016 203 V283 Z/);
-  assert.match(outlinesSource, /interactive: false/);
-  assert.match(outlinesSource, /pet-interaction-outline-preview/);
+  assert.match(outlinesSource, /label: 'Leave the sports stadium'/);
+  assert.match(outlinesSource, /M647 845 V752 C720 697 810 676 931 676 C1052 676 1142 697 1215 752 V845 Z/);
 });
 
 test('Space activates a door only while the cat is beside it', () => {
@@ -48,4 +50,5 @@ test('Space activates a door only while the cat is beside it', () => {
   assert.match(roomSource, /event\.code !== 'Space'/);
   assert.match(roomSource, /petXRatio < doorProximity\.min \|\| petXRatio > doorProximity\.max/);
   assert.match(roomSource, /startRoomTransition\(doorExit\)/);
+  assert.match(roomSource, /\[RoomType\.SPORTS_GROUND\]: \{ min: 0\.46, max: 0\.54, minY: 0, maxY: 0\.14 \}/);
 });
