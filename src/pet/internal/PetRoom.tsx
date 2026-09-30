@@ -196,6 +196,7 @@ const getRoomSceneHorizontalBounds = (width: number, _height: number) => ({
 
 interface PetRoomProps {
   onNavigateToGame: (gameId: string) => void;
+  onExitPet?: () => void;
   /** Host-local games rendered as additional Games-menu cards. See
    *  `ExtraGame`'s own doc (types.ts). */
   extraGames?: ExtraGame[];
@@ -206,6 +207,7 @@ interface PetRoomProps {
 
 export const PetRoom: React.FC<PetRoomProps> = ({
   onNavigateToGame,
+  onExitPet,
   extraGames,
   roomNavigationRequest,
   onRoomNavigationRequestHandled,
@@ -1959,6 +1961,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       {currentRoom === RoomType.PLAYROOM && showMoleGame && (
         <MoleGame
           onClose={() => setShowMoleGame(false)}
+          onExitPet={() => onExitPet?.()}
+          stats={stats}
           onReward={(coins, xp) => {
             addCoins(coins);
             addXP(xp);

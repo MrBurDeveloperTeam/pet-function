@@ -379,6 +379,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
       {view === 'ROOM' ? (
         <PetRoom
           onNavigateToGame={handleNavigateToGame}
+          onExitPet={() => { void handleClose(); }}
           extraGames={extraGames}
           roomNavigationRequest={roomNavigationRequest}
           onRoomNavigationRequestHandled={handleRoomNavigationRequestHandled}

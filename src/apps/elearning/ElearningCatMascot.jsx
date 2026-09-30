@@ -193,6 +193,17 @@ return function ElearningCatMascot({ onCatClick, disabled = false, userId = null
   const petStatesRef = useRef(['Normal']);
 
   useEffect(() => {
+    // Auth resolves asynchronously in E-learning. The first render is usually
+    // `loading`, so the identity state starts empty. When that resolves to a
+    // signed-out guest the mascot is still intentionally disabled, but it
+    // must receive the default visual identity before the disabled guard or
+    // the component stays on `return null` forever.
+    if (resolvedAuthStatus === 'guest') {
+      setSelectedPetId(normalizePetId(null));
+      setIsPetIdentityReady(true);
+      return;
+    }
+
     if (disabled) return;
 
     const computeStates = (stats, prevStates) => {
@@ -254,8 +265,7 @@ return function ElearningCatMascot({ onCatClick, disabled = false, userId = null
 
     readLocalSleepState();
     const cachedPetName = readSharedPetName(userId);
-    if (resolvedAuthStatus === 'guest') { setSelectedPetId(normalizePetId(null)); setIsPetIdentityReady(true); }
-    else if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
+    if (cachedPetName) { setSelectedPetId(normalizePetId(cachedPetName)); setIsPetIdentityReady(true); }
     else { setSelectedPetId(null); setIsPetIdentityReady(false); }
 
     const handlePetSleepChange = (event) => {

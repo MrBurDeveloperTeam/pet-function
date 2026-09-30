@@ -42,3 +42,13 @@ test('E-learning removes the old implementation and executes only the shared ada
  assert.match(source,/createElearningCatMascot/);
  assert.match(source,/@mrburdeveloperteam\/pet-function\/apps\/elearning/);
 });
+
+test('E-learning guest mascot resolves its default identity before the disabled guard',()=>{
+ const source=readFileSync('src/apps/elearning/ElearningCatMascot.jsx','utf8');
+ const guestGuard=source.indexOf("if (resolvedAuthStatus === 'guest')");
+ const disabledGuard=source.indexOf('if (disabled) return;',guestGuard);
+ assert.ok(guestGuard >= 0,'guest identity guard is present');
+ assert.ok(disabledGuard > guestGuard,'guest identity resolves before disabled early return');
+ assert.match(source.slice(guestGuard,disabledGuard),/setSelectedPetId\(normalizePetId\(null\)\)/);
+ assert.match(source.slice(guestGuard,disabledGuard),/setIsPetIdentityReady\(true\)/);
+});

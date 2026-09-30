@@ -28,68 +28,78 @@ test('fishing power meter uses the requested difficulty and coin bands', () => {
   assert.match(fishingSource, /M20 105 A110 78/);
 });
 
-test('fishing waits for a bite and then requires the fish to be reeled to zero distance', () => {
+test('fishing waits for a bite and uses discrete colour matches to reel to zero distance', () => {
   assert.match(fishingSource, /randomInt\(2000, 10000\)/);
   assert.match(fishingSource, /type FishingPhase = 'ready' \| 'waiting' \| 'power' \| 'reeling' \| 'result'/);
   assert.match(fishingSource, /phaseRef\.current === 'ready'.*castLine\(\)/);
   assert.match(fishingSource, /Press Space to cast the line/);
   assert.match(fishingSource, /next <= 0/);
   assert.match(fishingSource, /next >= 100/);
-  assert.match(fishingSource, /setHolding\(true\)/);
-  assert.match(fishingSource, /Hold Space to reel in/);
+  assert.match(fishingSource, /resolveRouletteBand\(reelPointer, rouletteSlices\)/);
+  assert.match(fishingSource, /correct \? -15 : 5/);
 });
 
 test('fishing includes a persistent step-by-step highlighted tutorial', () => {
   assert.match(fishingSource, /FISHING_TUTORIAL_STEPS/);
   assert.match(fishingSource, /Cast the line/);
   assert.match(fishingSource, /Choose your power/);
-  assert.match(fishingSource, /Reel the fish closer/);
-  assert.match(fishingSource, /Watch line tension/);
-  assert.match(fishingSource, /Collect the reward/);
+  assert.match(fishingSource, /Follow the !!! signal/);
+  assert.match(fishingSource, /Hit the matching colour/);
+  assert.match(fishingSource, /Pull the fish closer/);
+  assert.match(fishingSource, /Catch and collect/);
+  assert.match(fishingSource, /Every attempt changes the !!! and reshuffles the roulette/);
   assert.match(fishingSource, /pet-function:fishing-tutorial-complete-v1/);
   assert.match(fishingSource, /role="dialog" aria-modal="true" aria-label="Fishing tutorial"/);
   assert.match(fishingSource, /Open fishing tutorial/);
   assert.match(fishingSource, /const displayPhase = tutorialPreviewPhase \|\| phase/);
   assert.match(fishingSource, /tutorialStep === 1 \? 50 : pointer/);
-  assert.match(fishingSource, /tutorialStep === 3 \? 84 : 48/);
-  assert.match(fishingSource, /tutorialStep === 4 \? tutorialResult : result!/);
+  assert.match(fishingSource, /tutorialStep === 3 \? 'orange' : tutorialStep === 4 \? 'green' : struggleState/);
+  assert.match(fishingSource, /tutorialStep === 5 \? tutorialResult : result!/);
   assert.match(fishingSource, /right-3 top-32/);
   assert.match(fishingSource, /0_0_0_9999px_rgba\(23,37,24,\.75\)/);
   assert.doesNotMatch(fishingSource, /z-\[70\] bg-\[#172518\]\/75/);
 });
 
-test('continuous reeling builds tension and requires the player to release Space', () => {
-  assert.match(fishingSource, /const \[tension, setTension\] = useState\(18\)/);
-  assert.match(fishingSource, /const danger = tension >= 72/);
-  assert.match(fishingSource, /const \[fishStruggle, setFishStruggle\] = useState\(85\)/);
-  assert.match(fishingSource, /selectedBand === 'red' \? 6\.5 : selectedBand === 'orange' \? 5 : selectedBand === 'green' \? 4 : 3/);
-  assert.match(fishingSource, /struggleCycle = \(\(time - reelingStartRef\.current\) \/ 1000\) % \(strongDuration \+ 7\)/);
-  assert.match(fishingSource, /reelingStartRef\.current = performance\.now\(\)/);
-  assert.match(fishingSource, /struggleCycle < strongDuration/);
-  assert.match(fishingSource, /struggleCycle < weakeningEnd/);
-  assert.match(fishingSource, /12 \+ boundedStruggle \* 0\.32/);
-  assert.match(fishingSource, /42 \+ \(100 - boundedStruggle\) \* 0\.32/);
-  assert.match(fishingSource, /nextTension >= 98/);
-  assert.match(fishingSource, /\? -\(1 \+ \(100 - boundedStruggle\) \* 0\.18\)/);
-  assert.match(fishingSource, /boundedStruggle >= 70/);
-  assert.match(fishingSource, /nextTension < 50 \? 2\.1 : nextTension < 60 \? 1\.65 : 1/);
-  assert.match(fishingSource, /\(4 \+ boundedStruggle \* 0\.06\) \* lowTensionEscapeBoost/);
-  assert.match(fishingSource, /setTension\(66\); tensionRef\.current = 66/);
-  assert.match(fishingSource, /Fish struggle/);
-  assert.match(fishingSource, /'Strong'.*'Weakening'.*'Tired'/);
-  assert.match(fishingSource, /LINE MAY SNAP — RELEASE SPACE!/);
-  assert.match(fishingSource, /Release briefly, but the fish will pull away/);
-  assert.match(fishingSource, /Line tension/);
-  assert.match(fishingSource, /fishing-tension-gradient/);
-  assert.match(fishingSource, /tension \* 1\.8 - 90/);
-  assert.doesNotMatch(fishingSource, /transition: 'transform 100ms linear'/);
+test('reeling uses three fixed struggle states and a fast moving colour-match pointer', () => {
+  assert.match(fishingSource, /type FishStruggleState = 'green' \| 'orange' \| 'red'/);
+  assert.match(fishingSource, /const \[reelPointer, setReelPointer\] = useState\(0\)/);
+  assert.match(fishingSource, /elapsed \* 0\.08568/);
+  assert.match(fishingSource, /const advanceStruggle = useCallback/);
+  assert.match(fishingSource, /setTimeout\(advanceStruggle, 3070\)/);
+  assert.match(fishingSource, /3070/);
+  assert.match(fishingSource, /landedBand === struggleState/);
+  assert.match(fishingSource, /createRouletteSlices/);
+  assert.match(fishingSource, /length: 3/);
+  assert.match(fishingSource, /length: 7/);
+  assert.match(fishingSource, /length: 8/);
+  assert.match(fishingSource, /weight: 1\.33/);
+  assert.match(fishingSource, /shuffled\[\(index \+ 1\) % shuffled\.length\]\.band === target/);
+  assert.match(fishingSource, /randomStruggleState\(struggleStateRef\.current\)/);
+  assert.match(fishingSource, /struggleStateRef\.current = next/);
+  assert.match(fishingSource, /setStruggleCycle\(current => current \+ 1\)/);
+  assert.match(fishingSource, /\}\);\n    advanceStruggle\(\);/);
+  assert.match(fishingSource, /MATCH!  -15m/);
+  assert.match(fishingSource, /WRONG COLOUR  \+5m/);
+  assert.match(fishingSource, /gameRef\.current\?\.animate/);
+  assert.match(fishingSource, /fishingSuccessFlash/);
+  assert.match(fishingSource, /fishingSuccessStar/);
+  assert.match(fishingSource, /PERFECT MATCH!/);
+  assert.match(fishingSource, /phaseRef\.current === 'reeling'\) judgeReel\(\)/);
+  assert.doesNotMatch(fishingSource, /Hold Space to reel in/);
+  assert.doesNotMatch(fishingSource, /fishing-tension-gradient/);
 });
 
 test('bite feedback includes pond ripples, centered bobber motion, and an alert over the cat', () => {
   assert.match(fishingSource, /className="fishing-ripples"/);
   assert.match(fishingSource, /fishing-ripple--one/);
   assert.match(fishingSource, /fishing-ripple--two/);
-  assert.doesNotMatch(fishingSource, /strokeDasharray/);
+  assert.match(fishingSource, /conic-gradient\(from 0deg/);
+  assert.match(fishingSource, /red: '#ff3045'/);
+  assert.match(fishingSource, /orange: '#ff9d12'/);
+  assert.match(fishingSource, /green: '#20dc68'/);
+  assert.match(fishingSource, /Pixel fishing roulette/);
+  assert.match(fishingSource, /#f6c45e/);
+  assert.match(fishingSource, /Array\.from\(\{ length: 8 \}/);
   assert.match(fishingSource, /Fishing bobber and bait/);
   assert.match(fishingSource, /fishing-bobber__float/);
   assert.match(fishingSource, /fishing-bobber__bait/);
@@ -124,7 +134,8 @@ test('fishing scene renders a rear-facing cat and fishing rod on the lower dock'
   assert.match(fishingSource, /width: 'min\(270px, calc\(100% - 2rem\)\)'/);
   assert.match(fishingSource, /style=\{result\.caught \? \{ left: '50%', top: '10%'/);
   assert.match(fishingSource, /: \{ right: '2%', left: 'auto', top: '50%'/);
-  assert.match(fishingSource, /<stop offset="72%" stopColor="#e94a3f"/);
+  assert.match(fishingSource, /conic-gradient\(from 0deg/);
+  assert.match(fishingSource, /rotate\(\$\{pointer \* 3\.6\}deg\)/);
   assert.doesNotMatch(fishingSource, /fishing-ripple-core/);
   assert.match(fishingSource, /width: 'clamp\(210px, 29dvh, 300px\)'/);
   assert.match(fishingSource, /height: 'clamp\(248px, 35dvh, 355px\)'/);
