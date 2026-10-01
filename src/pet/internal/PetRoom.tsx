@@ -110,7 +110,7 @@ const RINSE_COMPLETE_THRESHOLD = Math.ceil(MAX_BUBBLES * 0.05);
 const OUTSIDE_PET_SCALE = 0.75;
 const STADIUM_ACTIVITY_POSITIONS: Record<StadiumActivity, { x: number; y: number }> = {
   football: { x: 0.405, y: 0.49 },
-  hurdle: { x: 0.77, y: 0.70 },
+  hurdle: { x: 0.77, y: 0.665 },
 };
 const STADIUM_ACTIVITY_GAMES: Record<StadiumActivity, string> = {
   football: 'stadium-football',
@@ -1645,9 +1645,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                 }}
                 data-pet-movement-block
               >
-                <span className={`pet-stadium-prompt ${isNearby ? 'is-visible' : ''}`}>
-                  {isNearby ? 'SPACE / CLICK TO ENTER' : isFootball ? 'FOOTBALL GAME' : 'HURDLE GAME'}
-                </span>
                 <img
                   src={isFootball
                     ? '/pet-function/items/soccer-ball-pixel.png'

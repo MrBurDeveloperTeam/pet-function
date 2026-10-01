@@ -7,7 +7,7 @@ const stylesSource = readFileSync(new URL('../src/styles/index.css', import.meta
 
 test('stadium places an interactive football on the pitch and hurdle on the track', () => {
   assert.match(roomSource, /football: \{ x: 0\.405, y: 0\.49 \}/);
-  assert.match(roomSource, /hurdle: \{ x: 0\.77, y: 0\.70 \}/);
+  assert.match(roomSource, /hurdle: \{ x: 0\.77, y: 0\.665 \}/);
   assert.match(roomSource, /soccer-ball-pixel\.png/);
   assert.match(roomSource, /stadium-hurdle\.png/);
   assert.match(roomSource, /Enter the football game/);
@@ -17,10 +17,15 @@ test('stadium places an interactive football on the pitch and hurdle on the trac
 test('nearby Space and clicks enter reserved game scenes', () => {
   assert.match(roomSource, /event\.code !== 'Space'/);
   assert.match(roomSource, /isNearStadiumActivity/);
-  assert.match(roomSource, /SPACE \/ CLICK TO ENTER/);
+  assert.doesNotMatch(roomSource, /FOOTBALL GAME|HURDLE GAME|SPACE \/ CLICK TO ENTER/);
   assert.match(roomSource, /football: 'stadium-football'/);
   assert.match(roomSource, /hurdle: 'stadium-hurdles'/);
   assert.match(roomSource, /onNavigateToGame\(STADIUM_ACTIVITY_GAMES\[activity\]\)/);
   assert.doesNotMatch(roomSource, /GREAT KICK!|NICE JUMP!|stadiumFeedback/);
   assert.doesNotMatch(stylesSource, /pet-stadium-football-kick|pet-stadium-hurdle-jump|pet-stadium-success-pop/);
+});
+
+test('stadium activity artwork has no labels and the hurdle stays lane-sized', () => {
+  assert.doesNotMatch(roomSource, /pet-stadium-prompt/);
+  assert.match(stylesSource, /\.pet-stadium-hurdle \{ width: clamp\(58px, 6vw, 104px\); \}/);
 });

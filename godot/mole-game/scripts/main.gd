@@ -68,6 +68,8 @@ var mud_throw_time := 0.0
 var next_mud_throw := 0.0
 var tutorial_paused := true
 var tutorial_step := -1
+var tutorial_reaction_resume_hole := -1
+var tutorial_progress_pending := -1
 var host_message_callback: JavaScriptObject
 
 func _ready() -> void:
@@ -81,6 +83,19 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	update_scene_layout()
+	if reaction_hole >= 0:
+		reaction_age += delta
+		if reaction_age >= 0.48:
+			reaction_hole = -1
+			if tutorial_reaction_resume_hole >= 0:
+				target_hole = tutorial_reaction_resume_hole
+				tutorial_reaction_resume_hole = -1
+				target_age = 0.22
+				call_deferred("post_tutorial_target_bounds")
+			elif tutorial_progress_pending >= 0:
+				var completed_step := tutorial_progress_pending
+				tutorial_progress_pending = -1
+				post_to_host("tutorial-progress", {"step": completed_step})
 	if tutorial_paused:
 		queue_redraw()
 		return
@@ -113,10 +128,6 @@ func _process(delta: float) -> void:
 		update_boss_mud(delta)
 	shake = maxf(0.0, shake - delta * 5.0)
 	flash = maxf(0.0, flash - delta * 4.5)
-	if reaction_hole >= 0:
-		reaction_age += delta
-		if reaction_age >= 0.48:
-			reaction_hole = -1
 	feedback_age += delta
 	for particle in particles:
 		particle.p += particle.v * delta
@@ -393,6 +404,8 @@ func setup_tutorial_step(step: int) -> void:
 	flash = 0.0
 	particles.clear()
 	reaction_hole = -1
+	tutorial_reaction_resume_hole = -1
+	tutorial_progress_pending = -1
 	target_hole = 4
 	target_age = 0.22
 	target_hits_left = 1
@@ -462,11 +475,21 @@ func post_tutorial_target_bounds() -> void:
 	var padding := 12.0
 	min_point -= Vector2(padding, padding)
 	max_point += Vector2(padding, padding)
-	post_to_host("tutorial-target-bounds", {"left": min_point.x, "top": min_point.y, "width": max_point.x - min_point.x, "height": max_point.y - min_point.y})
+	var viewport_size := get_viewport_rect().size
+	post_to_host("tutorial-target-bounds", {
+		"left": min_point.x,
+		"top": min_point.y,
+		"width": max_point.x - min_point.x,
+		"height": max_point.y - min_point.y,
+		"viewportWidth": viewport_size.x,
+		"viewportHeight": viewport_size.y,
+	})
 
 func hit_tutorial_target(index: int) -> void:
 	if index != target_hole or tutorial_step == 2:
 		return
+	var hit_kind := target_kind
+	var hit_variant := target_variant
 	target_hits_left -= 1
 	if target_hits_left > 0:
 		if target_variant == "armored":
@@ -475,14 +498,20 @@ func hit_tutorial_target(index: int) -> void:
 			target_variant = "plaque"
 		elif target_variant == "shield":
 			target_variant = "phase1"
-		target_age = 0.22
+		reaction_hole = index
+		reaction_kind = hit_kind
+		reaction_variant = hit_variant
+		reaction_age = 0.0
+		target_hole = -1
+		tutorial_reaction_resume_hole = index
 		queue_redraw()
 		return
 	reaction_hole = index
-	reaction_kind = target_kind
-	reaction_variant = target_variant
+	reaction_kind = hit_kind
+	reaction_variant = hit_variant
 	reaction_age = 0.0
-	post_to_host("tutorial-progress", {"step": tutorial_step})
+	target_hole = -1
+	tutorial_progress_pending = tutorial_step
 
 func _draw() -> void:
 	var offset := Vector2(rng.randf_range(-9, 9), rng.randf_range(-6, 6)) * shake

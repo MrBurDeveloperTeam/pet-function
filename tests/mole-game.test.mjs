@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import test from 'node:test';
 
 const gameSource = readFileSync(new URL('../src/pet/internal/components/MoleGame.tsx', import.meta.url), 'utf8');
@@ -33,6 +33,13 @@ test('mole game embeds the shared Godot export and persists validated rewards', 
   assert.match(roomSource, /onExitPet=\{\(\) => onExitPet\?\.\(\)\}/);
   assert.doesNotMatch(gameSource, /aria-label="Open room map"/);
   assert.match(gameSource, /className="pet-interface overflow-hidden/);
+});
+
+test('mole game launcher declares the current exported pack size', () => {
+  const exportedPage = readFileSync(new URL('../public/games/mole-game/index.html', import.meta.url), 'utf8');
+  const packSize = statSync(new URL('../public/games/mole-game/index.pck', import.meta.url)).size;
+  assert.match(exportedPage, new RegExp(`"index\\.pck\\?v=godot-v9":${packSize}`));
+  assert.match(exportedPage, /"mainPack":"index\.pck\?v=godot-v9"/);
 });
 
 test('mole game provides a full-screen scene and loading state without a popup dialog', () => {
@@ -176,7 +183,8 @@ test('mole HUD uses a left-center scene arrow and keeps the top corners for the 
   const script = readFileSync(new URL('../godot/mole-game/scripts/main.gd', import.meta.url), 'utf8');
   assert.match(script, /Rect2\(18,331,64,64\)/);
   assert.doesNotMatch(script, /"<  OUTSIDE"/);
-  assert.match(gameSource, /godot-v7/);
+  assert.match(gameSource, /godot-v9/);
+  assert.match(gameSource, /background: '#100a07'/);
   assert.match(roomSource, /stats=\{stats\}/);
 });
 
@@ -193,10 +201,16 @@ test('mole game has a reusable spotlight tutorial tied to the real advanced mech
   assert.match(gameSource, /DO NOT CLICK/);
   assert.doesNotMatch(gameSource, /spotlight:\s*\{[^}]*height:\s*'\d+dvh'/);
   assert.match(gameSource, /type TutorialTargetBounds/);
-  assert.match(gameSource, /calculateTutorialTargetBounds/);
-  assert.match(gameSource, /spriteHeight = spriteWidth \* geometry\.imageHeight \/ geometry\.imageWidth/);
+  assert.match(gameSource, /projectTutorialTargetBounds/);
+  assert.match(gameSource, /tutorialTargetViewportBoundsRef/);
+  assert.match(gameSource, /frameRect\.left \+ bounds\.left \* scaleX/);
+  assert.match(gameSource, /frameRect\.top \+ bounds\.top \* scaleY/);
   assert.match(gameSource, /window\.addEventListener\('resize', updateTutorialTargetBounds\)/);
   assert.match(gameSource, /tutorial-target-bounds/);
+  assert.match(script, /"viewportWidth": viewport_size\.x/);
+  assert.match(script, /"viewportHeight": viewport_size\.y/);
+  assert.match(gameSource, /frameRect\.width \/ bounds\.viewportWidth/);
+  assert.match(gameSource, /frameRect\.height \/ bounds\.viewportHeight/);
   assert.match(gameSource, /left: `\$\{targetBounds\.left\}px`/);
   assert.match(script, /func post_tutorial_target_bounds\(\)/);
   assert.match(script, /texture\.get_height\(\)/);
@@ -226,5 +240,9 @@ test('mole game has a reusable spotlight tutorial tied to the real advanced mech
   assert.match(script, /func setup_tutorial_step/);
   assert.match(script, /func hit_tutorial_target/);
   assert.match(script, /post_to_host\("tutorial-progress"/);
+  assert.match(script, /tutorial_reaction_resume_hole/);
+  assert.match(script, /tutorial_progress_pending/);
+  assert.match(script, /if reaction_age >= 0\.48:[\s\S]*post_to_host\("tutorial-progress", \{"step": completed_step\}\)/);
+  assert.match(script, /target_hole = -1[\s\S]*tutorial_progress_pending = tutorial_step/);
   assert.match(script, /shake = 0\.0\s+flash = 0\.0\s+particles\.clear\(\)/);
 });

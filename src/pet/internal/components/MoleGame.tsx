@@ -4,7 +4,7 @@ import { TiArrowBack } from 'react-icons/ti';
 import { PixelCoinBag } from './CoinIndicator';
 import type { PetStats } from '../types';
 
-const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v7';
+const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v9';
 const MOLE_GAME_SOURCE = 'pet-function:mole-game';
 const MOLE_TUTORIAL_STORAGE_KEY = 'pet-function:mole-tutorial-complete-v1';
 const MOLE_TUTORIAL_STEPS = [
@@ -17,46 +17,12 @@ const MOLE_TUTORIAL_STEPS = [
 ] as const;
 
 type TutorialTargetBounds = { left: number; top: number; width: number; height: number };
-
-const TUTORIAL_TARGET_GEOMETRY = [
-  { baseWidth: 238, imageWidth: 405, imageHeight: 372 },
-  { baseWidth: 238, imageWidth: 405, imageHeight: 359 },
-  { baseWidth: 224, imageWidth: 395, imageHeight: 432 },
-  { baseWidth: 230, imageWidth: 380, imageHeight: 355 },
-  { baseWidth: 230, imageWidth: 380, imageHeight: 341 },
-  { baseWidth: 286, imageWidth: 577, imageHeight: 578 },
-] as const;
-
-const calculateTutorialTargetBounds = (step: number, viewportWidth: number, viewportHeight: number): TutorialTargetBounds => {
-  const geometry = TUTORIAL_TARGET_GEOMETRY[step] ?? TUTORIAL_TARGET_GEOMETRY[0];
-  const hole = { x: 638, y: 429, scale: .88, rotation: -.02 };
-  const gameOffset = { x: (viewportWidth - 1280) / 2, y: (viewportHeight - 720) / 2 };
-  const spriteWidth = geometry.baseWidth * hole.scale;
-  const spriteHeight = spriteWidth * geometry.imageHeight / geometry.imageWidth;
-  const bob = Math.sin(.22 * 16) * 3;
-  const bottom = 16 * hole.scale + bob + 48 * hole.scale;
-  const localLeft = -spriteWidth / 2;
-  const localTop = bottom - spriteHeight;
-  const corners = [
-    { x: localLeft, y: localTop },
-    { x: localLeft + spriteWidth, y: localTop },
-    { x: localLeft + spriteWidth, y: localTop + spriteHeight },
-    { x: localLeft, y: localTop + spriteHeight },
-  ].map(point => ({
-    x: point.x * Math.cos(hole.rotation) - point.y * Math.sin(hole.rotation) + gameOffset.x + hole.x,
-    y: point.x * Math.sin(hole.rotation) + point.y * Math.cos(hole.rotation) + gameOffset.y + hole.y,
-  }));
-  const padding = 12;
-  const left = Math.min(...corners.map(point => point.x)) - padding;
-  const top = Math.min(...corners.map(point => point.y)) - padding;
-  const right = Math.max(...corners.map(point => point.x)) + padding;
-  const bottomEdge = Math.max(...corners.map(point => point.y)) + padding;
-  return { left, top, width: right - left, height: bottomEdge - top };
-};
+type TutorialTargetViewportBounds = TutorialTargetBounds & { viewportWidth: number; viewportHeight: number };
 
 type MoleGameMessage = {
   source: typeof MOLE_GAME_SOURCE;
-  type: 'game-ready' | 'game-started' | 'game-complete' | 'close' | 'tutorial-progress' | 'tutorial-target-bounds';
+  type: 'game-error' | 'game-ready' | 'game-started' | 'game-complete' | 'close' | 'tutorial-progress' | 'tutorial-target-bounds';
+  error?: string;
   score?: number;
   coins?: number;
   xp?: number;
@@ -65,12 +31,14 @@ type MoleGameMessage = {
   top?: number;
   width?: number;
   height?: number;
+  viewportWidth?: number;
+  viewportHeight?: number;
 };
 
 const isMoleGameMessage = (value: unknown): value is MoleGameMessage => {
   if (!value || typeof value !== 'object') return false;
   const message = value as Partial<MoleGameMessage>;
-  return message.source === MOLE_GAME_SOURCE && (message.type === 'game-ready' || message.type === 'game-started' || message.type === 'game-complete' || message.type === 'close' || message.type === 'tutorial-progress' || message.type === 'tutorial-target-bounds');
+  return message.source === MOLE_GAME_SOURCE && (message.type === 'game-error' || message.type === 'game-ready' || message.type === 'game-started' || message.type === 'game-complete' || message.type === 'close' || message.type === 'tutorial-progress' || message.type === 'tutorial-target-bounds');
 };
 
 export const PixelMoleMound = ({ onOpen }: { onOpen: () => void }) => (
@@ -83,14 +51,17 @@ export const PixelMoleMound = ({ onOpen }: { onOpen: () => void }) => (
     data-pet-movement-block
   >
     <svg viewBox="0 0 160 112" className="h-full w-full overflow-visible [image-rendering:pixelated]" shapeRendering="crispEdges" aria-hidden="true">
-      <path fill="#6b3c20" d="M42 36h76v8h18v10h12v38H12V58h10V48h20z" />
-      <path fill="#9b5d2d" d="M30 48h100v8h14v30H18V62h12z" />
-      <path fill="#c47b39" d="M20 68h124v18H16V74h4z" />
-      <path fill="#754121" d="M48 25h64v8h12v18H36V35h12z" />
-      <path fill="#2b1a16" d="M53 21h54v7h10v18H43V31h10z" />
-      <path fill="#120d0b" d="M59 19h42v6h9v14H50V28h9z" />
-      <path fill="#e3a557" d="M24 60h18v7H24zM118 57h15v7h-15zM54 82h20v6H54zM91 71h14v6H91z" />
-      <path fill="#6da83d" d="M8 82h20v8H8zM130 78h24v9h-24z" />
+      {/* A recessed ground opening, seen from the same elevated angle as the lawn. */}
+      <path fill="#456329" opacity=".4" d="M38 29h84v7h20v13h12v28h-12v13h-20v7H38v-7H18V77H6V49h12V36h20z" />
+      <path fill="#59432d" d="M42 26h76v7h20v12h12v30h-12v13h-20v7H42v-7H22V75H10V45h12V33h20z" />
+      <path fill="#9b7445" d="M42 30h76v7h19v12h9v23h-12v12h-18v7H44v-7H26V72H14V49h12V37h16z" />
+      <path fill="#352619" d="M47 39h66v6h17v10h8v16h-13v10h-20v5H55v-5H35V71H23V55h9V45h15z" />
+      <path fill="#1b1510" d="M48 46h64v6h16v10h7v10h-13v8h-19v4H57v-4H38v-8H26V62h7V52h15z" />
+      <path fill="#090b08" d="M52 54h56v5h15v9h8v6h-13v7H43v-7H30v-6h8v-9h14z" />
+      <path fill="#c3a16c" d="M44 27h22v10H44zM76 26h24v10H76zM112 31h17v11h-17zM132 46h14v12h-14zM18 44h16v12H18zM29 33h16v11H29z" />
+      <path fill="#806e53" d="M14 61h14v12H14zM27 75h20v12H27zM47 84h23v10H47zM81 86h23v9H81zM111 80h22v10h-22zM135 63h13v14h-13z" />
+      <path fill="#b59a6c" d="M28 75h17v4H28zM49 84h19v4H49zM83 86h18v4H83zM113 80h17v4h-17z" />
+      <path fill="#63973b" d="M5 48h9v-9h5v18H5zM140 80h8v-8h6v15h-14zM34 91h9v-6h5v12H34zM103 29h9v-7h5v14h-14z" />
     </svg>
     <span className="absolute -top-3 left-1/2 -translate-x-1/2 border-2 border-[#55351f] bg-[#fff0a8] px-2 py-1 text-[9px] font-black uppercase text-[#55351f] opacity-0 shadow-[2px_2px_0_#55351f] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">Mole den</span>
   </button>
@@ -134,12 +105,28 @@ const MoleLevelBadge = ({ stats }: { stats: PetStats }) => {
 export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps) => {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const rewardedRef = useRef(false);
+  const tutorialTargetViewportBoundsRef = useRef<TutorialTargetViewportBounds | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [tutorialTargetBounds, setTutorialTargetBounds] = useState<TutorialTargetBounds | null>(null);
   const [tutorialStep, setTutorialStep] = useState<number | null>(() => {
     if (typeof window === 'undefined') return null;
     return window.localStorage.getItem(MOLE_TUTORIAL_STORAGE_KEY) === 'true' ? null : 0;
   });
+
+  const projectTutorialTargetBounds = useCallback((bounds: TutorialTargetViewportBounds) => {
+    const frameRect = frameRef.current?.getBoundingClientRect();
+    if (!frameRect || bounds.viewportWidth <= 0 || bounds.viewportHeight <= 0) return;
+    const scaleX = frameRect.width / bounds.viewportWidth;
+    const scaleY = frameRect.height / bounds.viewportHeight;
+    setTutorialTargetBounds({
+      left: frameRect.left + bounds.left * scaleX,
+      top: frameRect.top + bounds.top * scaleY,
+      width: bounds.width * scaleX,
+      height: bounds.height * scaleY,
+    });
+  }, []);
 
   const postTutorialState = useCallback((type: 'tutorial-active' | 'tutorial-complete' | 'tutorial-step', step?: number) => {
     frameRef.current?.contentWindow?.postMessage({ source: MOLE_GAME_SOURCE, type, step }, window.location.origin);
@@ -153,17 +140,31 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
 
   useEffect(() => {
     if (!loaded || tutorialStep === null) return;
-    const updateTutorialTargetBounds = () => setTutorialTargetBounds(calculateTutorialTargetBounds(tutorialStep, window.innerWidth, window.innerHeight));
-    updateTutorialTargetBounds();
-    window.addEventListener('resize', updateTutorialTargetBounds);
+    tutorialTargetViewportBoundsRef.current = null;
+    setTutorialTargetBounds(null);
     postTutorialState('tutorial-active');
     postTutorialState('tutorial-step', tutorialStep);
-    return () => window.removeEventListener('resize', updateTutorialTargetBounds);
   }, [loaded, postTutorialState, tutorialStep]);
+
+  useEffect(() => {
+    const updateTutorialTargetBounds = () => {
+      if (tutorialTargetViewportBoundsRef.current) projectTutorialTargetBounds(tutorialTargetViewportBoundsRef.current);
+    };
+    window.addEventListener('resize', updateTutorialTargetBounds);
+    return () => window.removeEventListener('resize', updateTutorialTargetBounds);
+  }, [projectTutorialTargetBounds]);
+
+  useEffect(() => {
+    if (loaded) return;
+    const requestReady = () => frameRef.current?.contentWindow?.postMessage({ source: MOLE_GAME_SOURCE, type: 'request-game-ready' }, window.location.origin);
+    const timer = window.setInterval(requestReady, 1000);
+    return () => window.clearInterval(timer);
+  }, [loaded, loadAttempt]);
 
   useEffect(() => {
     const receiveMessage = (event: MessageEvent<unknown>) => {
       if (event.origin !== window.location.origin || event.source !== frameRef.current?.contentWindow || !isMoleGameMessage(event.data)) return;
+      if (event.data.type === 'game-error') { setLoadError(event.data.error || 'Unable to start the game.'); return; }
       if (event.data.type === 'close') {
         onClose();
         return;
@@ -191,9 +192,11 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
         return;
       }
       if (event.data.type === 'tutorial-target-bounds') {
-        const { left, top, width, height } = event.data;
-        if ([left, top, width, height].every(value => typeof value === 'number' && Number.isFinite(value)) && width! > 0 && height! > 0) {
-          setTutorialTargetBounds({ left: left!, top: top!, width: width!, height: height! });
+        const { left, top, width, height, viewportWidth, viewportHeight } = event.data;
+        if ([left, top, width, height, viewportWidth, viewportHeight].every(value => typeof value === 'number' && Number.isFinite(value)) && width! > 0 && height! > 0 && viewportWidth! > 0 && viewportHeight! > 0) {
+          const bounds = { left: left!, top: top!, width: width!, height: height!, viewportWidth: viewportWidth!, viewportHeight: viewportHeight! };
+          tutorialTargetViewportBoundsRef.current = bounds;
+          projectTutorialTargetBounds(bounds);
         }
         return;
       }
@@ -206,26 +209,29 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
 
     window.addEventListener('message', receiveMessage);
     return () => window.removeEventListener('message', receiveMessage);
-  }, [onClose, onReward, postTutorialState, tutorialStep]);
+  }, [onClose, onReward, postTutorialState, projectTutorialTargetBounds, tutorialStep]);
 
   if (typeof document === 'undefined') return null;
 
   return createPortal(
     <section
-      className="pet-interface overflow-hidden bg-[#080503]"
-      style={{ position: 'fixed', inset: 0, zIndex: 2000, width: '100vw', height: '100dvh' }}
+      className="pet-interface overflow-hidden"
+      style={{ position: 'fixed', inset: 0, zIndex: 2000, width: '100vw', height: '100dvh', background: '#080503' }}
       aria-label="Underground mole game scene"
       data-pet-movement-block
     >
       {!loaded && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#100a07] text-[#f4dec0]" role="status" aria-live="polite">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-[#f4dec0]" style={{ background: '#100a07' }} role="status" aria-live="polite">
           <span className="h-12 w-12 animate-spin border-4 border-[#8b6a46] border-t-[#f4dec0]" />
-          <span className="mt-5 text-sm font-black uppercase tracking-[0.25em]">Entering the mine...</span>
+          <span className="mt-5 text-sm font-black uppercase tracking-[0.25em]">{loadError ? 'Unable to enter the mine' : 'Entering the mine...'}</span>
+          {loadError && <p style={{ color: '#f4dec0', maxWidth: '32rem', padding: '1rem' }}>{loadError}</p>}
+          <button type="button" onClick={() => { setLoadError(null); setLoadAttempt(value => value + 1); }} style={{ marginTop: '1rem', color: '#f4dec0', border: '2px solid #8b6a46', padding: '.5rem 1rem' }}>Retry loading</button>
         </div>
       )}
       <iframe
         ref={frameRef}
-        src={MOLE_GAME_URL}
+        key={loadAttempt}
+        src={`${MOLE_GAME_URL}&attempt=${loadAttempt}`}
         title="Underground mole game"
         className="h-full w-full border-0 bg-[#080503]"
         style={{ display: 'block', width: '100%', height: '100%', border: 0 }}
