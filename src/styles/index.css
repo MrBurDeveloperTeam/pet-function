@@ -1280,6 +1280,30 @@
 .snabbb-molar-experience .pet-stadium-football { width: clamp(46px, 5.2vw, 82px); }
 .snabbb-molar-experience .pet-stadium-hurdle { width: clamp(58px, 6vw, 104px); }
 
+@keyframes pet-stadium-interaction-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.95; }
+}
+
+/* Trace the sprite's alpha silhouette, including the gap under the hurdle. */
+.snabbb-molar-experience .pet-stadium-object.pet-stadium-interaction-hint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  filter: drop-shadow(1.5px 0 0 #ffeab0) drop-shadow(-1.5px 0 0 #ffeab0)
+    drop-shadow(0 1.5px 0 #ffeab0) drop-shadow(0 -1.5px 0 #ffeab0);
+  animation: pet-stadium-interaction-pulse 3.2s ease-in-out infinite;
+}
+
+.snabbb-molar-experience .pet-stadium-activity:hover .pet-stadium-object.pet-stadium-interaction-hint,
+.snabbb-molar-experience .pet-stadium-activity:focus-visible .pet-stadium-object.pet-stadium-interaction-hint,
+.snabbb-molar-experience .pet-stadium-activity.is-nearby .pet-stadium-object.pet-stadium-interaction-hint {
+  animation: none;
+  opacity: 1;
+  filter: drop-shadow(2px 0 0 #ffeab0) drop-shadow(-2px 0 0 #ffeab0)
+    drop-shadow(0 2px 0 #ffeab0) drop-shadow(0 -2px 0 #ffeab0);
+}
+
 .snabbb-molar-experience .pet-stadium-activity:hover .pet-stadium-object,
 .snabbb-molar-experience .pet-stadium-activity:focus-visible .pet-stadium-object,
 .snabbb-molar-experience .pet-stadium-activity.is-nearby .pet-stadium-object {

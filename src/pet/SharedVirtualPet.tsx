@@ -222,7 +222,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
 
     setActiveGameId(null);
     setView('ROOM');
-    setCurrentRoom(RoomType.GAMES);
+    setCurrentRoom(activeGameId === 'stadium-hurdles' ? RoomType.SPORTS_STADIUM : RoomType.GAMES);
     setShowRotateNotice(false);
 
     if (shouldReleaseLandscape) {
@@ -390,6 +390,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
           <GamePage
             gameId={activeGameId || ''}
             onClose={handleCloseGame}
+            onExitPet={handleClose}
             gameProgressClient={gameProgressClient}
             userId={userId}
           />

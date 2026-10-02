@@ -549,6 +549,13 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         rect.height,
       );
       setRoomTransition(exit);
+      // A nearby exit can constrain to our current position. Begin loading
+      // before the movement frame clears the already-reached pointer target.
+      if (Math.hypot(outsidePetPosRef.current.x - outsidePointerTargetRef.current.x,
+        outsidePetPosRef.current.y - outsidePointerTargetRef.current.y) <= INDOOR_PET_STOP_DISTANCE + 1) {
+        setLoadingAnimationKey((key) => key + 1);
+        setIsRoomTransitionLoading(true);
+      }
       return;
     }
 
@@ -1645,6 +1652,15 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                 }}
                 data-pet-movement-block
               >
+                <img
+                  src={isFootball
+                    ? '/pet-function/items/soccer-ball-pixel.png'
+                    : '/pet-function/sports/stadium-hurdle.png'}
+                  alt=""
+                  aria-hidden="true"
+                  draggable={false}
+                  className={`pet-stadium-object pet-stadium-interaction-hint ${isFootball ? 'pet-stadium-football' : 'pet-stadium-hurdle'}`}
+                />
                 <img
                   src={isFootball
                     ? '/pet-function/items/soccer-ball-pixel.png'

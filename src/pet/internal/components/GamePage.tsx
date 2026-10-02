@@ -16,8 +16,19 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import type { GameProgressClient } from '../../SharedVirtualPet';
+import { runnerRewards } from '../runnerRewards';
+import CoinIndicator from './CoinIndicator';
+import LevelIndicator from './LevelIndicator';
+import { TiArrowBack } from 'react-icons/ti';
+import { hasRunnerTutorialBeenSeen, markRunnerTutorialSeen } from '../runnerTutorial';
 
 const GAME_CONFIG: Record<string, { title: string; url: string; icon: string; gradient: string }> = {
+    'stadium-hurdles': {
+        title: 'Cat Dash',
+        url: '/games/stadium-hurdles/index.html',
+        icon: '🦷',
+        gradient: 'from-teal-400 to-blue-600'
+    },
     flappy: {
         title: 'Flappy Cat',
         url: '/games/flappy-cat/index.html',
@@ -82,15 +93,49 @@ const AnimatedCounter: React.FC<{ value: number }> = ({ value }) => {
 interface GamePageProps {
     gameId: string;
     onClose: () => void;
+    onExitPet: () => void;
     gameProgressClient?: GameProgressClient;
     userId: string | null;
 }
 
-export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, gameProgressClient, userId }) => {
+export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, gameProgressClient, userId }) => {
     const [isLoading, setIsLoading] = useState(true);
-    const { stats, setStats, addCoins } = useGameState();
+    const { stats, setStats, addCoins, addXP } = useGameState();
     const [sessionCoins, setSessionCoins] = useState(0);
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const activeRunnerId = useRef<string | null>(null);
+    const settledRunnerIds = useRef(new Set<string>());
+    const [runnerReady, setRunnerReady] = useState(false);
+    const runnerInitialized = useRef(false);
+    const exitDestination = useRef<'game' | 'pet'>('game');
+
+    const sendRunnerAction = (type: string) => {
+        iframeRef.current?.contentWindow?.postMessage({ type }, window.location.origin);
+        iframeRef.current?.contentWindow?.focus();
+    };
+
+    const refreshRunnerRanking = async (score?: { runId: string; teeth: number; elapsedSeconds: number }) => {
+        const send = (entries: unknown[], status: string) => iframeRef.current?.contentWindow?.postMessage({ type: 'RUNNER_LEADERBOARD', entries, status }, window.location.origin);
+        if (!gameProgressClient || !userId) { send([], 'Sign in to view the global rankings'); return; }
+        try {
+            if (score) {
+                const result = await gameProgressClient.rpc('cat_dash_submit_run', { p_run_id: score.runId, p_teeth: score.teeth, p_elapsed_seconds: score.elapsedSeconds });
+                if (result.error) { send([], 'Rankings unavailable - try again later'); return; }
+            }
+            const { data, error } = await gameProgressClient.rpc('cat_dash_leaderboard');
+            if (error) { send([], 'Rankings unavailable - try again later'); return; }
+            send(Array.isArray(data?.entries) ? data.entries : [], data?.scope === 'local' ? 'LOCAL PREVIEW - best run' : 'GLOBAL - best run');
+        } catch { send([], 'Rankings unavailable - try again later'); }
+    };
+
+    const exitGame = (destination: 'game' | 'pet' = 'game') => {
+        exitDestination.current = destination;
+        if (gameId === 'stadium-hurdles' && runnerReady) {
+            sendRunnerAction('RUNNER_QUIT');
+        } else if (destination === 'pet') {
+            onExitPet();
+        } else onClose();
+    };
 
     const syncGameProgress = async (progress: unknown) => {
         if (!gameProgressClient || !userId) {
@@ -113,6 +158,39 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, gameProgres
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin || event.source !== iframeRef.current?.contentWindow) return;
+            if (gameId === 'stadium-hurdles') {
+                const message = event.data;
+                if (message?.source !== 'pet-function:stadium-hurdles') return;
+                if (message.type === 'RUNNER_READY' && !runnerInitialized.current) {
+                    runnerInitialized.current = true;
+                    setRunnerReady(true);
+                    iframeRef.current?.contentWindow?.postMessage({ type: 'RUNNER_INIT', tutorialSeen: hasRunnerTutorialBeenSeen(userId) }, window.location.origin);
+                }
+                if (message.type === 'RUNNER_TUTORIAL_STARTED') markRunnerTutorialSeen(userId);
+                if (message.type === 'RUNNER_READY' || message.type === 'RUNNER_RANKINGS_REQUEST') void refreshRunnerRanking();
+                if (message.type === 'RUNNER_STARTED' && typeof message.runId === 'string') {
+                    activeRunnerId.current = message.runId;
+                    setSessionCoins(0);
+                }
+                if (message.type === 'RUNNER_PROGRESS' && message.runId === activeRunnerId.current) {
+                    const reward = runnerRewards(message.teeth, message.elapsedSeconds);
+                    if (reward) setSessionCoins(reward.coins);
+                }
+                if (message.type === 'RUNNER_OVER' && message.runId === activeRunnerId.current && !settledRunnerIds.current.has(message.runId)) {
+                    const reward = runnerRewards(message.teeth, message.elapsedSeconds);
+                    if (!reward) return;
+                    settledRunnerIds.current.add(message.runId);
+                    if (reward.coins) addCoins(reward.coins);
+                    if (reward.xp) addXP(reward.xp);
+                    if (message.reason !== 'quit') void refreshRunnerRanking({ runId: message.runId, teeth: message.teeth, elapsedSeconds: message.elapsedSeconds });
+                    setSessionCoins(0);
+                }
+                if (message.type === 'RUNNER_CLOSE') {
+                    if (exitDestination.current === 'pet') onExitPet();
+                    else onClose();
+                }
+                return;
+            }
             if (event.data?.type === 'SHARED_GAME_PROGRESS_READY' || event.data?.type === 'SHARED_GAME_PROGRESS_SAVE') {
                 void syncGameProgress(event.data.progress);
             }
@@ -143,8 +221,17 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, gameProgres
         };
 
         window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, [setStats, addCoins, gameId, userId, gameProgressClient]);
+        const pauseRunner = () => {
+            if (document.hidden && gameId === 'stadium-hurdles') {
+                iframeRef.current?.contentWindow?.postMessage({ type: 'RUNNER_PAUSE' }, window.location.origin);
+            }
+        };
+        document.addEventListener('visibilitychange', pauseRunner);
+        return () => {
+            window.removeEventListener('message', handleMessage);
+            document.removeEventListener('visibilitychange', pauseRunner);
+        };
+    }, [setStats, addCoins, addXP, gameId, userId, gameProgressClient, onClose, onExitPet]);
 
     // Prevent scroll when game is open
     useEffect(() => {
@@ -160,6 +247,12 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, gameProgres
     }
 
     const config = GAME_CONFIG[gameId];
+    const isPixelRunner = gameId === 'stadium-hurdles';
+    const runnerButton: React.CSSProperties = {
+        width: 56, height: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        background: '#fff0ba', color: '#224269', border: '4px solid #684427',
+        boxShadow: '4px 4px 0 #3f2a1b', cursor: 'pointer', gap: 3,
+    };
 
     return (
         <div className="fixed inset-0 z-50 bg-black" style={{ fontFamily: "'Fredoka', sans-serif" }}>
@@ -167,7 +260,7 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, gameProgres
             <div className="relative w-full h-full animate-in zoom-in-95 fade-in duration-300">
 
                 {/* Top UI Area */}
-                <div className="absolute top-6 right-6 z-50 flex flex-col items-end gap-2">
+                {!isPixelRunner && <div className="absolute top-6 right-6 z-50 flex flex-col items-end gap-2">
                     <div className="flex items-center gap-3">
                         {/* Session Progress (Pending Coins) */}
                         {sessionCoins > 0 && (
@@ -187,14 +280,41 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, gameProgres
 
                         {/* Floating Close Button */}
                         <button
-                            onClick={onClose}
+                            onClick={() => exitGame()}
                             className="w-12 h-12 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/80 text-white/70 hover:text-white border-2 border-white/10 backdrop-blur-sm transition-all hover:scale-110 active:scale-95 shadow-lg"
                             title="Exit Game"
                         >
                             <span className="text-2xl font-bold leading-none mb-1">×</span>
                         </button>
                     </div>
-                </div>
+                </div>}
+
+                {isPixelRunner && <div className="pointer-events-none absolute inset-0 z-50">
+                    <button type="button" onClick={() => exitGame('pet')} aria-label="Exit pet page" title="Back"
+                        className="pointer-events-auto absolute left-3 top-3 flex h-11 w-11 items-center justify-center text-slate-700 transition-transform hover:-translate-y-0.5 sm:left-6 sm:top-6 sm:h-16 sm:w-16"
+                        style={{ background: '#fff8d9', border: '4px solid #5a3a22', borderRadius: 5, boxShadow: '5px 5px 0 rgba(53,35,20,.55)' }}>
+                        <TiArrowBack className="h-8 w-8 sm:h-12 sm:w-12" />
+                    </button>
+                    <CoinIndicator amount={stats.coins || 0} />
+                    <div className="pointer-events-auto"><LevelIndicator stats={stats} /></div>
+                    <button type="button" onClick={() => exitGame()} aria-label="Return to Sports stadium" title="Return to Sports"
+                        className="pointer-events-auto absolute left-3 top-1/2 -translate-y-1/2 transition-transform hover:-translate-x-1 sm:left-6"
+                        style={{ ...runnerButton, background: '#5a3a22', borderColor: '#e7b55b', color: '#ffe3a0' }}>
+                        <svg viewBox="0 0 24 24" width="32" height="32" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 10h3V7h3V4h3v5h11v6H11v5H8v-3H5v-3H2z" /></svg>
+                    </button>
+                    <div className="pointer-events-auto absolute right-3 top-[104px] flex flex-col gap-3 sm:right-6 sm:top-[112px]">
+                        <button type="button" disabled={!runnerReady} onClick={() => sendRunnerAction('RUNNER_RANKINGS_OPEN')} aria-label="Cat Dash rankings" title="Rankings" style={runnerButton}>
+                            <svg viewBox="0 0 24 24" width="26" height="26" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 4h18v3H3zM3 10h14v3H3zM3 16h10v3H3z" /></svg>
+                        </button>
+                        <button type="button" disabled={!runnerReady} onClick={() => sendRunnerAction('RUNNER_TUTORIAL_START')} aria-label="Start Cat Dash tutorial" title="Tutorial" style={runnerButton}>
+                            <svg viewBox="0 0 24 24" width="24" height="24" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M4 2h16v20H4z" /><path fill="#fff0ba" d="M6 4h12v16H6z" /><path fill="currentColor" d="M8 6h8v2H8zM8 10h8v2H8zM8 14h6v2H8z" /></svg>
+                            <span style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 900 }}>GUIDE</span>
+                        </button>
+                        <button type="button" disabled={!runnerReady} onClick={() => sendRunnerAction('RUNNER_PAUSE_TOGGLE')} aria-label="Pause or resume Cat Dash" title="Pause / Resume" style={runnerButton}>
+                            <svg viewBox="0 0 24 24" width="24" height="24" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg>
+                        </button>
+                    </div>
+                </div>}
 
                 {/* Game Iframe Wrapper */}
                 <div className="absolute inset-0 bg-slate-900">

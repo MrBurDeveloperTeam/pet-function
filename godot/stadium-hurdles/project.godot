@@ -1,0 +1,19 @@
+config_version=5
+
+[application]
+config/name="Cat Dash · Stadium Runner"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="viewport"
+window/stretch/aspect="ignore"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.45,0.8,0.98,1)
+textures/canvas_textures/default_texture_filter=0
+
