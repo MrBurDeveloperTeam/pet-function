@@ -148,6 +148,8 @@ interface GameStateContextType {
      *  `buyItem` for anything that also grants/consumes an inventory
      *  item, since that commits coins + the item as one transaction. */
     addCoins: (delta: number) => void;
+    /** Confirm a coin-only purchase against the wallet before granting its effect. */
+    spendCoins: (amount: number) => Promise<boolean>;
     activeBallId: string;
     setActiveBallId: (id: string) => void;
     activeBedId: string | null;
@@ -194,6 +196,9 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
     assetUrls,
 }) => {
     const [stats, setStats] = useState<PetStats>(INITIAL_STATS);
+    const currentStats = useRef(stats);
+    currentStats.current = stats;
+    const coinSpendInFlight = useRef(false);
     const [petName, _setPetName] = useState(DEFAULT_PET_ID);
     const [hasAdoptedPet, setHasAdoptedPet] = useState(false);
     const [isPetAdoptionReady, setIsPetAdoptionReady] = useState(false);
@@ -872,6 +877,26 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
         void persistCoinsDelta(delta, nextStats);
     };
 
+    const spendCoins = async (amount: number): Promise<boolean> => {
+        if (!Number.isSafeInteger(amount) || amount <= 0 || coinSpendInFlight.current || currentStats.current.coins < amount) return false;
+        // Older adapters cannot confirm an atomic spend; never grant an effect
+        // after a best-effort snapshot save that excludes the coin balance.
+        if (userId && (!isHydrated.current || !repository.mutateCoins)) return false;
+        coinSpendInFlight.current = true;
+        const spendingOwner = userId;
+        try {
+            const coins = spendingOwner
+                ? await repository.mutateCoins!(spendingOwner, -amount)
+                : currentStats.current.coins - amount;
+            if (!mounted.current || owner.current !== spendingOwner) return false;
+            currentStats.current = { ...currentStats.current, coins };
+            setStats(prev => ({ ...prev, coins }));
+            return true;
+        } catch {
+            return false;
+        } finally { coinSpendInFlight.current = false; }
+    };
+
     const adoptPet = async (name: string) => {
         if (hasAdoptedPet || !userId || !isPetAdoptionReady || !isHydrated.current || adoptionInFlight.current) return false;
         adoptionInFlight.current = true;
@@ -1016,6 +1041,7 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             grantItem,
             addXP,
             addCoins,
+            spendCoins,
             activeBallId,
             setActiveBallId,
             activeBedId,

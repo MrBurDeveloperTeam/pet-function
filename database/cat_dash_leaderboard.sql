@@ -57,8 +57,12 @@ begin
       user_id,display_name,teeth from public.cat_dash_bests
   ), visible as (select * from ranked where rank<=20 or user_id=auth.uid())
   select jsonb_build_object('scope','global','entries',coalesce(jsonb_agg(jsonb_build_object(
-    'rank',rank,'name',display_name,'teeth',teeth,'isYou',user_id=auth.uid()) order by rank),'[]'::jsonb))
-    into result from visible;
+    'rank',v.rank,'userId',v.user_id,'name',v.display_name,'teeth',v.teeth,'isYou',v.user_id=auth.uid(),
+    'avatarUrl',coalesce(nullif(to_jsonb(p)->>'avatar_url',''),nullif(u.raw_user_meta_data->>'avatar_url',''),nullif(u.raw_user_meta_data->>'picture',''))
+    ) order by v.rank),'[]'::jsonb))
+    into result from visible v
+    join auth.users u on u.id=v.user_id
+    left join lateral (select profile.* from public.profiles profile where to_jsonb(profile)->>'user_id'=v.user_id::text or to_jsonb(profile)->>'id'=v.user_id::text limit 1) p on true;
   return result;
 end;
 $$;

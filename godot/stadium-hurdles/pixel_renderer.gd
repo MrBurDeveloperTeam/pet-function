@@ -8,6 +8,7 @@ const CAT_FLIP = preload("res://art/cat-somersault.png")
 const NPC = preload("res://art/npc-high-five.png")
 const VIEW = preload("res://runner_view.gd")
 const FONT = preload("res://art/Quadrit.ttf")
+const POWERUP_ART = preload("res://powerup_art.gd")
 const OBJECT_INDICES = {"closed":0,"open":1,"tooth":2,"cone":3,"bench":4,"equipment":5}
 var ordered_entities: Array = []
 var ordered_revision := -1
@@ -20,8 +21,14 @@ var cat_regions: Array[Rect2] = []
 var somersault_regions: Array[Rect2] = []
 var cat_baseline := 0.0
 var npc_regions: Array[Rect2] = []
+var powerup_textures: Dictionary = {}
+var exhaust_textures: Array[ImageTexture] = []
+var air_hazard_textures: Dictionary = {}
 
 func _ready() -> void:
+	powerup_textures={"magnet":POWERUP_ART.magnet(),"jetpack":POWERUP_ART.jetpack()}
+	exhaust_textures=POWERUP_ART.exhaust_frames()
+	air_hazard_textures=POWERUP_ART.air_hazards()
 	texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
 	texture_repeat=CanvasItem.TEXTURE_REPEAT_ENABLED
 	var image := OBJECTS.get_image()
@@ -80,7 +87,7 @@ func trim(image: Image, cell: Rect2i) -> Rect2:
 	return Rect2(minimum,maximum-minimum+Vector2i.ONE)
 
 func project(world_x: float, z: float, height: float = 0.0) -> Vector3:
-	return VIEW.project(world_x,z,height)
+	return VIEW.project(world_x,z,height,game.camera_height)
 
 func _draw() -> void:
 	if not game or not road_texture: return
@@ -117,7 +124,14 @@ func draw_shadow(center: Vector2, width: float, alpha: float = 0.3) -> void:
 
 func draw_entity(entity: Dictionary) -> void:
 	var node: Node2D=entity.node
-	var ground := project(node.position.x,node.position.y)
+	var floor_height: float=game.FLIGHT_HEIGHT if entity.get("air",false) else 0
+	var ground := project(node.position.x,node.position.y,floor_height)
+	if entity.kind in game.AIR_HAZARDS:
+		draw_air_hazard(entity)
+		return
+	if entity.kind in ["magnet","jetpack"]:
+		draw_powerup(entity,ground,floor_height)
+		return
 	if entity.kind=="npc":
 		var region := npc_regions[1 if entity.checked else 0]
 		var width := 170*ground.z
@@ -135,7 +149,7 @@ func draw_entity(entity: Dictionary) -> void:
 	if entity.kind=="cone": width=175*ground.z
 	if entity.kind=="tooth": width=54*ground.z
 	var height := width*region.size.y/region.size.x
-	var p := project(node.position.x,node.position.y,entity.height if entity.kind=="tooth" else 0.0)
+	var p := project(node.position.x,node.position.y,floor_height+(entity.height if entity.kind=="tooth" else 0.0))
 	var rect := Rect2(p.x-width*0.5,p.y-height,width,height)
 	# Cull the complete sprite rectangle, never its ground point or its lane.
 	if not rect.intersects(Rect2(-32,-32,1344,784)): return
@@ -155,25 +169,66 @@ func draw_entity(entity: Dictionary) -> void:
 		else: draw_shadow(Vector2(ground.x,ground.y),width*0.83,0.3)
 	draw_texture_rect_region(texture,rect,region)
 
+func draw_air_hazard(entity: Dictionary) -> void:
+	var texture: Texture2D=air_hazard_textures[entity.kind]
+	var bob: float=sin(game.animation_time*(4.0 if entity.kind=="bird" else 1.5)+entity.lane)*0.12
+	var p := project(entity.node.position.x,entity.node.position.y,game.FLIGHT_HEIGHT+entity.height+bob)
+	var width := (262.5 if entity.kind=="bird" else 367.5)*p.z
+	var height := width*texture.get_height()/texture.get_width()
+	var rect := Rect2(p.x-width*0.5,p.y-height,width,height)
+	if not rect.intersects(Rect2(-32,-32,1344,784)): return
+	draw_texture_rect(texture,rect,false)
+
+func draw_powerup(entity: Dictionary, ground: Vector3, floor_height: float) -> void:
+	var texture: Texture2D=powerup_textures[entity.kind]
+	var bob: float=sin(game.animation_time*4+entity.lane)*0.12
+	var p := project(entity.node.position.x,entity.node.position.y,floor_height+entity.height+bob)
+	var width := 102*ground.z if entity.kind=="magnet" else 92*ground.z
+	var height := width*texture.get_height()/texture.get_width()
+	draw_shadow(Vector2(ground.x,ground.y),width*0.6,0.16)
+	# Gold glints identify pickups independently of the obstacle silhouettes.
+	for offset in [Vector2(-0.55,-0.55),Vector2(0.6,-0.2)]:
+		var at: Vector2=Vector2(p.x,p.y)+offset*width
+		draw_rect(Rect2(at-Vector2(1,4)*ground.z,Vector2(2,8)*ground.z),Color("fff2a8"))
+		draw_rect(Rect2(at-Vector2(4,1)*ground.z,Vector2(8,2)*ground.z),Color("fff2a8"))
+	draw_texture_rect(texture,Rect2(p.x-width*0.5,p.y-height,width,height),false)
+	if entity.get("paid",false) and ground.z>0.2:
+		var label_pos := Vector2(p.x-58*ground.z,p.y-height-37*ground.z)
+		draw_rect(Rect2(label_pos,Vector2(116,29)*ground.z),Color("213d57"))
+		draw_rect(Rect2(label_pos,Vector2(116,3)*ground.z),Color("f6c858"))
+		# Stepped round coin, with a dark rim and a bright centre.
+		var coin := label_pos+Vector2(14,13)*ground.z
+		draw_rect(Rect2(coin-Vector2(7,5)*ground.z,Vector2(14,10)*ground.z),Color("c0822c"))
+		draw_rect(Rect2(coin-Vector2(5,7)*ground.z,Vector2(10,14)*ground.z),Color("f6c858"))
+		draw_rect(Rect2(coin-Vector2(2,4)*ground.z,Vector2(3,8)*ground.z),Color("fff2a8"))
+		draw_string(FONT,label_pos+Vector2(30,22)*ground.z,"30",HORIZONTAL_ALIGNMENT_LEFT,-1,maxi(8,int(22*ground.z)),Color("fff0ba"))
+
 func draw_cat() -> void:
 	var ground := project(game.runner.position.x,0)
 	var p := project(game.runner.position.x,0,game.runner.position.y)
 	draw_shadow(Vector2(ground.x,ground.y),110-game.runner.position.y*9,0.28)
 	if game.state=="crashed":
-		draw_hurt_cat(Vector2(ground.x,ground.y))
+		draw_hurt_cat(Vector2(p.x,p.y))
 		return
+	var flying: bool=game.flight_time>0 or game.flight_height>0
+	if game.magnet_time>0:
+		var pulse: float=sin(game.animation_time*7)*4
+		for side in [-1,1]:
+			draw_arc(Vector2(p.x,p.y-65),103+pulse,-PI*0.28 if side==1 else PI*0.72,PI*0.28 if side==1 else PI*1.28,12,Color(1,0.86,0.47,0.6),3)
 	if game.celebration_time>0:
 		var phase: float=1-game.celebration_time/game.CELEBRATION_DURATION
 		draw_texture_rect_region(CAT_FLIP,somersault_rect(Vector2(p.x,p.y),phase),somersault_regions[somersault_frame(phase)])
 		return
 	if game.slide_time>0:
 		var phase: float=game.roll_phase()
-		draw_texture_rect_region(CAT_FLIP,roll_rect(Vector2(ground.x,ground.y),phase),somersault_regions[roll_frame(phase)])
-		draw_motion_dust(Vector2(ground.x,ground.y))
+		draw_texture_rect_region(CAT_FLIP,roll_rect(Vector2(p.x,p.y),phase),somersault_regions[roll_frame(phase)])
+		if flying: draw_flight_gear(Vector2(p.x,p.y))
+		else: draw_motion_dust(Vector2(ground.x,ground.y))
 		return
 	var frame := int(game.animation_time*16)%4
 	if game.state=="menu": frame=0
 	if game.jump_time>0: frame=4 if game.jump_time>0.7 else 5
+	elif game.flight_time>0 or game.flight_height>0: frame=4
 	var region := cat_regions[frame]
 	var cell := Vector2(CAT.get_width()/4.0,CAT.get_height()/2.0)
 	var sprite_scale := 192.0/cell.x
@@ -182,7 +237,45 @@ func draw_cat() -> void:
 	var baseline := cat_baseline if frame<4 else region.end.y-cell_origin.y
 	var rect := Rect2(Vector2(p.x-96,p.y-baseline*sprite_scale+bob)+(region.position-cell_origin)*sprite_scale,region.size*sprite_scale)
 	draw_texture_rect_region(CAT,rect,region)
-	draw_motion_dust(Vector2(ground.x,ground.y))
+	if flying: draw_flight_gear(Vector2(p.x,p.y))
+	if game.flight_time<=0 and game.flight_height<=0: draw_motion_dust(Vector2(ground.x,ground.y))
+
+func jetpack_rect(at: Vector2) -> Rect2:
+	var texture: Texture2D=powerup_textures.jetpack
+	# Foreshortened engines run along the spine; round mouths face the viewer.
+	var width := 106.0
+	var height := width*texture.get_height()/texture.get_width()
+	return Rect2(at.x-width*0.5,at.y-130,width,height)
+
+func jet_nozzle(at: Vector2, side: int) -> Vector2:
+	var rect := jetpack_rect(at)
+	return rect.position+rect.size*Vector2(0.21 if side<0 else 0.79,0.75)
+
+func draw_flight_gear(at: Vector2) -> void:
+	# The exhaust projects toward the camera, in front of the body. The pack
+	# covers the roots to keep its nozzle rims and metal detail crisp.
+	draw_jet_exhaust(at)
+	draw_texture_rect(powerup_textures.jetpack,jetpack_rect(at),false)
+
+func draw_jet_exhaust(at: Vector2) -> void:
+	var strength: float=1.0 if game.flight_time>0 else clampf(game.flight_height/game.FLIGHT_HEIGHT,0,1)
+	# Cache the authored cloud frames once. Travelling in positive world Z
+	# makes the white plumes broaden toward the viewer at constant altitude,
+	# rather than falling vertically toward the track.
+	for side in [-1,1]:
+		var nozzle := jet_nozzle(at,side)
+		var nozzle_x: float=game.runner.position.x+(nozzle.x-at.x)/VIEW.X_SCALE
+		var nozzle_height: float=game.runner.position.y+(at.y-nozzle.y)/VIEW.HEIGHT_SCALE
+		for i in range(12):
+			var phase := fposmod(game.animation_time*1.6+i/12.0+(0.17 if side>0 else 0),1.0)
+			var z := phase*7.8
+			var spread: float=side*phase*0.12+sin(phase*TAU+i)*phase*0.04
+			var p := project(nozzle_x+spread,z,nozzle_height)
+			var texture: Texture2D=exhaust_textures[i%4]
+			var width := (18+phase*22)*p.z
+			var size := Vector2(width,width*texture.get_height()/texture.get_width())
+			var alpha := (1.0-smoothstep(0.35,1.0,phase))*0.92*strength
+			draw_texture_rect(texture,Rect2(Vector2(p.x,p.y)-size*0.5,size),false,Color(1,1,1,alpha))
 
 func draw_motion_dust(ground: Vector2) -> void:
 	if game.state=="running" and not game.tutorial_waiting:

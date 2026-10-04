@@ -27,6 +27,12 @@ func verify() -> void:
 	assert(game.state=="running")
 	game.on_host_message([JSON.stringify({"type":"RUNNER_RANKINGS_OPEN"})])
 	assert(game.state=="rankings" and game.ranking_panel.visible)
+	var ranking_distance: float=game.distance
+	game._process(0.2)
+	assert(game.distance==ranking_distance,"Opening records must freeze gameplay")
+	game.on_host_message([JSON.stringify({"type":"RUNNER_RANKINGS_CLOSE"})])
+	assert(game.state=="running" and not game.ranking_panel.visible,"The host records close button must restore the run")
+	game.open_rankings()
 	game.teeth=25
 	game.on_host_message([JSON.stringify({"type":"RUNNER_TUTORIAL_START"})])
 	assert(game.tutorial and game.tutorial_step==0 and game.state=="running" and not game.ranking_panel.visible,"Guide must leave rankings and start teaching from lesson one")
@@ -39,16 +45,16 @@ func verify() -> void:
 	assert(scenery.LAMP_X<scenery.FENCE_X-0.8,"Lamp bases must stay separate from fence pillars")
 	assert(fposmod(scenery.LAMP_SPACING,scenery.FENCE_SPACING)==0 and fposmod(scenery.LAMP_OFFSET-scenery.FENCE_OFFSET,scenery.FENCE_SPACING)==scenery.FENCE_SPACING*0.5,"Lamps must always stand halfway between fence pillars")
 	assert(scenery.TREE_SPACING==54,"Trees must be more frequent than the original 160 m landscaping")
-	game.start_run()
+	game.start_run(false,false)
 	var pooled_count: int=game.entity_pool.size()
 	game.make_obstacle("tooth",1,-2)
 	var reused_node: Node2D=game.entities.back().node
 	assert(game.entity_pool.size()==pooled_count-1)
-	game.start_run()
+	game.start_run(false,false)
 	assert(game.entity_pool.size()==pooled_count,"Replay must recycle nodes without allocating a new row")
 	game.make_obstacle("bench",1,-20)
 	assert(game.entities.back().node==reused_node and reused_node.visible,"Reused pickup nodes must show obstacles normally")
-	game.start_run()
+	game.start_run(false,false)
 	assert(absf(game.world.project(0,0).x-640)<0.01,"Camera must keep the cat centered without moving its world position")
 	for x in [-3.0,0.0,3.0]:
 		var p: Vector3=game.world.project(x,0,game.JUMP_HEIGHT)
@@ -68,7 +74,7 @@ func verify() -> void:
 	assert(game.can_collect(3.6,4.05))
 	assert(not game.can_collect(0,4.05),"High teeth require a jump")
 	for kind in game.PICKUP_FLOORS:
-		game.start_run()
+		game.start_run(false,false)
 		game.make_obstacle("tooth",1,-40,0.45)
 		game.make_obstacle(kind,1,-40)
 		assert(game.entities.size()==1,"Spawning an obstacle must recycle teeth underneath it")
@@ -91,13 +97,13 @@ func verify() -> void:
 		assert(game.world.roll_frame(phase)==7-game.world.somersault_frame(phase),"Down rolls head-first in the opposite direction to the celebration")
 		assert(roll_rect.size.x>100 and roll_rect.size.y>100,"Ground rolls keep body volume at every angle")
 		assert(roll_rect.end.y<=588.01 and roll_rect.end.y>=581.99,"All forward roll poses remain in contact with the road")
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
-	for milestone in [[0,16.0],[199,16.0],[200,17.6],[399,17.6],[400,19.2],[600,20.8],[10000,96.0]]:
+	for milestone in [[0,16.0],[199,16.0],[200,19.2],[399,19.2],[400,22.4],[600,25.6],[10000,176.0]]:
 		game.teeth=milestone[0]
 		game._process(0.01)
-		assert(absf(game.speed-milestone[1])<0.001,"Tooth milestones must add 10% of base speed, with no cap")
-	game.start_run()
+		assert(absf(game.speed-milestone[1])<0.001,"Tooth milestones must add 20% of base speed, with no cap")
+	game.start_run(false,false)
 	assert(game.speed==16)
 	game.spawn_time=1000
 	key(game,KEY_A)
@@ -122,7 +128,7 @@ func verify() -> void:
 	game._process(0.01)
 	key(game,KEY_W)
 	assert(game.jump_time==game.JUMP_DURATION and game.slide_time==0)
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	key(game,KEY_DOWN)
 	key(game,KEY_UP)
@@ -146,7 +152,7 @@ func verify() -> void:
 	key(game,KEY_UP)
 	game._process(0.06)
 	assert(game.jump_time>1.3 and game.dive_velocity==0,"A press just before touchdown must jump at contact")
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	game.jump_time=game.JUMP_DURATION*0.5
 	game._process(0.01)
@@ -158,7 +164,7 @@ func verify() -> void:
 	# Contact happens after the first fast rotation has finished. Both kinds of
 	# roll must stay low until the cat actually reaches these open dentures.
 	for rotation_duration in [game.ROLL_DURATION,game.DIVE_ROLL_DURATION]:
-		game.start_run()
+		game.start_run(false,false)
 		game.spawn_time=1000
 		game.begin_roll(rotation_duration)
 		game.make_obstacle("open",1,-8)
@@ -172,14 +178,14 @@ func verify() -> void:
 		game.make_obstacle("open",1,-0.1)
 		game._process(0.02)
 		assert(game.state=="crashed","Low-profile protection must end when the roll ends")
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	game.teeth=400
 	key(game,KEY_DOWN)
 	game.make_obstacle("open",1,-11)
 	game._process(0.60)
 	assert(game.state=="running" and game.entities[0].checked,"The longer roll must also work at increased milestone speeds")
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	game.lane=2
 	game.runner.position.x=3
@@ -201,7 +207,7 @@ func verify() -> void:
 	assert(game.state=="running" and not game.ranking_panel.visible)
 	game._process(1)
 	assert(game.celebration_time==0 and game.teeth==30)
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	game.runner.position.x=3
 	game.lane=2
@@ -213,36 +219,36 @@ func verify() -> void:
 	game._process(0.01)
 	assert(game.teeth==1,"A tooth remains collectable after crossing the old one-shot plane")
 	for kind in ["bench","equipment"]:
-		game.start_run()
+		game.start_run(false,false)
 		game.make_obstacle(kind,1,-92)
 		game.spawn_arc(1,-92)
 		assert(game.entities.size()==8 and game.entities[4].height>7,"Box and bench lure arcs clear their tops")
 	for kind in ["bench","equipment"]:
-		game.start_run()
+		game.start_run(false,false)
 		game.spawn_time=1000
 		game.jump_time=game.JUMP_DURATION*0.5
 		game.make_obstacle(kind,1,-0.1)
 		game._process(0.02)
 		assert(game.state=="running","A high jump must clear benches and carts")
-		game.start_run()
+		game.start_run(false,false)
 		game.spawn_time=1000
 		game.make_obstacle(kind,1,-0.1)
 		game._process(0.02)
 		assert(game.state=="crashed" and not game.results.visible,"Ground contact must first show injury, not results")
 		game._process(game.CRASH_DURATION)
 		assert(game.state=="over" and game.results.visible)
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	game.jump_time=game.JUMP_DURATION*0.5
 	game.make_obstacle("tooth",1,-0.1,0.45)
 	game._process(0.02)
 	assert(game.teeth==0,"Crossing a ground tooth mid-jump must not collect it")
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	game.make_obstacle("tooth",1,-0.1,0.45)
 	game._process(0.02)
 	assert(game.teeth==1,"Running through a ground tooth must collect it")
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	game.jump_time=game.JUMP_DURATION*0.5
 	game.make_obstacle("tooth",1,-0.1,game.JUMP_HEIGHT+0.45)
@@ -259,7 +265,7 @@ func verify() -> void:
 		key(game,[KEY_A,KEY_D,KEY_SPACE,KEY_S,KEY_W,KEY_SPACE][step])
 		game._process(2.0)
 	assert(game.state=="tutorial_done" and game.elapsed==0 and not game.reward_sent)
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_row()
 	var blocked := {}
 	var ground := 0
@@ -279,7 +285,7 @@ func verify() -> void:
 	for i in range(60): game._process(1.0)
 	assert(absf(game.elapsed-60)<0.001)
 	var coarse_distance: float=game.distance
-	game.start_run()
+	game.start_run(false,false)
 	game.spawn_time=1000
 	for i in range(3600): game._process(1.0/60.0)
 	assert(absf(game.distance-coarse_distance)<0.01,"Travel must not depend on frame rate")
@@ -307,7 +313,7 @@ func verify() -> void:
 	game._process(0.66)
 	assert(game.state=="over" and game.reward_sent)
 	assert(game.results.visible and not game.overlay.visible,"Results use the illustrated game panel")
-	game.start_run()
+	game.start_run(false,false)
 	assert(game.teeth==0 and not game.reward_sent and game.crash_time==0)
 	assert(game.world.position==Vector2.ZERO,"Replay must reset the camera offset")
 	game.finish_run("quit")

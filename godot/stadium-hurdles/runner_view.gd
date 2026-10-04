@@ -8,7 +8,7 @@ const CAMERA_X := 0.65
 const HEIGHT_SCALE := 44.0
 const PROJECTION_CENTER := CENTER_X+CAMERA_X*X_SCALE
 
-static func project(world_x: float, z: float, height: float = 0.0) -> Vector3:
+static func project(world_x: float, z: float, height: float = 0.0, camera_height: float = 0.0) -> Vector3:
 	var depth_scale := 1.0/maxf(0.45,1.0-z*0.065)
-	return Vector3(PROJECTION_CENTER+(world_x-CAMERA_X)*X_SCALE*depth_scale,HORIZON+DEPTH_SPAN*depth_scale-height*HEIGHT_SCALE*depth_scale,depth_scale)
+	return Vector3(PROJECTION_CENTER+(world_x-CAMERA_X)*X_SCALE*depth_scale,HORIZON+(DEPTH_SPAN+(camera_height-height)*HEIGHT_SCALE)*depth_scale,depth_scale)
 

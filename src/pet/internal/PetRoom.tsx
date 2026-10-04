@@ -21,10 +21,12 @@ import CoinIndicator from './components/CoinIndicator';
 import { getPetOption } from './petOptions';
 import { ROOM_BACKGROUNDS } from './roomBackgrounds';
 import { RoomInteractionOutlines } from './components/RoomInteractionOutlines';
+import { SceneCats } from './components/SceneCats';
+import { KART_GAME_ID, isNearKartEntrance } from './kartInteraction';
 import { FishingGame } from './components/FishingGame';
 import { MoleGame, PixelMoleMound } from './components/MoleGame';
 import { resolveItemPixelImage } from './components/FoodItemVisual';
-import { constrainOutdoorPosition, OUTDOOR_INITIAL_PLACEMENT, OUTDOOR_ROOMS } from './outdoorNavigation';
+import { constrainOutdoorPosition, getOutdoorWalkPath, OUTDOOR_INITIAL_PLACEMENT, OUTDOOR_ROOMS } from './outdoorNavigation';
 
 type RoomExitDirection = 'left' | 'right' | 'up' | 'down';
 type StadiumActivity = 'football' | 'hurdle';
@@ -56,6 +58,7 @@ const ROOM_EXITS: Partial<Record<RoomType, RoomExit[]>> = {
   ],
   [RoomType.TOWN_HOME]: [
     { direction: 'left', destination: RoomType.SHOPPING_STREET, label: 'Go to shopping street' },
+    { direction: 'down', destination: RoomType.KART_TRACK, label: 'Go to karting track' },
   ],
   [RoomType.SHOPPING_STREET]: [
     { direction: 'right', destination: RoomType.TOWN_HOME, label: 'Go home' },
@@ -63,6 +66,11 @@ const ROOM_EXITS: Partial<Record<RoomType, RoomExit[]>> = {
   ],
   [RoomType.SPORTS_GROUND]: [
     { direction: 'up', destination: RoomType.SHOPPING_STREET, label: 'Go to shopping street' },
+    { direction: 'right', destination: RoomType.KART_TRACK, label: 'Go to karting track' },
+  ],
+  [RoomType.KART_TRACK]: [
+    { direction: 'up', destination: RoomType.TOWN_HOME, label: 'Return to town home' },
+    { direction: 'left', destination: RoomType.SPORTS_GROUND, label: 'Return to sports ground' },
   ],
   [RoomType.SPORTS_STADIUM]: [
     { direction: 'down', destination: RoomType.SPORTS_GROUND, label: 'Return to sports ground' },
@@ -126,12 +134,14 @@ const TOWN_ROOMS = new Set<RoomType>([
   RoomType.SHOPPING_STREET,
   RoomType.SPORTS_GROUND,
   RoomType.SPORTS_STADIUM,
+  RoomType.KART_TRACK,
   RoomType.FISHING_POND,
 ]);
 const AUTO_TOWN_EXIT_ROOMS = new Set<RoomType>([
   RoomType.TOWN_HOME,
   RoomType.SHOPPING_STREET,
   RoomType.SPORTS_GROUND,
+  RoomType.KART_TRACK,
 ]);
 const OUTDOOR_ROUTE_ENTRY_PLACEMENT: Partial<Record<RoomType, Partial<Record<RoomType, { x: number; y: number }>>>> = {
   [RoomType.SHOPPING_STREET]: {
@@ -141,6 +151,15 @@ const OUTDOOR_ROUTE_ENTRY_PLACEMENT: Partial<Record<RoomType, Partial<Record<Roo
   [RoomType.SPORTS_GROUND]: {
     [RoomType.SHOPPING_STREET]: { x: 0.33, y: 0.82 },
     [RoomType.SPORTS_STADIUM]: { x: 0.5, y: 0.84 },
+    [RoomType.KART_TRACK]: { x: 0.13, y: 0.49 },
+  },
+  [RoomType.TOWN_HOME]: {
+    [RoomType.SHOPPING_STREET]: { x: 0.84, y: 0.53 },
+    [RoomType.KART_TRACK]: { x: 0.414, y: 0.14 },
+  },
+  [RoomType.KART_TRACK]: {
+    [RoomType.TOWN_HOME]: { x: 0.83, y: 0.84 },
+    [RoomType.SPORTS_GROUND]: { x: 0.88, y: 0.18 },
   },
   [RoomType.SPORTS_STADIUM]: {
     [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.075 },
@@ -221,7 +240,6 @@ const getRoomSceneHorizontalBounds = (width: number, _height: number) => ({
 
 interface PetRoomProps {
   onNavigateToGame: (gameId: string) => void;
-  onExitPet?: () => void;
   /** Host-local games rendered as additional Games-menu cards. See
    *  `ExtraGame`'s own doc (types.ts). */
   extraGames?: ExtraGame[];
@@ -232,7 +250,6 @@ interface PetRoomProps {
 
 export const PetRoom: React.FC<PetRoomProps> = ({
   onNavigateToGame,
-  onExitPet,
   extraGames,
   roomNavigationRequest,
   onRoomNavigationRequestHandled,
@@ -316,6 +333,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const outsidePetRaf = useRef<number>(0);
   const outdoorEntryPlacementRef = useRef<{ room: RoomType; placement: { x: number; y: number } } | null>(null);
   const outsidePointerTargetRef = useRef<{ x: number; y: number } | null>(null);
+  const outsideExitPathRef = useRef<{ x: number; y: number }[]>([]);
+  const outsideExitTravelRef = useRef(false);
   const outsideMovementKeysRef = useRef({ left: false, right: false, up: false, down: false });
   const indoorPetXRef = useRef(indoorPetX);
   const indoorPetYOffsetRef = useRef(indoorPetYOffset);
@@ -526,8 +545,12 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             ? sceneLeft + sceneWidth - petHalfWidth
             : exit.direction === 'down' && currentRoom === RoomType.SHOPPING_STREET
               ? sceneLeft + sceneWidth * 0.33
+              : exit.direction === 'down' && currentRoom === RoomType.TOWN_HOME
+                ? sceneLeft + sceneWidth * 0.83
               : exit.direction === 'up' && currentRoom === RoomType.SPORTS_GROUND
                 ? sceneLeft + sceneWidth * 0.5
+                : exit.direction === 'up' && currentRoom === RoomType.KART_TRACK
+                  ? sceneLeft + sceneWidth * 0.414
             : outsidePetPosRef.current.x,
         y: exit.destination === RoomType.FISHING_POND
           ? rect.height * 0.55
@@ -539,6 +562,10 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           ? petHalfHeight
           : exit.direction === 'down'
             ? rect.height - petHalfHeight
+            : exit.direction === 'left' && currentRoom === RoomType.KART_TRACK
+              ? rect.height * 0.49
+              : exit.direction === 'right' && currentRoom === RoomType.SPORTS_GROUND
+                ? rect.height * 0.19
             : outsidePetPosRef.current.y,
       };
       outsidePointerTargetRef.current = constrainOutdoorPosition(
@@ -548,10 +575,14 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         rect.width,
         rect.height,
       );
+      const exitPath = getOutdoorWalkPath(currentRoom, outsidePetPosRef.current, outsidePointerTargetRef.current, rect.width, rect.height);
+      outsidePointerTargetRef.current = exitPath[0];
+      outsideExitPathRef.current = exitPath.slice(1);
+      outsideExitTravelRef.current = true;
       setRoomTransition(exit);
       // A nearby exit can constrain to our current position. Begin loading
       // before the movement frame clears the already-reached pointer target.
-      if (Math.hypot(outsidePetPosRef.current.x - outsidePointerTargetRef.current.x,
+      if (outsideExitPathRef.current.length === 0 && Math.hypot(outsidePetPosRef.current.x - outsidePointerTargetRef.current.x,
         outsidePetPosRef.current.y - outsidePointerTargetRef.current.y) <= INDOOR_PET_STOP_DISTANCE + 1) {
         setLoadingAnimationKey((key) => key + 1);
         setIsRoomTransitionLoading(true);
@@ -615,7 +646,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     if (!OUTDOOR_ROOMS.has(currentRoom) || !roomTransition || isRoomTransitionLoading) return;
 
     const target = outsidePointerTargetRef.current;
-    if (!target || Math.hypot(outsidePetPos.x - target.x, outsidePetPos.y - target.y) > INDOOR_PET_STOP_DISTANCE + 1) return;
+    if (!target || outsideExitPathRef.current.length > 0 || Math.hypot(outsidePetPos.x - target.x, outsidePetPos.y - target.y) > INDOOR_PET_STOP_DISTANCE + 1) return;
 
     outsidePointerTargetRef.current = null;
     setLoadingAnimationKey((key) => key + 1);
@@ -632,6 +663,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         ? { room: roomTransition.destination, placement: routePlacement }
         : null;
       setCurrentRoom(roomTransition.destination);
+      outsideExitPathRef.current = [];
+      outsideExitTravelRef.current = false;
       setRoomTransition(null);
       setIsRoomTransitionLoading(false);
       onRoomNavigationRequestHandled?.();
@@ -845,6 +878,32 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     window.addEventListener('keydown', handleFishingInteraction);
     return () => window.removeEventListener('keydown', handleFishingInteraction);
   }, [currentRoom, isSleeping, roomTransition, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
+
+  const activateKartFromEntrance = () => {
+    const area = playAreaRef.current;
+    if (!area || currentRoom !== RoomType.KART_TRACK || roomTransition || isSleeping || showShopModal) return;
+    const rect = area.getBoundingClientRect();
+    if (!isNearKartEntrance(outsidePetPosRef.current.x, outsidePetPosRef.current.y, rect.width, rect.height)) return;
+    onNavigateToGame(KART_GAME_ID);
+  };
+
+  useEffect(() => {
+    if (currentRoom !== RoomType.KART_TRACK || showShopModal || isSleeping || roomTransition) return;
+    const handleKartInteraction = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat || event.defaultPrevented) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('input, textarea, select, button, [contenteditable="true"], [data-pet-interaction-action]')) return;
+      const area = playAreaRef.current;
+      if (!area) return;
+      const rect = area.getBoundingClientRect();
+      if (!isNearKartEntrance(outsidePetPosRef.current.x, outsidePetPosRef.current.y, rect.width, rect.height)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      activateKartFromEntrance();
+    };
+    window.addEventListener('keydown', handleKartInteraction);
+    return () => window.removeEventListener('keydown', handleKartInteraction);
+  }, [currentRoom, isSleeping, roomTransition, showShopModal, onNavigateToGame]);
 
   useEffect(() => {
     if (currentRoom !== RoomType.PLAYROOM || showMoleGame || showShopModal || isSleeping || roomTransition) return;
@@ -1457,9 +1516,27 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     const isMovingTowardSportsExit = outsideMovementKeysRef.current.up
       || (outsidePointerTargetRef.current?.y ?? Number.POSITIVE_INFINITY) < outsidePetPos.y;
     const nearbyExit = roomExits.find((exit) => {
-      if (exit.direction === 'left') return x <= 0.09 && y >= 0.16 && y <= 0.43;
-      if (exit.direction === 'right') return x >= 0.91 && y >= 0.27 && y <= 0.67;
-      if (exit.direction === 'down') return y >= 0.88 && x >= 0.22 && x <= 0.45;
+      if (exit.direction === 'left') {
+        if (currentRoom === RoomType.KART_TRACK && exit.destination === RoomType.SPORTS_GROUND) {
+          return x <= 0.09 && y >= 0.40 && y <= 0.58;
+        }
+        return x <= 0.09 && y >= 0.16 && y <= 0.43;
+      }
+      if (exit.direction === 'right') {
+        if (currentRoom === RoomType.SPORTS_GROUND && exit.destination === RoomType.KART_TRACK) {
+          return x >= 0.91 && y >= 0.10 && y <= 0.28;
+        }
+        return x >= 0.91 && y >= 0.27 && y <= 0.67;
+      }
+      if (exit.direction === 'down') {
+        if (currentRoom === RoomType.TOWN_HOME && exit.destination === RoomType.KART_TRACK) {
+          return y >= 0.88 && x >= 0.75 && x <= 0.92;
+        }
+        return y >= 0.88 && x >= 0.22 && x <= 0.45;
+      }
+      if (currentRoom === RoomType.KART_TRACK) {
+        return isMovingTowardSportsExit && y <= sportsTopExitY && x >= 0.386 && x <= 0.44;
+      }
       return isMovingTowardSportsExit && y <= sportsTopExitY && x >= 0.40 && x <= 0.60;
     });
     if (nearbyExit) startRoomTransition(nearbyExit);
@@ -1567,6 +1644,11 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         outsidePetPosRef.current = next;
         setOutsidePetPos(next);
         setOutsidePetPose(dx < 0 ? 'run-left' : 'run-right');
+      } else if (pointerTarget && outsideExitPathRef.current.length > 0) {
+        outsidePointerTargetRef.current = outsideExitPathRef.current.shift()!;
+      } else if (pointerTarget && outsideExitTravelRef.current) {
+        // Keep the reached final target until the transition effect starts loading.
+        setOutsidePetPose('idle');
       } else if (ballIsReleasedAndMoving) {
         setOutsidePetPose(dx < 0 ? 'run-left' : 'run-right');
       } else {
@@ -1624,6 +1706,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         }}
       />
 
+      <SceneCats key={currentRoom} room={currentRoom} spriteSheets={assetUrls?.spriteSheets} />
+
       {currentRoom === RoomType.SPORTS_STADIUM && (
         <>
           {(['football', 'hurdle'] as StadiumActivity[]).map((activity) => {
@@ -1678,7 +1762,17 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       {roomExits.map((exit) => {
         const isStackedGamesExit = currentRoom === RoomType.GAMES && exit.direction === 'right';
         const isSportsGroundReturn = currentRoom === RoomType.SPORTS_GROUND && exit.direction === 'up';
-        const positionClass = exit.direction === 'left'
+        const positionClass = currentRoom === RoomType.TOWN_HOME && exit.destination === RoomType.KART_TRACK
+          ? 'bottom-3 left-[83%] -translate-x-1/2 sm:bottom-6'
+          : currentRoom === RoomType.SPORTS_GROUND && exit.destination === RoomType.KART_TRACK
+            ? 'right-3 top-[19%] -translate-y-1/2 sm:right-6'
+          : currentRoom === RoomType.KART_TRACK && exit.direction === 'up'
+            ? 'left-[41.4%] top-3 -translate-x-1/2 sm:top-6'
+          : currentRoom === RoomType.KART_TRACK && exit.direction === 'left'
+            ? 'left-3 top-[49%] -translate-y-1/2 sm:left-6'
+          : currentRoom === RoomType.FISHING_POND
+          ? 'left-3 top-3 sm:left-6 sm:top-6'
+          : exit.direction === 'left'
           ? 'left-3 top-1/2 -translate-y-1/2 sm:left-6'
           : exit.direction === 'right'
             ? isStackedGamesExit
@@ -1721,7 +1815,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       <RoomInteractionOutlines
         room={currentRoom}
         hidden={!!roomTransition || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu}
+        onKeyboardActivate={currentRoom === RoomType.KART_TRACK ? () => activateKartFromEntrance() : undefined}
         onActivate={(action) => {
+          if (action === 'karting') onNavigateToGame(KART_GAME_ID);
           if (action === 'door') {
             const doorExit = ROOM_DOOR_EXITS[currentRoom];
             if (doorExit) startRoomTransition(doorExit);
@@ -2071,7 +2167,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       {currentRoom === RoomType.PLAYROOM && showMoleGame && (
         <MoleGame
           onClose={() => setShowMoleGame(false)}
-          onExitPet={() => onExitPet?.()}
           stats={stats}
           onReward={(coins, xp) => {
             addCoins(coins);

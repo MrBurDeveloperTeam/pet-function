@@ -25,6 +25,129 @@
 }
 
 /* Shared UI is intentionally light-only; host theme must not change its palette. */
+@font-face {
+  font-family: 'CatDashPixel';
+  src: url('/games/stadium-hurdles/Quadrit.ttf') format('truetype');
+  font-display: swap;
+}
+
+.snabbb-molar-experience .runner-record-avatar {
+  display: inline-flex; flex: 0 0 auto; overflow: hidden; box-sizing: border-box;
+  border: 3px solid #e5b354; background: #21475e;
+  box-shadow: 2px 2px 0 #102a42;
+}
+.snabbb-molar-experience .runner-record-avatar img,
+.snabbb-molar-experience .runner-record-avatar svg { width: 100%; height: 100%; object-fit: cover; }
+.snabbb-molar-experience .runner-record-tooth { display: inline-block; width: 20px; height: 23px; vertical-align: middle; }
+.snabbb-molar-experience .runner-rival-notice {
+  position: absolute; right: calc(100% + 10px); top: 0; width: 266px; min-height: 78px; box-sizing: border-box;
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  color: #fff1c4; background: #173b59; border: 3px solid #e5b354;
+  box-shadow: inset 0 0 0 2px #315b72, 4px 4px 0 #3f2a1b;
+  font-family: 'CatDashPixel', monospace; pointer-events: none;
+  animation: catdash-rival-enter 200ms steps(5, end) both;
+}
+.snabbb-molar-experience .runner-rival-notice::after {
+  content: ''; position: absolute; top: 21px; right: -10px; width: 10px; height: 19px;
+  background: #e5b354; clip-path: polygon(0 0, 100% 35%, 100% 65%, 0 100%);
+}
+.snabbb-molar-experience .runner-rival-copy { flex: 1; min-width: 0; }
+.snabbb-molar-experience .runner-rival-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: normal; }
+.snabbb-molar-experience .runner-rival-eyebrow { display: block; color: #a7d1df; font-size: 10px; line-height: 14px; }
+.snabbb-molar-experience .runner-rival-score { display: flex; gap: 5px; align-items: center; color: #f6c858; font-size: 15px; }
+.snabbb-molar-experience .runner-rival-score .runner-record-tooth { width: 14px; height: 16px; }
+.snabbb-molar-experience .runner-rival-score small { margin-left: auto; color: #a7d1df; font-size: 9px; }
+.snabbb-molar-experience .runner-rival-track { display: block; margin-top: 4px; height: 4px; background: #102a42; }
+.snabbb-molar-experience .runner-rival-track > span { display: block; height: 100%; background: #f6c858; transition: width 120ms linear; }
+.snabbb-molar-experience .runner-rival-victory { border-color: #fff1a8; background: #245d74; animation: catdash-rival-win 400ms steps(6, end) both; }
+.snabbb-molar-experience .runner-rival-victory .runner-rival-eyebrow { color: #f6c858; }
+.snabbb-molar-experience .runner-rival-stars { position: absolute; inset: 0; overflow: visible; }
+.snabbb-molar-experience .runner-rival-star { position: absolute; left: 50%; top: 50%; width: 15px; height: 15px; color: #f6c858; animation: catdash-rival-star 1100ms ease-out both; }
+.snabbb-molar-experience .runner-rival-star-0 { --star-x: -130px; --star-y: -50px; }
+.snabbb-molar-experience .runner-rival-star-1 { --star-x: -80px; --star-y: -80px; }
+.snabbb-molar-experience .runner-rival-star-2 { --star-x: -20px; --star-y: -65px; }
+.snabbb-molar-experience .runner-rival-star-3 { --star-x: 50px; --star-y: -75px; }
+.snabbb-molar-experience .runner-rival-star-4 { --star-x: 110px; --star-y: -45px; }
+.snabbb-molar-experience .runner-rival-star-5 { --star-x: 140px; --star-y: 25px; }
+.snabbb-molar-experience .runner-rival-star-6 { --star-x: 65px; --star-y: 60px; }
+.snabbb-molar-experience .runner-rival-star-7 { --star-x: -45px; --star-y: 65px; }
+.snabbb-molar-experience .runner-rival-star-8 { --star-x: -125px; --star-y: 35px; }
+.snabbb-molar-experience .runner-records-shade {
+  position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: 16px; box-sizing: border-box; background: #0a25394d; font-family: 'CatDashPixel', monospace;
+}
+.snabbb-molar-experience .runner-records-board {
+  position: relative; width: min(850px, 80vw); height: min(660px, 90vh); padding: 38px 48px 42px; box-sizing: border-box;
+  display: flex; flex-direction: column; background: #173b59; color: #fff1c4; line-height: 1.3;
+  border: 13px solid #ecd5a5; outline: 5px solid #785b3c;
+  box-shadow: inset 0 0 0 5px #c19b5e, 12px 12px 0 #102a42b3;
+  animation: catdash-board-enter 180ms steps(5, end) both;
+}
+.snabbb-molar-experience .runner-records-flags { position: absolute; left: 14px; right: 14px; top: 6px; display: flex; justify-content: space-between; }
+.snabbb-molar-experience .runner-records-flags i { width: 26px; height: 16px; background: #f6c858; clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.snabbb-molar-experience .runner-records-flags i:nth-child(even) { background: #3e9cce; }
+.snabbb-molar-experience .runner-records-board h2 { margin: 10px 40px 0; text-align: center; font-family: inherit; color: #f6c858; font-size: clamp(20px, 3vw, 32px); font-weight: normal; line-height: 1.2; }
+.snabbb-molar-experience .runner-records-subtitle { margin: 5px 0 18px; text-align: center; color: #a7d1df; font-size: 18px; }
+.snabbb-molar-experience .runner-records-status { margin: 0 0 14px; padding-top: 12px; border-top: 2px solid #e5b354; text-align: center; color: #a7d1df; font-size: 12px; }
+.snabbb-molar-experience .runner-records-board button { padding: 0; height: 38px; min-width: 48px; border: 4px solid #785b3c; background: #f6c858; color: #684427; font-family: inherit; font-size: 22px; box-shadow: 4px 4px 0 #102a42; cursor: pointer; }
+.snabbb-molar-experience .runner-records-board button:focus-visible { outline: 3px solid #fff1c4; outline-offset: 4px; }
+.snabbb-molar-experience .runner-records-board button:disabled { opacity: .4; cursor: default; }
+.snabbb-molar-experience .runner-records-close { position: absolute; right: 12px; top: 24px; }
+.snabbb-molar-experience .runner-records-board table { width: 100%; border-collapse: separate; border-spacing: 0 8px; table-layout: fixed; }
+.snabbb-molar-experience .runner-records-board th { color: #f6c858; font-size: 13px; font-weight: normal; text-align: left; }
+.snabbb-molar-experience .runner-records-board th:first-child { width: 82px; text-align: center; }
+.snabbb-molar-experience .runner-records-board th:last-child { width: 110px; text-align: right; padding-right: 16px; }
+.snabbb-molar-experience .runner-records-board td { background: #21475e; height: 52px; padding: 0; font-size: clamp(14px, 2vw, 20px); }
+.snabbb-molar-experience .runner-records-board td:first-child { border-left: 4px solid #56879b; text-align: center; }
+.snabbb-molar-experience .runner-records-board td:last-child { color: #f6c858; text-align: right; padding-right: 16px; }
+.snabbb-molar-experience .runner-records-board .runner-record-own td { background: #315b72; }
+.snabbb-molar-experience .runner-records-board .runner-record-own td:first-child { border-left-color: #f6c858; }
+.snabbb-molar-experience .runner-rank-medal { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; color: #173b59; background: #5b8395; clip-path: polygon(20% 0,80% 0,100% 20%,100% 80%,80% 100%,20% 100%,0 80%,0 20%); }
+.snabbb-molar-experience .runner-rank-1 { background: #f6c858; }
+.snabbb-molar-experience .runner-rank-2 { background: #b7d2d8; }
+.snabbb-molar-experience .runner-rank-3 { background: #d79961; }
+.snabbb-molar-experience .runner-record-player { display: flex; align-items: center; gap: 12px; padding-right: 10px; }
+.snabbb-molar-experience .runner-record-player > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.snabbb-molar-experience .runner-record-player small { margin-left: 10px; color: #a7d1df; font-size: 10px; }
+.snabbb-molar-experience .runner-records-empty { text-align: center; margin: auto; }
+.snabbb-molar-experience .runner-records-board nav { margin-top: auto; padding-top: 12px; display: flex; align-items: center; justify-content: center; gap: 50px; font-size: 16px; }
+.snabbb-molar-experience .runner-records-track { position: absolute; bottom: 8px; left: 12px; right: 12px; height: 12px; box-sizing: border-box; background: repeating-linear-gradient(to right,#268bd0 0 27px,#173b59 27px 31px); border-bottom: 5px solid #f6c858; }
+.snabbb-molar-experience .runner-records-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+@keyframes catdash-rival-enter { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes catdash-rival-win { 0%, 40% { transform: translateY(-4px); box-shadow: 0 0 0 4px #fff1a8; } 100% { transform: translateY(0); } }
+@keyframes catdash-rival-star { from { opacity: 1; transform: translate(0,0) scale(.6); } to { opacity: 0; transform: translate(var(--star-x),var(--star-y)) scale(1.1); } }
+@keyframes catdash-board-enter { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@media (max-width: 640px) {
+  .snabbb-molar-experience .runner-rival-notice { width: 220px; padding: 7px; gap: 7px; }
+  .snabbb-molar-experience .runner-records-board { width: 90vw; padding: 24px 12px 32px; border-width: 8px; }
+  .snabbb-molar-experience .runner-records-board th:first-child { width: 48px; }
+  .snabbb-molar-experience .runner-records-board th:last-child { width: 82px; }
+  .snabbb-molar-experience .runner-record-player { gap: 6px; }
+  .snabbb-molar-experience .runner-records-close { top: 20px; right: 6px; }
+}
+@media (max-height: 600px) {
+  .snabbb-molar-experience .runner-records-board { padding-top: 20px; }
+  .snabbb-molar-experience .runner-records-board h2 { margin-top: 4px; font-size: 24px; }
+  .snabbb-molar-experience .runner-records-subtitle { margin-bottom: 5px; font-size: 14px; }
+  .snabbb-molar-experience .runner-records-status { padding-top: 6px; margin-bottom: 2px; }
+  .snabbb-molar-experience .runner-records-board td { height: 42px; }
+  .snabbb-molar-experience .runner-records-board table { border-spacing: 0 4px; }
+  .snabbb-molar-experience .runner-records-board nav { padding-top: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snabbb-molar-experience .runner-rival-notice,
+  .snabbb-molar-experience .runner-rival-star,
+  .snabbb-molar-experience .runner-records-board { animation: none; }
+  .snabbb-molar-experience .runner-rival-stars { display: none; }
+}
+@media (max-height: 450px) {
+  .snabbb-molar-experience .runner-records-board { padding-top: 16px; padding-bottom: 24px; }
+  .snabbb-molar-experience .runner-records-board h2 { font-size: 20px; }
+  .snabbb-molar-experience .runner-records-board td { height: 36px; }
+  .snabbb-molar-experience .runner-record-player .runner-record-avatar { width: 30px !important; height: 30px !important; }
+  .snabbb-molar-experience .runner-records-board button { height: 30px; }
+}
+
 .snabbb-molar-experience {
   color-scheme: light;
   color: var(--molar-text-primary);
@@ -985,6 +1108,32 @@
   letter-spacing: 0;
 }
 
+/* Cat Dash's host overlays use the same pixel face as the canvas game. */
+.snabbb-molar-experience .runner-records-board,
+.snabbb-molar-experience .runner-records-board *,
+.snabbb-molar-experience .runner-rival-notice,
+.snabbb-molar-experience .runner-rival-notice * {
+  font-family: 'CatDashPixel', monospace !important;
+}
+
+.snabbb-molar-experience .runner-powerup-timers,
+.snabbb-molar-experience .runner-powerup-timers * { font-family: 'CatDashPixel', monospace !important; box-sizing: border-box; }
+.snabbb-molar-experience .runner-powerup-timers { position: absolute; right: calc(100% + 14px); top: 76px; display: flex; flex-direction: column; gap: 8px; width: 174px; pointer-events: none; }
+.snabbb-molar-experience .runner-powerup-timer { display: flex; align-items: center; gap: 5px; height: 48px; color: #fff1c4; filter: drop-shadow(3px 3px 0 #17314a); }
+.snabbb-molar-experience .runner-powerup-timer-badge { position: relative; flex: 0 0 46px; height: 46px; display: grid; place-items: center; border: 2px solid #fff1c4; background: #315c85; box-shadow: inset 0 0 0 2px #83b5d1; clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px); }
+.snabbb-molar-experience .runner-powerup-timer-badge img { display: block; width: 36px; height: 36px; object-fit: contain; image-rendering: pixelated; }
+.snabbb-molar-experience .runner-powerup-timer-badge strong { position: absolute; bottom: 0; right: 0; padding: 2px 3px; font-size: 11px; font-weight: normal; line-height: 1; color: #fff1c4; background: #173b59; }
+.snabbb-molar-experience .runner-powerup-timer-track { display: flex; flex: 1; gap: 3px; height: 30px; padding: 5px; border: 2px solid #fff1c4; background: #173b59; box-shadow: inset 0 0 0 2px #83b5d1; clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px); }
+.snabbb-molar-experience .runner-powerup-timer-segment { flex: 1; min-width: 0; height: 100%; background: #0c2539; }
+.snabbb-molar-experience .runner-powerup-timer-segment i { display: block; height: 100%; background: #ffe476; border-bottom: 3px solid #d79b30; box-shadow: inset 1px 2px 0 #fff3b0; transform-origin: left; transition: transform 100ms linear; }
+@media (max-width: 600px), (max-height: 500px) {
+  .snabbb-molar-experience .runner-powerup-timers { top: 65px; right: calc(100% + 10px); width: 146px; gap: 6px; }
+  .snabbb-molar-experience .runner-powerup-timer { height: 40px; gap: 3px; }
+  .snabbb-molar-experience .runner-powerup-timer-badge { flex-basis: 40px; height: 40px; }
+  .snabbb-molar-experience .runner-powerup-timer-badge img { width: 30px; height: 30px; }
+  .snabbb-molar-experience .runner-powerup-timer-track { height: 28px; gap: 2px; padding: 5px 4px; }
+}
+
 .snabbb-molar-experience .pet-interface {
   font-size: 16px;
   line-height: 1.5;
@@ -1135,6 +1284,7 @@
 
 .snabbb-molar-experience .no-scrollbar {
   -ms-overflow-style: none;
+  scrollbar-color: auto;
   scrollbar-width: none;
 }
 .snabbb-molar-experience .no-scrollbar::-webkit-scrollbar {
@@ -1262,6 +1412,68 @@
 .snabbb-molar-experience .pet-interaction-outline-preview {
   pointer-events: none;
   cursor: default;
+}
+
+.snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='karting'] {
+  pointer-events: visiblePainted;
+  stroke: #ffe379;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 2px #392912) drop-shadow(0 0 5px #ffc94f);
+  animation: pet-kart-outline-pulse 2s ease-in-out infinite;
+}
+
+.snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='karting']:hover,
+.snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='karting']:focus-visible {
+  animation: none;
+  stroke: #fff3b0;
+  stroke-opacity: 1;
+  stroke-width: 5;
+}
+.snabbb-molar-experience .pet-scene-cats {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  overflow: hidden;
+  user-select: none;
+}
+
+.snabbb-molar-experience .pet-scene-cat {
+  position: absolute;
+  transform: translate(-50%, -94%);
+  pointer-events: none;
+}
+
+.snabbb-molar-experience .pet-scene-cat-sprite {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 192px;
+  height: 208px;
+  background-size: 1536px 2080px;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  transform-origin: top left;
+}
+
+.snabbb-molar-experience .pet-scene-cat-shadow {
+  position: absolute;
+  left: 13%;
+  bottom: 3%;
+  width: 74%;
+  height: 10%;
+  border-radius: 50%;
+  background: #34271430;
+  filter: blur(1px);
+}
+
+.snabbb-molar-experience .pet-scene-cat-sit .pet-scene-cat-shadow {
+  height: 5%;
+  background: #34271420;
+}
+
+@keyframes pet-kart-outline-pulse {
+  0%, 100% { stroke-opacity: .65; }
+  50% { stroke-opacity: 1; }
 }
 
 .snabbb-molar-experience .pet-stadium-activity {

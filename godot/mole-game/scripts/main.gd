@@ -189,6 +189,10 @@ func get_target_lifetime() -> float:
 	return 0.72 if time_left > 8.0 else 0.42
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if scene_exit_rect().has_point(to_local(event.position)):
+			post_to_host("close")
+			return
 	if tutorial_paused:
 		if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 			post_to_host("close")
@@ -210,9 +214,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		var scene_position := to_local(event.position)
-		if Rect2(18, 331, 64, 64).has_point(scene_position):
-			post_to_host("close")
-			return
 		if not playing:
 			reset_game()
 			return
@@ -684,16 +685,21 @@ func draw_hit_reaction(p: Vector2, s: float, kind: String, age: float) -> void:
 	var rect := Rect2(Vector2(-sprite_width * 0.5, bottom - sprite_height), Vector2(sprite_width, sprite_height))
 	draw_texture_rect(texture, rect, false, tint)
 
+func scene_exit_rect() -> Rect2:
+	# Anchor to the viewport corner even when the centered playfield has side margins.
+	return Rect2(Vector2(24, 24) - position, Vector2(64, 64))
+
 func draw_hud() -> void:
-	# Scene exit matches the other Outside navigation arrows and stays centered at the left edge.
-	draw_rect(Rect2(18,331,64,64),Color("17100c"),true)
-	draw_rect(Rect2(18,331,64,64),Color("a86b32"),false,4)
-	draw_rect(Rect2(23,336,54,54),Color("4b2b19"),false,2)
-	draw_circle(Vector2(27,340),3.0,Color("e4a552"))
-	draw_circle(Vector2(73,386),3.0,Color("e4a552"))
-	draw_rect(Rect2(34,357,31,12),Color("f0c679"),true)
-	draw_rect(Rect2(28,351,12,24),Color("f0c679"),true)
-	draw_rect(Rect2(22,357,12,12),Color("f0c679"),true)
+	var exit_rect := scene_exit_rect()
+	var p := exit_rect.position
+	draw_rect(exit_rect,Color("17100c"),true)
+	draw_rect(exit_rect,Color("a86b32"),false,4)
+	draw_rect(Rect2(p + Vector2(5,5),Vector2(54,54)),Color("4b2b19"),false,2)
+	draw_circle(p + Vector2(9,9),3.0,Color("e4a552"))
+	draw_circle(p + Vector2(55,55),3.0,Color("e4a552"))
+	draw_rect(Rect2(p + Vector2(16,26),Vector2(31,12)),Color("f0c679"),true)
+	draw_rect(Rect2(p + Vector2(10,20),Vector2(12,24)),Color("f0c679"),true)
+	draw_rect(Rect2(p + Vector2(4,26),Vector2(12,12)),Color("f0c679"),true)
 	draw_rect(Rect2(350,18,580,64),Color("15110e"),true)
 	draw_rect(Rect2(350,18,580,64),Color("9b744c"),false,2)
 	draw_string(font,Vector2(374,45),"THE NINE BURROWS",HORIZONTAL_ALIGNMENT_LEFT,260,22,Color("f4dfbf"))

@@ -65,11 +65,23 @@ from the large block arrows used for scene travel.
 Sports Ground keeps the return arrow beside the upper-left tree near the centered
 approach road. The cat may walk only on that approach road and stops before the
 stadium entrance; the track, field, seating, and stadium interior are blocked.
+Town Home and Sports Ground retain their house, pond, shopping road, and stadium
+approaches while adding dedicated side roads to the Karting Track. Town Home's
+new road leaves from the east bank and Sports Ground's branch follows the garden
+behind the stadium; both connect to the new pixel-art karting scene without
+making the existing destinations or protected scenery walkable.
+The Karting Track sits below Town Home and to the right of Sports Ground on the
+travel map. Its top approach returns to Town Home and its left approach returns
+to Sports Ground, with the race circuit kept decorative and fenced off.
 The stadium's central arched entrance has a fitted pulsing preview contour. It is
 visual-only until the future interior scene is implemented, so it must not accept
 click, Space, Enter, or focus interaction yet.
 The pond beside Town Home's wooden dock uses a traced shoreline contour. Clicking
 the pond, or pressing Space while the cat is beside the dock, enters Fishing Pond.
+The Fishing Pond and mole game use one game-return arrow at the upper-left corner:
+Fishing Pond returns to Town Home, while the mole game returns to Outside.
+These game scenes do not show the pet-page exit arrow; Fishing Pond also hides the
+room map button. Keep each existing pixel scene-return arrow's artwork.
 Fishing Pond places the dock at the bottom and the water above it, with the selected
 cat represented by its own rear-view pixel sprite. The cat and fishing rod are
 separate image layers: `petId` chooses one of six cat backs, while `equippedRodId`

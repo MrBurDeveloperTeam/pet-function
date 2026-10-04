@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { TiArrowBack } from 'react-icons/ti';
 import { PixelCoinBag } from './CoinIndicator';
 import type { PetStats } from '../types';
 
-const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v9';
+const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v10';
 const MOLE_GAME_SOURCE = 'pet-function:mole-game';
 const MOLE_TUTORIAL_STORAGE_KEY = 'pet-function:mole-tutorial-complete-v1';
 const MOLE_TUTORIAL_STEPS = [
@@ -69,7 +68,6 @@ export const PixelMoleMound = ({ onOpen }: { onOpen: () => void }) => (
 
 interface MoleGameProps {
   onClose: () => void;
-  onExitPet: () => void;
   onReward: (coins: number, xp: number) => void;
   stats: PetStats;
 }
@@ -102,7 +100,7 @@ const MoleLevelBadge = ({ stats }: { stats: PetStats }) => {
   );
 };
 
-export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps) => {
+export const MoleGame = ({ onClose, onReward, stats }: MoleGameProps) => {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const rewardedRef = useRef(false);
   const tutorialTargetViewportBoundsRef = useRef<TutorialTargetViewportBounds | null>(null);
@@ -238,18 +236,6 @@ export const MoleGame = ({ onClose, onExitPet, onReward, stats }: MoleGameProps)
         allow="autoplay; fullscreen"
       />
       <div className="pointer-events-none absolute inset-0 z-20">
-        <div className="absolute left-3 top-3 sm:left-6 sm:top-6" style={{ pointerEvents: 'auto' }}>
-          <button
-            type="button"
-            onClick={onExitPet}
-            className="flex items-center justify-center text-slate-700 transition-transform hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5"
-            style={{ width: '4rem', height: '4rem', border: '4px solid #5a3a22', borderRadius: '5px', background: '#fff8d9', boxShadow: '5px 5px 0 rgba(53,35,20,.55)', pointerEvents: 'auto', cursor: 'pointer' }}
-            title="Back"
-            aria-label="Exit pet page"
-          >
-            <TiArrowBack className="h-8 w-8 sm:h-12 sm:w-12" />
-          </button>
-        </div>
         <div
           className="pointer-events-none flex select-none items-center gap-2 text-[#3f321f]"
           style={{ position: 'absolute', right: '7.25rem', top: '1.5rem', minWidth: '9.5rem', height: '3.5rem', padding: '.5rem 1rem', border: '4px solid #5a3a22', background: '#fff0ad', boxShadow: '5px 5px 0 rgba(53,35,20,.55)' }}

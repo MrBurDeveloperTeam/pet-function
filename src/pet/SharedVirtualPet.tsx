@@ -40,8 +40,10 @@ import type { PetRepository } from '../contracts/petRepository';
 import { SharedPetProvider, useGameState } from './runtime/SharedPetRuntime';
 import { PetRoom } from './internal/PetRoom';
 import { GamePage } from './internal/components/GamePage';
+import { KART_GAME_ID } from './internal/kartInteraction';
 import PetAdoptionModal from './internal/components/PetAdoptionModal';
 import { RoomType, type PetAssetUrls, type ExtraGame } from './internal/types';
+import { ROOM_BACKGROUNDS } from './internal/roomBackgrounds';
 
 export type { PetAssetUrls, ExtraGame };
 
@@ -82,6 +84,7 @@ const PixelRoomIcon = ({ room, className = '' }: { room: RoomType; className?: s
   if (room === RoomType.TOWN_HOME) return <svg {...common}><path fill="#b45309" d="M2 11 12 3l10 8v10H2z" /><path fill="#fef3c7" d="M6 11h12v8H6z" /><path fill="#78350f" d="M10 13h4v8h-4z" /></svg>;
   if (room === RoomType.SHOPPING_STREET) return <svg {...common}><path fill="#f59e0b" d="M3 8h18v13H3z" /><path fill="#fff7d6" d="M6 12h5v5H6zM14 11h4v10h-4z" /><path fill="#dc2626" d="M2 5h20v5H2z" /></svg>;
   if (room === RoomType.SPORTS_GROUND) return <svg {...common}><path fill="#059669" d="M3 5h18v14H3z" /><path fill="#fef3c7" d="M5 8h14v8H5z" /><path fill="#ef4444" d="M2 3h20v3H2zM2 18h20v3H2z" /></svg>;
+  if (room === RoomType.KART_TRACK) return <svg {...common}><path fill="#55351f" d="M3 13h3v8H3zM18 13h3v8h-3zM7 8h10v3H7z" /><path fill="#e85932" d="M5 12h14v7H5zM9 6h6v8H9z" /><path fill="#f6c453" d="M7 15h10v2H7z" /><path fill="#fff7d6" d="M10 8h4v3h-4zM2 2h3v3H2zM8 2h3v3H8zM5 5h3v3H5zM11 5h3v3h-3z" /></svg>;
   if (room === RoomType.FISHING_POND) return <svg {...common}><path fill="#0891b2" d="M2 12h20v8H2z" /><path fill="#67e8f9" d="M4 14h5v2H4zM12 17h7v2h-7z" /><path fill="#65a30d" d="M5 8h3v5H5zM16 6h3v7h-3z" /><path fill="#854d0e" d="M6 5h1v8H6zM17 3h1v10h-1z" /></svg>;
   return <svg {...common}><path fill="#8b5cf6" d="M5 7h14v3h3v8h-5v-3H7v3H2v-8h3z" /><path fill="#fff" d="M7 10h2v2h2v2H9v2H7v-2H5v-2h2zM16 11h2v2h-2zM18 13h2v2h-2z" /></svg>;
 };
@@ -98,13 +101,15 @@ const PixelCatMapMarker = () => (
 );
 
 const ROOM_MAP_ITEMS = [
-  { room: RoomType.SHOPPING_STREET, label: 'Shopping', x: 20, y: 35, color: '#e11d48' },
-  { room: RoomType.SPORTS_GROUND, label: 'Sports', x: 20, y: 72, color: '#059669' },
-  { room: RoomType.TOWN_HOME, label: 'Town Home', x: 81, y: 38, color: '#b45309' },
+  { room: RoomType.SHOPPING_STREET, label: 'Shopping', x: 25, y: 29, color: '#e11d48' },
+  { room: RoomType.TOWN_HOME, label: 'Town Home', x: 75, y: 29, color: '#b45309' },
+  { room: RoomType.SPORTS_GROUND, label: 'Sports', x: 25, y: 74, color: '#059669' },
+  { room: RoomType.KART_TRACK, label: 'Karting', x: 75, y: 74, color: '#c2410c' },
 ] as const;
 
 const ROOM_MAP_ROUTES = [
-  [20, 35, 81, 38], [20, 35, 20, 72],
+  [25, 29, 75, 29], [25, 29, 25, 74],
+  [75, 29, 75, 74], [25, 74, 75, 74],
 ] as const;
 
 const INDOOR_ROOM_ITEMS = [
@@ -142,6 +147,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   const showOutdoorTravelMap = currentRoom === RoomType.TOWN_HOME
     || currentRoom === RoomType.SHOPPING_STREET
     || currentRoom === RoomType.SPORTS_GROUND
+    || currentRoom === RoomType.KART_TRACK
     || currentRoom === RoomType.FISHING_POND;
 
   const handleRoomMapNavigate = (room: RoomType) => {
@@ -209,6 +215,9 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   };
 
   const handleNavigateToGame = async (gameId: string) => {
+    // Reserved entry hook: enable once the karting game is implemented.
+    if (gameId === KART_GAME_ID) return;
+
     if (requiresLandscapeMode(gameId)) {
       await enterLandscapeMode();
     }
@@ -222,7 +231,8 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
 
     setActiveGameId(null);
     setView('ROOM');
-    setCurrentRoom(activeGameId === 'stadium-hurdles' ? RoomType.SPORTS_STADIUM : RoomType.GAMES);
+    setCurrentRoom(activeGameId === KART_GAME_ID ? RoomType.KART_TRACK
+      : activeGameId === 'stadium-hurdles' ? RoomType.SPORTS_STADIUM : RoomType.GAMES);
     setShowRotateNotice(false);
 
     if (shouldReleaseLandscape) {
@@ -266,7 +276,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   return (
     <div className="relative w-full h-full overflow-hidden pet-interface">
       {/* Back button for the pet room only */}
-      {view === 'ROOM' && (
+      {view === 'ROOM' && currentRoom !== RoomType.FISHING_POND && (
         <>
           <button
             type="button"
@@ -321,21 +331,15 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
                 ) : (
                 <div className="relative aspect-[16/10] min-h-[18rem] overflow-hidden border-[3px] border-[#8b5a2b] bg-[#9fd064] shadow-inner [image-rendering:pixelated] sm:min-h-[25rem]">
                   <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(90deg,#406b2d_1px,transparent_1px),linear-gradient(#406b2d_1px,transparent_1px)] [background-size:12px_12px]" />
-                  <div
-                    className="absolute left-0 top-0 h-[53%] w-[34%] border-b-4 border-r-4 border-[#6d963c] bg-cover bg-center [image-rendering:pixelated]"
-                    style={{ backgroundImage: "linear-gradient(rgba(255,236,177,.15),rgba(255,236,177,.15)),url('/pet-function/rooms-wide/shopping-street.png')" }}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="absolute bottom-0 left-0 h-[47%] w-[34%] border-r-4 border-t-4 border-[#587f37] bg-cover bg-center [image-rendering:pixelated]"
-                    style={{ backgroundImage: "linear-gradient(rgba(40,104,54,.08),rgba(40,104,54,.08)),url('/pet-function/rooms-wide/sports-ground.png')" }}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="absolute right-0 top-0 h-full w-[66%] border-l-4 border-[#6d963c] bg-cover bg-center [image-rendering:pixelated]"
-                    style={{ backgroundImage: "linear-gradient(rgba(255,230,155,.08),rgba(255,230,155,.08)),url('/pet-function/rooms-wide/town-home.png')" }}
-                    aria-hidden="true"
-                  />
+                  <div className="absolute inset-0 grid grid-cols-2 grid-rows-2" aria-hidden="true">
+                    {ROOM_MAP_ITEMS.map(({ room }) => (
+                      <div
+                        key={room}
+                        className="border-2 border-[#6d963c] bg-cover bg-center [image-rendering:pixelated]"
+                        style={{ backgroundImage: `linear-gradient(rgba(255,236,177,.08),rgba(255,236,177,.08)),url('${ROOM_BACKGROUNDS[room]}')` }}
+                      />
+                    ))}
+                  </div>
 
                   <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
                     {ROOM_MAP_ROUTES.map(([x1, y1, x2, y2], index) => (
@@ -379,7 +383,6 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
       {view === 'ROOM' ? (
         <PetRoom
           onNavigateToGame={handleNavigateToGame}
-          onExitPet={() => { void handleClose(); }}
           extraGames={extraGames}
           roomNavigationRequest={roomNavigationRequest}
           onRoomNavigationRequestHandled={handleRoomNavigationRequestHandled}

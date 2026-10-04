@@ -27,10 +27,7 @@ test('mole game embeds the shared Godot export and persists validated rewards', 
   assert.match(gameSource, /<MoleLevelBadge stats=\{stats\}/);
   assert.match(gameSource, /border: '4px solid #5a3a22'/);
   assert.match(gameSource, /boxShadow: '5px 5px 0 rgba\(53,35,20,\.55\)'/);
-  assert.match(gameSource, /onClick=\{onExitPet\}/);
-  assert.match(gameSource, /pointerEvents: 'auto', cursor: 'pointer'/);
-  assert.match(gameSource, /aria-label="Exit pet page"/);
-  assert.match(roomSource, /onExitPet=\{\(\) => onExitPet\?\.\(\)\}/);
+  assert.doesNotMatch(gameSource, /onExitPet|Exit pet page/);
   assert.doesNotMatch(gameSource, /aria-label="Open room map"/);
   assert.match(gameSource, /className="pet-interface overflow-hidden/);
 });
@@ -38,8 +35,8 @@ test('mole game embeds the shared Godot export and persists validated rewards', 
 test('mole game launcher declares the current exported pack size', () => {
   const exportedPage = readFileSync(new URL('../public/games/mole-game/index.html', import.meta.url), 'utf8');
   const packSize = statSync(new URL('../public/games/mole-game/index.pck', import.meta.url)).size;
-  assert.match(exportedPage, new RegExp(`"index\\.pck\\?v=godot-v9":${packSize}`));
-  assert.match(exportedPage, /"mainPack":"index\.pck\?v=godot-v9"/);
+  assert.match(exportedPage, new RegExp(`"index\\.pck\\?v=godot-v10":${packSize}`));
+  assert.match(exportedPage, /"mainPack":"index\.pck\?v=godot-v10"/);
 });
 
 test('mole game provides a full-screen scene and loading state without a popup dialog', () => {
@@ -179,11 +176,13 @@ test('charged catalyst flashes its border and places the Space key hint outside 
   assert.doesNotMatch(script, /"SPACE READY"/);
 });
 
-test('mole HUD uses a left-center scene arrow and keeps the top corners for the shared room controls', () => {
+test('mole HUD anchors its scene return arrow to the upper-left viewport corner', () => {
   const script = readFileSync(new URL('../godot/mole-game/scripts/main.gd', import.meta.url), 'utf8');
-  assert.match(script, /Rect2\(18,331,64,64\)/);
+  assert.match(script, /return Rect2\(Vector2\(24, 24\) - position, Vector2\(64, 64\)\)/);
+  assert.match(script, /scene_exit_rect\(\)\.has_point\(to_local\(event\.position\)\)/);
+  assert.doesNotMatch(script, /Rect2\(18,\s*331,\s*64,\s*64\)/);
   assert.doesNotMatch(script, /"<  OUTSIDE"/);
-  assert.match(gameSource, /godot-v9/);
+  assert.match(gameSource, /godot-v10/);
   assert.match(gameSource, /background: '#100a07'/);
   assert.match(roomSource, /stats=\{stats\}/);
 });
@@ -228,8 +227,8 @@ test('mole game has a reusable spotlight tutorial tied to the real advanced mech
   assert.match(gameSource, /type: 'tutorial-active' \| 'tutorial-complete' \| 'tutorial-step'/);
   assert.match(script, /var tutorial_paused := true/);
   assert.match(script, /post_to_host\("game-ready"\)/);
-  assert.match(exportedPage, /type: 'game-ready'/);
-  assert.match(gameSource, /type: 'game-ready'/);
+  assert.match(exportedPage, /notifyHost\('game-ready'\)/);
+  assert.match(gameSource, /type: 'request-game-ready'/);
   assert.match(gameSource, /event\.data\.type === 'game-ready'[\s\S]*?setLoaded\(true\)/);
   assert.match(gameSource, /loaded && tutorialStep !== null/);
   assert.doesNotMatch(gameSource, /onLoad=\{\(\) => setLoaded\(true\)\}/);

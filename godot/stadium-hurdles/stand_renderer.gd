@@ -16,6 +16,7 @@ var pillar_region: Rect2
 var lamp_region: Rect2
 var tree_region: Rect2
 var last_distance := -1.0
+var last_camera_height := -1.0
 
 func _ready() -> void:
 	z_index=-2
@@ -25,14 +26,18 @@ func _ready() -> void:
 	tree_region=game.world.trim(LANDSCAPE.get_image(),Rect2i(0,0,LANDSCAPE.get_width()/2,LANDSCAPE.get_height()))
 
 func _process(_delta: float) -> void:
-	if last_distance==game.distance: return
+	if last_distance==game.distance and last_camera_height==game.camera_height: return
 	last_distance=game.distance
+	last_camera_height=game.camera_height
 	queue_redraw()
+
+func project(world_x: float, z: float, height: float = 0.0) -> Vector3:
+	return VIEW.project(world_x,z,height,game.camera_height)
 
 func face(corners: Array, color: Color) -> void:
 	var points := PackedVector2Array()
 	for corner: Vector3 in corners:
-		var p := VIEW.project(corner.x,corner.y,corner.z)
+		var p := project(corner.x,corner.y,corner.z)
 		points.append(Vector2(p.x,p.y))
 	draw_colored_polygon(points,color)
 
@@ -45,14 +50,14 @@ func draw_rail(side: float, far_z: float, near_z: float, height: float) -> void:
 	face([Vector3(x,far_z,height),Vector3(x,near_z,height),Vector3(x+side*0.09,near_z,height+0.04),Vector3(x+side*0.09,far_z,height+0.04)],Color("ffe0a0"))
 
 func draw_pillar(side: float, z: float) -> void:
-	var p := VIEW.project(side*FENCE_X,z)
+	var p := project(side*FENCE_X,z)
 	if p.z<0.1: return
 	var height := 110.0*p.z
 	var width := height*pillar_region.size.x/pillar_region.size.y
 	draw_texture_rect_region(PILLAR,Rect2(p.x-width*0.5,p.y-height,width,height),pillar_region)
 
 func draw_lamp(side: float, z: float) -> void:
-	var p := VIEW.project(side*LAMP_X,z)
+	var p := project(side*LAMP_X,z)
 	if p.z<0.16: return
 	var height := 370.0*p.z
 	var width := height*lamp_region.size.x/lamp_region.size.y
@@ -66,7 +71,7 @@ func draw_lamp(side: float, z: float) -> void:
 	draw_set_transform(Vector2.ZERO)
 
 func draw_tree(side: float, z: float) -> void:
-	var p := VIEW.project(side*11.5,z)
+	var p := project(side*11.5,z)
 	if p.z<0.15: return
 	var region := tree_region
 	var height := 560.0*p.z

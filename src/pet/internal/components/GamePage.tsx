@@ -19,8 +19,11 @@ import type { GameProgressClient } from '../../SharedVirtualPet';
 import { runnerRewards } from '../runnerRewards';
 import CoinIndicator from './CoinIndicator';
 import LevelIndicator from './LevelIndicator';
-import { TiArrowBack } from 'react-icons/ti';
 import { hasRunnerTutorialBeenSeen, markRunnerTutorialSeen } from '../runnerTutorial';
+import { RunnerRivals, runnerRecords, type RunnerRecord } from '../runnerRivals';
+import { RunnerRecordsPanel, RunnerRivalNotice } from './RunnerRecords';
+import { RunnerPowerupTimers } from './RunnerPowerups';
+import { emptyRunnerPowerups, runnerPowerupStatus, RunnerPowerupPurchases } from '../runnerPowerups';
 
 const GAME_CONFIG: Record<string, { title: string; url: string; icon: string; gradient: string }> = {
     'stadium-hurdles': {
@@ -100,7 +103,12 @@ interface GamePageProps {
 
 export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, gameProgressClient, userId }) => {
     const [isLoading, setIsLoading] = useState(true);
-    const { stats, setStats, addCoins, addXP } = useGameState();
+    const { stats, setStats, addCoins, addXP, spendCoins } = useGameState();
+    const [powerups, setPowerups] = useState(emptyRunnerPowerups);
+    const powerupPurchases = useRef(new RunnerPowerupPurchases());
+    const runnerState = useRef('loading');
+    const walletSpend = useRef(spendCoins);
+    walletSpend.current = spendCoins;
     const [sessionCoins, setSessionCoins] = useState(0);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const activeRunnerId = useRef<string | null>(null);
@@ -108,6 +116,20 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
     const [runnerReady, setRunnerReady] = useState(false);
     const runnerInitialized = useRef(false);
     const exitDestination = useRef<'game' | 'pet'>('game');
+    const rankingRecords = useRef<RunnerRecord[]>([]);
+    const rivals = useRef(new RunnerRivals());
+    const [records, setRecords] = useState<RunnerRecord[]>([]);
+    const [rankingStatus, setRankingStatus] = useState('Loading rankings...');
+    const [rankingsOpen, setRankingsOpen] = useState(false);
+    const [runnerPlaying, setRunnerPlaying] = useState(false);
+    const [runnerTeeth, setRunnerTeeth] = useState(0);
+    const [rivalTarget, setRivalTarget] = useState<RunnerRecord | null>(null);
+    const [rivalVictory, setRivalVictory] = useState<{ record: RunnerRecord; count: number; sequence: number } | null>(null);
+    const victoryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const victorySequence = useRef(0);
+    const rankingRequest = useRef(0);
+
+    useEffect(() => () => { if (victoryTimer.current) clearTimeout(victoryTimer.current); rankingRequest.current++; }, []);
 
     const sendRunnerAction = (type: string) => {
         iframeRef.current?.contentWindow?.postMessage({ type }, window.location.origin);
@@ -115,7 +137,17 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
     };
 
     const refreshRunnerRanking = async (score?: { runId: string; teeth: number; elapsedSeconds: number }) => {
-        const send = (entries: unknown[], status: string) => iframeRef.current?.contentWindow?.postMessage({ type: 'RUNNER_LEADERBOARD', entries, status }, window.location.origin);
+        const request = ++rankingRequest.current;
+        const send = (entries: unknown[], status: string) => {
+            if (request !== rankingRequest.current) return;
+            const next = runnerRecords(entries, userId);
+            rankingRecords.current = next;
+            setRecords(next);
+            setRankingStatus(status);
+            rivals.current.updateRecords(next);
+            setRivalTarget(rivals.current.target());
+            iframeRef.current?.contentWindow?.postMessage({ type: 'RUNNER_LEADERBOARD', entries, status }, window.location.origin);
+        };
         if (!gameProgressClient || !userId) { send([], 'Sign in to view the global rankings'); return; }
         try {
             if (score) {
@@ -170,7 +202,42 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
                 if (message.type === 'RUNNER_READY' || message.type === 'RUNNER_RANKINGS_REQUEST') void refreshRunnerRanking();
                 if (message.type === 'RUNNER_STARTED' && typeof message.runId === 'string') {
                     activeRunnerId.current = message.runId;
+                    powerupPurchases.current.start(message.runId);
+                    setPowerups(emptyRunnerPowerups());
                     setSessionCoins(0);
+                    rivals.current.start(rankingRecords.current);
+                    setRunnerTeeth(0);
+                    setRivalTarget(rivals.current.target());
+                    setRivalVictory(null);
+                    setRunnerPlaying(true);
+                    setRankingsOpen(false);
+                    if (victoryTimer.current) clearTimeout(victoryTimer.current);
+                }
+                if (message.type === 'RUNNER_STATE') {
+                    runnerState.current = message.state;
+                    setRunnerPlaying(message.state === 'running' && !message.tutorial);
+                    setRankingsOpen(message.state === 'rankings');
+                }
+                if (message.type === 'RUNNER_POWERUPS' && message.runId === activeRunnerId.current) {
+                    const status = runnerPowerupStatus(message);
+                    if (status) setPowerups(status);
+                }
+                if (message.type === 'RUNNER_BUY_POWERUP' && message.runId === activeRunnerId.current && runnerState.current === 'purchasing') {
+                    void powerupPurchases.current.purchase(message, amount => walletSpend.current(amount)).then(approved => {
+                        if (activeRunnerId.current !== message.runId) return;
+                        iframeRef.current?.contentWindow?.postMessage({ type: 'RUNNER_POWERUP_PURCHASE_RESULT', runId: message.runId, requestId: message.requestId, approved }, window.location.origin);
+                    });
+                }
+                if ((message.type === 'RUNNER_SCORE' || message.type === 'RUNNER_PROGRESS') && message.runId === activeRunnerId.current && Number.isSafeInteger(message.teeth) && message.teeth >= 0) {
+                    const change = rivals.current.advance(message.teeth);
+                    setRunnerTeeth(message.teeth);
+                    setRivalTarget(change.target);
+                    if (change.passed.length) {
+                        const record = change.passed[change.passed.length - 1];
+                        setRivalVictory({ record, count: change.passed.length, sequence: ++victorySequence.current });
+                        if (victoryTimer.current) clearTimeout(victoryTimer.current);
+                        victoryTimer.current = setTimeout(() => setRivalVictory(null), 2200);
+                    }
                 }
                 if (message.type === 'RUNNER_PROGRESS' && message.runId === activeRunnerId.current) {
                     const reward = runnerRewards(message.teeth, message.elapsedSeconds);
@@ -180,6 +247,10 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
                     const reward = runnerRewards(message.teeth, message.elapsedSeconds);
                     if (!reward) return;
                     settledRunnerIds.current.add(message.runId);
+                    powerupPurchases.current.close();
+                    setPowerups(emptyRunnerPowerups());
+                    setRunnerPlaying(false);
+                    setRivalVictory(null);
                     if (reward.coins) addCoins(reward.coins);
                     if (reward.xp) addXP(reward.xp);
                     if (message.reason !== 'quit') void refreshRunnerRanking({ runId: message.runId, teeth: message.teeth, elapsedSeconds: message.elapsedSeconds });
@@ -289,20 +360,17 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
                     </div>
                 </div>}
 
-                {isPixelRunner && <div className="pointer-events-none absolute inset-0 z-50">
-                    <button type="button" onClick={() => exitGame('pet')} aria-label="Exit pet page" title="Back"
-                        className="pointer-events-auto absolute left-3 top-3 flex h-11 w-11 items-center justify-center text-slate-700 transition-transform hover:-translate-y-0.5 sm:left-6 sm:top-6 sm:h-16 sm:w-16"
-                        style={{ background: '#fff8d9', border: '4px solid #5a3a22', borderRadius: 5, boxShadow: '5px 5px 0 rgba(53,35,20,.55)' }}>
-                        <TiArrowBack className="h-8 w-8 sm:h-12 sm:w-12" />
-                    </button>
+                {isPixelRunner && runnerReady && <div className="pointer-events-none absolute inset-0 z-50">
                     <CoinIndicator amount={stats.coins || 0} />
                     <div className="pointer-events-auto"><LevelIndicator stats={stats} /></div>
                     <button type="button" onClick={() => exitGame()} aria-label="Return to Sports stadium" title="Return to Sports"
-                        className="pointer-events-auto absolute left-3 top-1/2 -translate-y-1/2 transition-transform hover:-translate-x-1 sm:left-6"
+                        className="pointer-events-auto absolute left-3 top-3 transition-transform hover:-translate-x-1 sm:left-6 sm:top-6"
                         style={{ ...runnerButton, background: '#5a3a22', borderColor: '#e7b55b', color: '#ffe3a0' }}>
                         <svg viewBox="0 0 24 24" width="32" height="32" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 10h3V7h3V4h3v5h11v6H11v5H8v-3H5v-3H2z" /></svg>
                     </button>
                     <div className="pointer-events-auto absolute right-3 top-[104px] flex flex-col gap-3 sm:right-6 sm:top-[112px]">
+                        <RunnerRivalNotice target={rivalTarget} teeth={runnerTeeth} victory={rivalVictory} playing={runnerPlaying} />
+                        <RunnerPowerupTimers status={powerups} visible={!rankingsOpen} />
                         <button type="button" disabled={!runnerReady} onClick={() => sendRunnerAction('RUNNER_RANKINGS_OPEN')} aria-label="Cat Dash rankings" title="Rankings" style={runnerButton}>
                             <svg viewBox="0 0 24 24" width="26" height="26" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 4h18v3H3zM3 10h14v3H3zM3 16h10v3H3z" /></svg>
                         </button>
@@ -315,10 +383,14 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
                         </button>
                     </div>
                 </div>}
+                {isPixelRunner && rankingsOpen && <RunnerRecordsPanel records={records} status={rankingStatus} onClose={() => {
+                    setRankingsOpen(false);
+                    sendRunnerAction('RUNNER_RANKINGS_CLOSE');
+                }} />}
 
                 {/* Game Iframe Wrapper */}
                 <div className="absolute inset-0 bg-slate-900">
-                    {isLoading && (
+                    {isLoading && !isPixelRunner && (
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-900 z-10">
                             <div className="flex flex-col items-center gap-4">
                                 <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />

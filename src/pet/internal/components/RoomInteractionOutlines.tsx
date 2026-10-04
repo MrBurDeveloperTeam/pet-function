@@ -1,9 +1,13 @@
 import { RoomType } from '../types';
+import { KART_CIRCUIT_OUTLINE } from '../kartInteraction';
 
 // Traced in the rooms-wide artwork coordinate system; slice matches object-fit: cover.
-type RoomInteractionAction = 'food' | 'bath' | 'games' | 'door' | 'food-shop' | 'furniture-shop' | 'fishing';
+type RoomInteractionAction = 'food' | 'bath' | 'games' | 'door' | 'food-shop' | 'furniture-shop' | 'fishing' | 'karting';
 
 const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label: string; d: string; interactive?: boolean }[]>> = {
+  [RoomType.KART_TRACK]: [
+    { action: 'karting', label: 'Open the karting game', d: KART_CIRCUIT_OUTLINE },
+  ],
   [RoomType.KITCHEN]: [
     { action: 'food', label: 'Open food inventory', d: 'M365 177 H521 L535 185 L543 201 V495 L533 510 H528 V523 H506 V513 H378 V523 H358 V510 L349 500 V194 L355 183 Z' },
     { action: 'door', label: 'Go outside through the kitchen door', d: 'M1444 107 H1708 V519 H1444 Z' },
@@ -44,10 +48,11 @@ const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label:
   ],
 };
 
-export function RoomInteractionOutlines({ room, hidden, onActivate }: {
+export function RoomInteractionOutlines({ room, hidden, onActivate, onKeyboardActivate }: {
   room: RoomType;
   hidden: boolean;
   onActivate: (action: RoomInteractionAction) => void;
+  onKeyboardActivate?: (action: RoomInteractionAction) => void;
 }) {
   if (hidden || !outlines[room]) return null;
   return (
@@ -57,13 +62,14 @@ export function RoomInteractionOutlines({ room, hidden, onActivate }: {
         <path key={label} d={d} className="pet-interaction-outline" role="button"
           tabIndex={0} aria-label={label} data-pet-interaction-action={action} data-pet-movement-block
           vectorEffect="non-scaling-stroke"
+          fillRule="evenodd"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onActivate(action)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.code === 'Space') {
               event.preventDefault();
               event.stopPropagation();
-              if (!event.repeat) onActivate(action);
+              if (!event.repeat) (onKeyboardActivate || onActivate)(action);
             }
           }} />
       ) : (

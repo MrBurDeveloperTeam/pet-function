@@ -5,6 +5,7 @@ var road: Texture2D
 var paving: Texture2D
 var surface: ShaderMaterial
 var last_distance := -1.0
+var last_camera_height := -1.0
 const VIEW = preload("res://runner_view.gd")
 const GRASS = preload("res://art/sports-lawn-v2.png")
 
@@ -62,9 +63,12 @@ void fragment() {
 	material=surface
 
 func _process(_delta: float) -> void:
-	if last_distance==game.distance: return
+	if last_distance==game.distance and last_camera_height==game.camera_height: return
 	last_distance=game.distance
+	last_camera_height=game.camera_height
 	surface.set_shader_parameter("scroll_distance",game.distance)
+	# Invert the same elevated projection used by the cat, teeth and fence.
+	surface.set_shader_parameter("depth_span",VIEW.DEPTH_SPAN+game.camera_height*VIEW.HEIGHT_SCALE)
 
 func _draw() -> void:
 	draw_rect(Rect2(0,VIEW.HORIZON,1280,720-VIEW.HORIZON),Color.WHITE)
