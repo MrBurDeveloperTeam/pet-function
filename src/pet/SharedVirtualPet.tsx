@@ -48,7 +48,7 @@ import { ROOM_BACKGROUNDS } from './internal/roomBackgrounds';
 
 export type { PetAssetUrls, ExtraGame };
 
-const LANDSCAPE_GAME_IDS = new Set<string>(['paccat', 'tetris', 'stadium-football']);
+const LANDSCAPE_GAME_IDS = new Set<string>(['paccat', 'tetris']);
 
 const requiresLandscapeMode = (gameId: string | null) => gameId !== null && LANDSCAPE_GAME_IDS.has(gameId);
 
@@ -391,7 +391,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
         />
       ) : (
         <>
-          {activeGameId === 'stadium-football' ? <FootballGame onClose={handleCloseGame} /> : <GamePage
+          {activeGameId === 'stadium-football' ? <FootballGame key={userId ?? "guest"} userId={userId} onClose={handleCloseGame} /> : <GamePage
             gameId={activeGameId || ''}
             onClose={handleCloseGame}
             onExitPet={handleClose}

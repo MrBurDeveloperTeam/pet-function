@@ -10,13 +10,14 @@ var cat_nodes: Array[Node3D] = []
 var cat_sprites: Array[Sprite3D] = []
 var cat_atlases: Array[AtlasTexture] = []
 var cat_visuals: Array[Node3D] = []
+var cat_animation_phase := [0.0,0.0,0.0,0.0,0.0,0.0]
 var ball_node: Node3D
 var selection_arrow: Sprite3D
 var camera: Camera3D
 var ui: Control
-var menu: PanelContainer
 var pause_panel: PanelContainer
-var result_panel: PanelContainer
+var result_panel: Control
+var result_backdrop: ColorRect
 var score_label: Label
 var clock_label: Label
 var announcement: Label
@@ -36,9 +37,36 @@ var phase_before_pause := "playing"
 var web_callback
 var audio: AudioStreamPlayer
 var anim_time := 0.0
-var selection_label: Label
 var ball_shadow: MeshInstance3D
 var charging_cat := -1
+var shot_guide: Control
+var ball_marker: TextureRect
+var ball_tag: Label
+var ball_textures: Array[Texture2D] = []
+var ball_ring_color := Color("ffdf54")
+var possession_feedback_label: Label
+var feedback_time := 0.0
+var seen_possession_serial := 0
+var body_bounds_cache := {}
+var body_sheet_images := {}
+var action_hint: Label
+var shoot_button: Button
+var pass_button: Button
+var energy_hud: Control
+var prompt_hud: Control
+var prompt_title: Label
+var prompt_key: Label
+var back_button: Button
+var pause_button: Button
+var entry_initialized := false
+var tutorial_step := -1
+var tutorial_success_time := 0.0
+var tutorial_success_step := -1
+var tutorial_progress := 0.0
+var tutorial_charged := false
+var tutorial_overlay: Control
+var tutorial_card: PanelContainer
+var tutorial_text: Label
 
 func _ready() -> void:
 	build_world()
@@ -51,6 +79,9 @@ func _ready() -> void:
 		JavaScriptBridge.get_interface("window").pawLeagueCommand = web_callback
 		JavaScriptBridge.eval("window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===parent&&window.pawLeagueCommand)window.pawLeagueCommand(JSON.stringify(e.data));});")
 		bridge({"type":"FOOTBALL_READY"})
+		if not JavaScriptBridge.eval("new URLSearchParams(location.search).has('embedded')"):
+			var seen = JavaScriptBridge.eval("(()=>{try{return localStorage.getItem('paw_league_guest_tutorial_v1')==='done'}catch(e){return false}})()")
+			initialize_entry(seen==true)
 	update_visuals(0)
 
 func material(color: Color, unshaded := false) -> StandardMaterial3D:
@@ -136,11 +167,13 @@ func build_world() -> void:
 	add_child(camera)
 	camera.look_at(Vector3.ZERO)
 	camera.current = true
-	stadium_backdrop = pixel_sprite(preload("res://art/stadium-pixel.png"),58.0/1672.0)
+	stadium_backdrop = pixel_sprite(preload("res://art/stadium-wide-goals.png"),58.0/1672.0)
 	stadium_backdrop.position = camera.position - camera.global_basis.z * 80.0
 	add_child(stadium_backdrop)
 	ball_node = Node3D.new()
 	add_child(ball_node)
+	# The screen-space ball stays above overlapping cats, at its true projected position.
+	ball_node.visible = false
 	ball_shadow = sphere(self,0.28,0.015,Vector3.ZERO,Color("537333"))
 	sphere(ball_node,0.30,0.60,Vector3.ZERO,CREAM)
 	for p in [Vector3(0,0.28,0),Vector3(0,0,0.28),Vector3(0,0,-0.28),Vector3(0.28,0,0),Vector3(-0.28,0,0)]:
@@ -183,15 +216,6 @@ func build_cats() -> void:
 		sprite.offset = Vector2(0,76)
 		visual.add_child(sprite)
 		cat_sprites.append(sprite)
-		var tag := Label3D.new()
-		tag.text = str(i%3+1) + (" GK" if i%3==2 else "")
-		tag.font = preload("res://art/Quadrit.ttf")
-		tag.font_size = 32
-		tag.pixel_size = 0.009
-		tag.position = Vector3(0,0.15,0.05)
-		tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		tag.modulate = BLUE.lightened(0.3) if i<3 else GOLD
-		root.add_child(tag)
 func style_box(bg: Color, border := Color("b8a477")) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg
@@ -247,15 +271,23 @@ func build_ui() -> void:
 	score_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	score_card.position = Vector2(-200,10)
 	score_card.size = Vector2(400,85)
-	score_card.add_theme_stylebox_override("panel",style_box(Color(0.08,0.15,0.13,0.9)))
+	score_card.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
+	score_card.draw.connect(func():pixel_frame(score_card,Rect2(Vector2.ZERO,score_card.size)))
 	ui.add_child(score_card)
-	var back := button("<  STADIUM",func(): bridge({"type":"FOOTBALL_CLOSE"}),Vector2(145,44))
-	back.position = Vector2(20,18)
-	ui.add_child(back)
-	var pause := button("II  PAUSE",toggle_pause,Vector2(130,44))
-	pause.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	pause.position = Vector2(-150,18)
-	ui.add_child(pause)
+	back_button = icon_button("back",func(): bridge({"type":"FOOTBALL_CLOSE"}))
+	back_button.position = Vector2(20,18)
+	back_button.tooltip_text = "Return to stadium"
+	ui.add_child(back_button)
+	pause_button = icon_button("pause",toggle_pause)
+	pause_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	pause_button.position = Vector2(-76,18)
+	pause_button.tooltip_text = "Pause / resume (Esc)"
+	ui.add_child(pause_button)
+	var help := icon_button("help",start_tutorial)
+	help.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	help.position = Vector2(-76,84)
+	help.tooltip_text = "Learn to play again"
+	ui.add_child(help)
 	score_label = label("HOME   0  :  0   AWAY",28)
 	score_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	score_label.position = Vector2(-180,18)
@@ -284,12 +316,14 @@ func build_ui() -> void:
 	meter_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	meter_card.add_theme_stylebox_override("panel",style_box(Color(0.08,0.15,0.13,0.94)))
 	ui.add_child(meter_card)
+	meter_card.hide()
 	possession_label = label("",17)
 	possession_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	possession_label.position = Vector2(-200,-83)
 	possession_label.size = Vector2(400,30)
 	possession_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ui.add_child(possession_label)
+	possession_label.hide()
 	stamina_bar = ProgressBar.new()
 	stamina_bar.show_percentage = false
 	stamina_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -297,6 +331,7 @@ func build_ui() -> void:
 	stamina_bar.size = Vector2(280,12)
 	stamina_bar.add_theme_stylebox_override("fill",style_box(BLUE,BLUE))
 	ui.add_child(stamina_bar)
+	stamina_bar.hide()
 	shot_bar = ProgressBar.new()
 	shot_bar.show_percentage = false
 	shot_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -304,52 +339,24 @@ func build_ui() -> void:
 	shot_bar.size = Vector2(280,10)
 	shot_bar.add_theme_stylebox_override("fill",style_box(GOLD,GOLD))
 	ui.add_child(shot_bar)
-	menu = centered_panel(620)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation",12)
-	menu.add_child(column)
-	var title := label("PAW LEAGUE",38)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(title)
-	var subtitle := label("3v3  /  STADIUM CLUB  /  THREE MINUTES",16)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(subtitle)
-	selection_label = label("LEFT: MALLOW  /  RIGHT: SILVERBELT",17)
-	selection_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(selection_label)
-	var teams := HBoxContainer.new()
-	teams.alignment = BoxContainer.ALIGNMENT_CENTER
-	teams.add_theme_constant_override("separation",64)
-	column.add_child(teams)
-	for i in range(2):
-		var team := VBoxContainer.new()
-		teams.add_child(team)
-		var portrait := TextureRect.new()
-		var atlas := AtlasTexture.new()
-		atlas.atlas = TEAM_SHEETS[i]
-		atlas.region = Rect2(0,208 if i==0 else 416,192,208)
-		portrait.texture = atlas
-		portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		portrait.custom_minimum_size = Vector2(115,125)
-		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		team.add_child(portrait)
-		var team_name := label(TEAM_NAMES[i],18)
-		team_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		team_name.modulate = BLUE.lightened(0.4) if i==0 else GOLD
-		team.add_child(team_name)
-	column.add_child(label("WASD / arrows  Move     Shift  Sprint\nJ  Pass / switch     Hold K  Aim + shoot / tackle\nEsc  Pause     Touch controls available below",18))
-	column.add_child(label("Attack the RIGHT goal. No offside. Walls rebound.\nA tied game gets 30 seconds of golden-goal extra time.",16))
-	column.add_child(button("KICK OFF",start_match,Vector2(560,52)))
+	shot_bar.hide()
 	pause_panel = centered_panel(510)
 	pause_panel.hide()
 	var pause_column := VBoxContainer.new()
 	pause_column.add_theme_constant_override("separation",24)
 	pause_panel.add_child(pause_column)
 	pause_column.add_child(label("HALF-TIME BREATHER",30))
-	pause_column.add_child(label("J: pass to a teammate, or switch when defending.\nK: hold to charge a shot; release to strike.\nAim with movement. More power means less accuracy.\nWithout the ball, K tackles in front of your cat.\nSprint drains stamina; walking restores it.\nGoalkeepers save and distribute automatically.",18))
 	pause_column.add_child(button("BACK TO THE PITCH",toggle_pause))
-	result_panel = centered_panel(540)
+	result_backdrop = ColorRect.new()
+	result_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	result_backdrop.color = Color(0.02,0.07,0.05,0.72)
+	result_backdrop.z_index=100
+	result_backdrop.hide()
+	ui.add_child(result_backdrop)
+	result_panel = load("res://result_panel.gd").new()
+	result_panel.game=self
+	result_panel.z_index=101
+	ui.add_child(result_panel)
 	result_panel.hide()
 	# Touch controls also make the controls discoverable on desktop.
 	var pad := GridContainer.new()
@@ -357,6 +364,7 @@ func build_ui() -> void:
 	pad.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	pad.position = Vector2(20,-165)
 	ui.add_child(pad)
+	pad.hide()
 	for direction in [Vector2.ZERO,Vector2.UP,Vector2.ZERO,Vector2.LEFT,Vector2.ZERO,Vector2.RIGHT,Vector2.ZERO,Vector2.DOWN,Vector2.ZERO]:
 		if direction == Vector2.ZERO:
 			var spacer := Control.new()
@@ -369,10 +377,12 @@ func build_ui() -> void:
 			pad.add_child(move_button)
 	var actions := HBoxContainer.new()
 	actions.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	actions.position = Vector2(-290,-90)
+	actions.position = Vector2(-370,-90)
 	ui.add_child(actions)
-	actions.add_child(button("J\nPASS",pass_or_switch,Vector2(86,60)))
-	var shoot_button := button("K\nSHOOT",func():pass,Vector2(86,60))
+	actions.hide()
+	pass_button = button("C\nPASS",try_pass,Vector2(86,60))
+	actions.add_child(pass_button)
+	shoot_button = button("SPACE\nSHOOT",func():pass,Vector2(86,60))
 	shoot_button.button_down.connect(func(): touch_shoot = true; begin_shot_or_tackle())
 	shoot_button.button_up.connect(func(): touch_shoot = false; release_shot())
 	actions.add_child(shoot_button)
@@ -380,40 +390,444 @@ func build_ui() -> void:
 	sprint_button.button_down.connect(func():touch_sprint = true)
 	sprint_button.button_up.connect(func():touch_sprint = false)
 	actions.add_child(sprint_button)
+	build_match_hud()
+	build_ball_marker()
+	action_hint = label("",16)
+	action_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	action_hint.position = Vector2(-300,-125)
+	action_hint.size = Vector2(600,30)
+	action_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	action_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	action_hint.add_theme_color_override("font_outline_color",Color("192924"))
+	action_hint.add_theme_constant_override("outline_size",6)
+	ui.add_child(action_hint)
+	possession_feedback_label = label("",26)
+	possession_feedback_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	possession_feedback_label.position = Vector2(-260,100)
+	possession_feedback_label.size = Vector2(520,40)
+	possession_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	possession_feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	possession_feedback_label.add_theme_color_override("font_color",Color("ffdf54"))
+	possession_feedback_label.add_theme_color_override("font_outline_color",Color("192924"))
+	possession_feedback_label.add_theme_constant_override("outline_size",6)
+	ui.add_child(possession_feedback_label)
+	build_tutorial()
 
-func update_selection() -> void:
-	selection_label.text = "LEFT: MALLOW  /  RIGHT: SILVERBELT"
+func icon_button(kind: String, action: Callable) -> Button:
+	var node := button("",action,Vector2(56,56))
+	node.size = Vector2(56,56)
+	for state_name in ["normal","hover","pressed","focus"]:
+		node.add_theme_stylebox_override(state_name,StyleBoxEmpty.new())
+	node.draw.connect(func():
+		pixel_frame(node,Rect2(Vector2.ZERO,node.size))
+		if node.is_hovered(): node.draw_rect(Rect2(Vector2(7,7),node.size-Vector2(14,14)),Color(1,0.85,0.5,0.12))
+		var offset := Vector2(0,2) if node.button_pressed else Vector2.ZERO
+		if kind=="back":
+			for rect in [Rect2(18,25,23,6),Rect2(15,22,6,12),Rect2(19,18,6,6),Rect2(19,32,6,6)]:
+				node.draw_rect(Rect2(rect.position+offset,rect.size),CREAM)
+		elif kind=="help":
+			node.draw_rect(Rect2(Vector2(15,17)+offset,Vector2(12,22)),CREAM)
+			node.draw_rect(Rect2(Vector2(29,17)+offset,Vector2(12,22)),CREAM)
+			for y in [22,27,32]:
+				node.draw_rect(Rect2(Vector2(18,y)+offset,Vector2(6,2)),Color("52735a"))
+				node.draw_rect(Rect2(Vector2(32,y)+offset,Vector2(6,2)),Color("52735a"))
+		else:
+			node.draw_rect(Rect2(Vector2(19,18)+offset,Vector2(6,20)),CREAM)
+			node.draw_rect(Rect2(Vector2(31,18)+offset,Vector2(6,20)),CREAM)
+	)
+	node.mouse_entered.connect(node.queue_redraw)
+	node.mouse_exited.connect(node.queue_redraw)
+	return node
+
+func draw_result_pitch(canvas: Control) -> void:
+	var width := canvas.size.x
+	var height := canvas.size.y
+	canvas.draw_rect(Rect2(0,0,width,height),Color("16392d"))
+	for i in range(10):
+		if i%2==0: canvas.draw_rect(Rect2(i*width/10,0,width/10,height),Color("28573f"))
+	canvas.draw_rect(Rect2(12,8,width-24,height-16),Color("a3bf8b"),false,2)
+	canvas.draw_line(Vector2(width/2,8),Vector2(width/2,height-8),Color("a3bf8b"),2)
+	canvas.draw_arc(Vector2(width/2,height/2),26,0,TAU,24,Color("a3bf8b"),2)
+	for x in [12.0,width-46]:
+		canvas.draw_rect(Rect2(x,height/2-22,34,44),Color("a3bf8b"),false,2)
+	for x in [2.0,width-12]:
+		canvas.draw_rect(Rect2(x,height/2-15,10,30),CREAM,false,2)
+		for row in range(5): canvas.draw_line(Vector2(x,height/2-15+row*6),Vector2(x+10,height/2-15+row*6),Color("79927c"),1)
+		canvas.draw_line(Vector2(x+5,height/2-15),Vector2(x+5,height/2+15),Color("79927c"),1)
+	canvas.draw_texture_rect(ball_textures[0],Rect2(width/2-24,height/2-24,48,48),false)
+
+func build_tutorial() -> void:
+	tutorial_overlay = Control.new()
+	tutorial_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tutorial_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tutorial_overlay.draw.connect(draw_tutorial_focus)
+	ui.add_child(tutorial_overlay)
+	tutorial_card = PanelContainer.new()
+	tutorial_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	tutorial_card.position = Vector2(-280,108)
+	tutorial_card.size = Vector2(560,116)
+	var padding := StyleBoxEmpty.new()
+	padding.set_content_margin_all(16)
+	tutorial_card.add_theme_stylebox_override("panel",padding)
+	tutorial_card.draw.connect(func():pixel_frame(tutorial_card,Rect2(Vector2.ZERO,tutorial_card.size)))
+	ui.add_child(tutorial_card)
+	var column := VBoxContainer.new()
+	tutorial_card.add_child(column)
+	tutorial_text = label("",18)
+	tutorial_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(tutorial_text)
+	column.add_child(button("SKIP TRAINING / PLAY MATCH",start_match,Vector2(0,36)))
+	tutorial_overlay.hide()
+	tutorial_card.hide()
+
+func start_tutorial() -> void:
+	start_match()
+	settled = true
+	game.training = true
+	tutorial_step = 0
+	prepare_tutorial_step()
+
+func prepare_tutorial_step() -> void:
+	tutorial_success_time = 0
+	tutorial_success_step = -1
+	tutorial_progress = 0
+	tutorial_charged = false
+	charging_cat = -1
+	game.reset_positions(0)
+	game.state = "playing"
+	game.cats[0].pos = Vector2(-5,3)
+	game.cats[1].pos = Vector2(3,3)
+	game.cats[3].pos = Vector2(12,-8)
+	game.cats[4].pos = Vector2(15,8)
+	if tutorial_step==3:
+		game.cats[0].pos = Vector2(9,0)
+		game.cats[0].heading = Vector2.RIGHT
+		game.cats[5].pos = Vector2(19.8,8)
+	if tutorial_step==4:
+		game.owner=3
+		game.cats[3].pos=Vector2(1,3)
+		game.select_initial_defender()
+	game.update_ball(0)
+	tutorial_text.text = ["1 / 6   MOVE YOUR CAT\nUse WASD or arrow keys. Follow the gold arrow.","2 / 6   SPRINT\nHold SHIFT while moving. Watch your energy drain.","3 / 6   PASS TO A TEAMMATE\nYou have the ball. Press C to pass to the highlighted cat.","4 / 6   CHARGE AND SHOOT\nHold SPACE briefly, then release. Watch the ball fly.","5 / 6   WIN THE BALL\nMove close to the opponent. Wait for the SPACE cue.","6 / 6   SWITCH YOUR CAT\nPress X. The gold arrow moves to your other teammate."][tutorial_step]
+
+func update_tutorial(delta: float) -> void:
+	if tutorial_step<0: return
+	if tutorial_success_step>=0:
+		tutorial_overlay.visible=game.state!="paused"
+		tutorial_card.visible=game.state!="paused"
+		tutorial_overlay.queue_redraw()
+		if game.state=="paused": return
+		tutorial_success_time+=delta
+		if tutorial_success_time>=2.2: advance_tutorial()
+		return
+	var playing: bool = game.state=="playing" or game.state=="goal"
+	tutorial_overlay.visible=playing
+	tutorial_card.visible=playing
+	tutorial_overlay.queue_redraw()
+	if not playing: return
+	var done := false
+	match tutorial_step:
+		0:
+			if input_aim.length()>0.1: tutorial_progress+=delta
+			done=tutorial_progress>=0.8
+		1:
+			if input_aim.length()>0.1 and Input.is_physical_key_pressed(KEY_SHIFT): tutorial_progress+=delta
+			done=tutorial_progress>=0.7
+		2: done=game.passes>0 and game.owner==1
+		3:
+			done=tutorial_charged and game.shots>0
+			if game.shots>0:
+				tutorial_progress+=delta
+				if not done and tutorial_progress>4.0:
+					game.shots=0
+					prepare_tutorial_step()
+					tutorial_text.text="4 / 6   TRY AGAIN\nAim toward the right goal. Charge SPACE, then release."
+		5: done=game.controlled==1
+		4:
+			if game.tackle_status(game.controlled)=="ready": tutorial_text.text="5 / 6   STEAL NOW!\nYou are close enough. Tap SPACE once to win the ball."
+			done=game.tackles>0 and game.owner==game.controlled
+	if done:
+		if tutorial_step in [3,4,5]:
+			tutorial_success_step=tutorial_step
+			tutorial_success_time=0
+			tutorial_text.text="4 / 6   WATCH YOUR SHOT\nReleasing SPACE kicks the ball along your aiming line." if tutorial_step==3 else "5 / 6   YOU NOW HAVE THE BALL\nThe yellow ring shows your possession. Move to dribble."
+			if tutorial_step==5: tutorial_text.text="6 / 6   CONTROL SWITCHED\nThe gold arrow moved. Move to control this teammate."
+			charging_cat=-1
+		else: advance_tutorial()
+	elif tutorial_step==3 and game.shots>0 and not tutorial_charged:
+		game.shots=0
+		prepare_tutorial_step()
+
+func advance_tutorial() -> void:
+	tutorial_step+=1
+	if tutorial_step==6:
+		start_match()
+		return
+	game.passes=0
+	game.shots=0
+	game.tackles=0
+	game.score=[0,0]
+	prepare_tutorial_step()
+
+func draw_tutorial_focus() -> void:
+	if tutorial_step<0: return
+	var target: int = game.controlled
+	if tutorial_step==2: target=1
+	if tutorial_step==4 and tutorial_success_step<0: target=3
+	var point := camera.unproject_position(pitch_position(game.cats[target].pos))-Vector2(0,28)
+	var hole := Rect2(point-Vector2(80,65),Vector2(160,130))
+	if tutorial_success_step==3:
+		var ball_point := camera.unproject_position(ball_node.position)
+		hole=hole.expand(ball_point-Vector2(35,35)).expand(ball_point+Vector2(35,35))
+	if tutorial_step==1: hole=Rect2(15,ui.size.y/2-115,62,230)
+	var shade := Color(0.02,0.08,0.06,0.48)
+	tutorial_overlay.draw_rect(Rect2(0,0,ui.size.x,maxf(0,hole.position.y)),shade)
+	tutorial_overlay.draw_rect(Rect2(0,hole.end.y,ui.size.x,maxf(0,ui.size.y-hole.end.y)),shade)
+	tutorial_overlay.draw_rect(Rect2(0,hole.position.y,maxf(0,hole.position.x),hole.size.y),shade)
+	tutorial_overlay.draw_rect(Rect2(hole.end.x,hole.position.y,maxf(0,ui.size.x-hole.end.x),hole.size.y),shade)
+	tutorial_overlay.draw_rect(hole,Color("ffe39a"),false,3)
+
+func build_match_hud() -> void:
+	energy_hud = Control.new()
+	energy_hud.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	energy_hud.position = Vector2(22,-108)
+	energy_hud.size = Vector2(44,216)
+	energy_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	energy_hud.draw.connect(draw_energy_hud)
+	ui.add_child(energy_hud)
+	prompt_hud = Control.new()
+	prompt_hud.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	prompt_hud.position = Vector2(-176,-92)
+	prompt_hud.size = Vector2(352,70)
+	prompt_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	prompt_hud.draw.connect(draw_prompt_hud)
+	ui.add_child(prompt_hud)
+	prompt_key = label("SPACE",20)
+	prompt_key.position = Vector2(20,23)
+	prompt_key.size = Vector2(86,30)
+	prompt_key.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prompt_key.add_theme_color_override("font_color",Color("223d32"))
+	prompt_hud.add_child(prompt_key)
+	prompt_title = label("HOLD TO SHOOT",20)
+	prompt_title.position = Vector2(122,25)
+	prompt_title.size = Vector2(220,30)
+	prompt_title.add_theme_color_override("font_color",CREAM)
+	prompt_hud.add_child(prompt_title)
+
+func pixel_frame(canvas: Control, rect: Rect2) -> void:
+	canvas.draw_rect(Rect2(rect.position+Vector2(4,6),rect.size),Color("10251fcc"))
+	canvas.draw_rect(rect,Color("665333"))
+	canvas.draw_rect(rect.grow(-2),Color("e2bf73"))
+	canvas.draw_rect(rect.grow(-4),Color("132b24"))
+	canvas.draw_rect(rect.grow(-7),Color("24483a"))
+	canvas.draw_line(rect.position+Vector2(8,8),rect.position+Vector2(rect.size.x-8,8),Color("52735a"),2)
+	for corner in [rect.position+Vector2(3,3),rect.position+Vector2(rect.size.x-6,3),rect.position+Vector2(3,rect.size.y-6),rect.end-Vector2(6,6)]:
+		canvas.draw_rect(Rect2(corner,Vector2(3,3)),Color("fff1cb"))
+
+func draw_energy_hud() -> void:
+	pixel_frame(energy_hud,Rect2(0,0,44,216))
+	# Small stepped lightning emblem; no text or percentage.
+	var bolt := PackedVector2Array([Vector2(23,14),Vector2(15,26),Vector2(21,26),Vector2(18,36),Vector2(30,22),Vector2(24,22)])
+	energy_hud.draw_colored_polygon(bolt,Color("ffe39a"))
+	var fraction: float = game.cats[game.controlled].stamina/100.0
+	var fill := Color("efb75b") if fraction<0.25 else Color("63c9b0")
+	for i in range(12):
+		var cell := Rect2(13,190-i*12,18,9)
+		energy_hud.draw_rect(cell,Color("102b25"))
+		var amount := clampf(fraction*12-i,0,1)
+		if amount>0:
+			energy_hud.draw_rect(Rect2(cell.position,Vector2(18*amount,9)),fill.darkened(0.22))
+			energy_hud.draw_rect(Rect2(cell.position,Vector2(18*amount,5)),fill)
+			energy_hud.draw_rect(Rect2(cell.position,Vector2(18*amount,2)),fill.lightened(0.35))
+
+func draw_prompt_hud() -> void:
+	var pulse := (sin(anim_time*4.0)+1.0)*0.5
+	prompt_hud.draw_rect(Rect2(-3,-3,358,76),Color(1,0.79,0.35,0.08+0.18*pulse))
+	pixel_frame(prompt_hud,Rect2(0,0,352,70))
+	prompt_hud.draw_rect(Rect2(17,20,92,36),Color("9c7544"))
+	prompt_hud.draw_rect(Rect2(17,16,92,36),Color("e4bd76"))
+	prompt_hud.draw_rect(Rect2(20,18,86,29),Color("fff0bf"))
+	prompt_hud.draw_rect(Rect2(20,18,86,3),Color("fffbed"))
+	var accent := Color("ffdb7c") if game.owner==game.controlled else Color("8eebbc")
+	for x in [7,340]: prompt_hud.draw_rect(Rect2(x,29,5,12),accent*Color(1,1,1,0.5+0.5*pulse))
+	if charging_cat>=0:
+		prompt_hud.draw_rect(Rect2(123,54,211,4),Color("102b25"))
+		prompt_hud.draw_rect(Rect2(123,54,211*game.shot_charge,4),accent)
+
+func build_ball_marker() -> void:
+	shot_guide = Control.new()
+	shot_guide.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shot_guide.draw.connect(draw_shot_guide)
+	ui.add_child(shot_guide)
+	for ring_color in [Color("ffdf54"),Color("ff4d4d"),Color("e9e8d5")]:
+		ball_textures.append(create_ball_texture(ring_color))
+	ball_marker = TextureRect.new()
+	ball_marker.texture = ball_textures[0]
+	ball_marker.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ball_marker.size = Vector2(32,32)
+	ball_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(ball_marker)
+	ball_tag = label("BALL",12)
+	ball_tag.size = Vector2(60,20)
+	ball_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ball_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ball_tag.add_theme_color_override("font_outline_color",Color("192924"))
+	ball_tag.add_theme_constant_override("outline_size",5)
+	ui.add_child(ball_tag)
+
+# Preview the exact player-directed shot heading.
+func draw_shot_guide() -> void:
+	if not shot_guide.visible: return
+	var direction: Vector2 = game.shot_direction(game.controlled,input_aim)
+	var origin := Vector2(game.ball.x,game.ball.z)
+	var length := lerpf(5.0,11.0,game.shot_charge)
+	var distance := 0.8
+	while distance < length:
+		var a := origin + direction * distance
+		var b := origin + direction * minf(distance+0.55,length)
+		if absf(b.x)>22 or absf(b.y)>13: break
+		var screen_a := camera.unproject_position(pitch_position(a,game.ball.y*0.75))
+		var screen_b := camera.unproject_position(pitch_position(b,game.ball.y*0.75))
+		shot_guide.draw_line(screen_a,screen_b,Color("192924"),7,true)
+		shot_guide.draw_line(screen_a,screen_b,Color("ffdf54"),3,true)
+		distance += 0.95
+
+func create_ball_texture(ring_color: Color) -> Texture2D:
+	var image := Image.create(32,32,false,Image.FORMAT_RGBA8)
+	image.fill(Color.TRANSPARENT)
+	var center_patch := PackedVector2Array([Vector2(0,-4),Vector2(4,-1),Vector2(2,4),Vector2(-2,4),Vector2(-4,-1)])
+	var edge_patches := [Vector2(0,-10),Vector2(9,-4),Vector2(6,8),Vector2(-6,8),Vector2(-9,-4)]
+	for y in range(32):
+		for x in range(32):
+			var offset := Vector2(x-15.5,y-15.5)
+			var radius := offset.length()
+			if radius > 15: continue
+			var color := ring_color
+			if radius < 12.5: color = Color("182c35")
+			if radius < 10.5:
+				color = Color.WHITE
+				if Geometry2D.is_point_in_polygon(offset,center_patch): color = Color("182c35")
+				for patch_center in edge_patches:
+					if offset.distance_to(patch_center)<3.5: color = Color("182c35")
+			image.set_pixel(x,y,color)
+	return ImageTexture.create_from_image(image)
+
+func update_action_hint() -> void:
+	var status: String = game.tackle_status(game.controlled)
+	var own_ball: bool = game.owner == game.controlled
+	shoot_button.text = "SPACE\nSHOOT" if own_ball else ("SPACE\nWAIT" if status=="keeper" else ("SPACE\nCALL PASS" if status == "teammate" else "SPACE\nTACKLE"))
+	shoot_button.disabled = status=="keeper"
+	pass_button.text = "C\nPASS"
+	pass_button.disabled = not own_ball
+	shoot_button.modulate = Color("9aff9a") if status == "ready" else Color.WHITE
+	action_hint.modulate = Color("9aff9a") if status == "ready" else CREAM
+	ball_tag.text = "SPACE: STEAL" if status == "ready" else "BALL"
+	ball_tag.modulate = Color("9aff9a") if status == "ready" else CREAM
+	action_hint.visible = false
+	prompt_hud.visible = started and game.state == "playing" and status in ["possession","ready"]
+	prompt_title.text = "RELEASE TO SHOOT" if charging_cat>=0 else ("HOLD TO SHOOT" if own_ball else "TAP TO STEAL")
+	prompt_hud.queue_redraw()
+	energy_hud.visible = started and game.state!="finished"
+	energy_hud.queue_redraw()
+	match status:
+		"possession": action_hint.text = "YOUR BALL  /  HOLD SPACE, RELEASE TO SHOOT"
+		"ready": action_hint.text = "STEAL NOW!  /  TAP SPACE OR TACKLE"
+		"approach": action_hint.text = "GET CLOSE TO THE CARRIER  /  THEN TAP SPACE"
+		"cooldown": action_hint.text = "WAIT %.1fs  /  TACKLE RECOVERING" % game.cats[game.controlled].cooldown
+		"keeper": action_hint.text = "KEEPER BALL  /  SPREAD OUT  %.1fs" % game.keeper_hold_time
+		"teammate": action_hint.text = "TEAMMATE HAS BALL  /  TAP SPACE TO CALL A PASS"
+		"loose": action_hint.text = "LOOSE BALL!  /  MOVE TO THE YELLOW BALL"
+		_: action_hint.text = ""
+
+func initialize_entry(seen: bool) -> void:
+	if entry_initialized: return
+	entry_initialized=true
+	if seen: start_match()
+	else: start_tutorial()
 
 func start_match() -> void:
+	if tutorial_step>=0:
+		bridge({"type":"FOOTBALL_TUTORIAL_DONE"})
+		if OS.has_feature("web"):
+			JavaScriptBridge.eval("(()=>{try{if(!new URLSearchParams(location.search).has('embedded'))localStorage.setItem('paw_league_guest_tutorial_v1','done')}catch(e){}})()")
+	tutorial_step = -1
+	tutorial_success_step = -1
+	tutorial_success_time = 0
+	tutorial_overlay.hide()
+	tutorial_card.hide()
 	game = MatchRules.new(Time.get_ticks_msec())
+	game.pass_body_contact = Callable(self,"pass_body_interval")
+	seen_possession_serial = 0
+	feedback_time = 0
 	started = true
 	settled = false
 	charging_cat = -1
 	match_id = str(Time.get_unix_time_from_system()) + "-" + str(Time.get_ticks_usec())
-	menu.hide()
 	result_panel.hide()
+	result_backdrop.hide()
 	pause_panel.hide()
 	bridge({"type":"FOOTBALL_STARTED","matchId":match_id})
 	play_tone(680,0.15)
+
+func pass_body_interval(i: int, from: Vector3, to: Vector3, limit: float) -> Vector2:
+	# Match the visible sprite body, including its offset above the pitch anchor.
+	var atlas: AtlasTexture = cat_atlases[i]
+	var key := Vector3i(0 if i<3 else 1,int(atlas.region.position.x),int(atlas.region.position.y))
+	if not body_bounds_cache.has(key):
+		if not body_sheet_images.has(key.x): body_sheet_images[key.x] = atlas.atlas.get_image()
+		var sheet: Image = body_sheet_images[key.x]
+		var frame_image := sheet.get_region(Rect2i(atlas.region))
+		body_bounds_cache[key] = Rect2(frame_image.get_used_rect())
+	var used: Rect2 = body_bounds_cache[key]
+	var scale := get_viewport().get_visible_rect().size.x / camera.size * cat_sprites[i].pixel_size
+	var body := Rect2((used.position-Vector2(96,104)-cat_sprites[i].offset)*scale,used.size*scale).grow(10.5)
+	var before: Vector2 = game.previous_cat_positions[i] if game.previous_cat_positions.size()==6 else game.cats[i].pos
+	var start := camera.unproject_position(pitch_position(Vector2(from.x,from.z),from.y*0.75))-camera.unproject_position(pitch_position(before))
+	var finish := camera.unproject_position(pitch_position(Vector2(to.x,to.z),to.y*0.75))-camera.unproject_position(pitch_position(game.cats[i].pos))
+	var travel := finish-start
+	var entry := 0.0
+	var leave := limit
+	for axis in range(2):
+		if absf(travel[axis])<0.000001:
+			if start[axis]<body.position[axis] or start[axis]>body.end[axis]: return Vector2(2,-1)
+		else:
+			var a: float = (body.position[axis]-start[axis])/travel[axis]
+			var b: float = (body.end[axis]-start[axis])/travel[axis]
+			entry = maxf(entry,minf(a,b))
+			leave = minf(leave,maxf(a,b))
+	return Vector2(entry,leave)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and not event.echo:
 		if event.pressed:
 			match event.physical_keycode:
 				KEY_ESCAPE: toggle_pause()
-				KEY_J: pass_or_switch()
-				KEY_K:
+				KEY_C: try_pass()
+				KEY_X: try_switch_control()
+				KEY_SPACE:
 					begin_shot_or_tackle()
-		elif event.physical_keycode == KEY_K: release_shot()
+		elif event.physical_keycode == KEY_SPACE: release_shot()
 
-func pass_or_switch() -> void:
+func try_switch_control() -> void:
+	if tutorial_success_step>=0: return
+	if tutorial_step>=0 and tutorial_step!=5: return
+	if not started: return
+	if game.switch_control():
+		charging_cat=-1
+		game.shot_charge=0
+		play_tone(520,0.06)
+
+func try_pass() -> void:
+	if tutorial_success_step>=0: return
+	if tutorial_step>=0 and tutorial_step!=2: return
 	if not started or game.state != "playing": return
 	if game.owner == game.controlled:
 		game.pass_ball(game.controlled)
 		play_tone(420,0.05)
-	else: game.switch_player()
 
 func begin_shot_or_tackle() -> void:
+	if tutorial_success_step>=0: return
+	if tutorial_step>=0 and tutorial_step not in [3,4]: return
 	if not started or game.state != "playing": return
 	if game.owner == game.controlled:
 		charging_cat = game.controlled
@@ -424,6 +838,7 @@ func begin_shot_or_tackle() -> void:
 
 func release_shot() -> void:
 	if not started or game.state != "playing": return
+	if tutorial_step==3 and charging_cat==game.controlled and game.shot_charge>0.0: tutorial_charged=true
 	if charging_cat == game.controlled and game.shoot(game.controlled, game.shot_charge, input_aim): play_tone(250,0.1)
 	charging_cat = -1
 	game.shot_charge = 0
@@ -452,24 +867,35 @@ func _process(delta: float) -> void:
 		input_aim = touch_move + Vector2(
 			float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 			float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
-		if game.state == "playing" and game.owner == charging_cat and game.controlled == charging_cat and (touch_shoot or Input.is_physical_key_pressed(KEY_K)):
+		if game.state == "playing" and game.owner == charging_cat and game.controlled == charging_cat and (touch_shoot or Input.is_physical_key_pressed(KEY_SPACE)):
 			game.shot_charge = minf(game.shot_charge + delta/1.1,1)
+		if tutorial_step>=0 and game.shot_charge>0.0: tutorial_charged=true
 		var before: String = game.state
-		game.step(minf(delta,0.04),input_aim,touch_sprint or Input.is_physical_key_pressed(KEY_SHIFT))
+		if tutorial_success_step<0 or (tutorial_step==3 and game.state=="playing") or tutorial_step in [4,5]:
+			game.step(minf(delta,0.04),input_aim,touch_sprint or Input.is_physical_key_pressed(KEY_SHIFT))
 		if game.owner != charging_cat:
 			charging_cat = -1
 			game.shot_charge = 0
 		if game.state == "goal" and before != "goal": play_tone(850,0.3)
 		if game.state == "finished" and not settled: show_result()
+	update_tutorial(minf(delta,0.04))
 	update_visuals(delta)
 
 func update_visuals(delta: float) -> void:
+	if game.state == "playing": feedback_time = maxf(0,feedback_time-delta)
+	if game.possession_serial != seen_possession_serial:
+		seen_possession_serial = game.possession_serial
+		feedback_time = 1.2
+		possession_feedback_label.text = game.possession_feedback
+		play_tone(1050,0.12)
+	possession_feedback_label.visible = started and game.state == "playing" and feedback_time>0
 	for i in range(6):
 		var cat: Dictionary = game.cats[i]
 		cat_nodes[i].position = pitch_position(cat.pos)
 		var moving: bool = started and game.state == "playing" and cat.velocity.length() > 0.2
 		var row := 1 if cat.heading.x >= 0 else 2
-		var frame := int(anim_time * (8.0 if cat.velocity.length()<6.0 else 11.0) + i*2) % 8 if moving else 0
+		if moving: cat_animation_phase[i]+=delta*clampf(cat.velocity.length()*1.4,3.0,12.0)
+		var frame := int(cat_animation_phase[i]) % 8 if moving else 0
 		# These are the original eight-frame left/right cycles, with real paw motion.
 		cat_atlases[i].region = Rect2(frame*192,row*208,192,208)
 		cat_visuals[i].position.y = 0.10*sin(cat.kick*PI/0.4) if cat.kick>0 else 0.0
@@ -477,33 +903,70 @@ func update_visuals(delta: float) -> void:
 	ball_shadow.position = pitch_position(Vector2(game.ball.x,game.ball.z),0.01)
 	ball_node.rotate_z(-game.ball_velocity.x*delta)
 	ball_node.rotate_x(game.ball_velocity.z*delta)
+	var ball_screen := camera.unproject_position(ball_node.position)
+	var possession_team: int = game.cats[game.owner].team if game.owner>=0 else -1
+	var ring_index := possession_team if possession_team>=0 else 2
+	ball_marker.texture = ball_textures[ring_index]
+	ball_ring_color = [Color("ffdf54"),Color("ff4d4d"),Color("e9e8d5")][ring_index]
+	ball_marker.size = Vector2.ONE * (38 if feedback_time>0.9 and possession_team==0 else 32)
+	ball_marker.position = ball_screen - ball_marker.size * 0.5
+	ball_tag.position = ball_screen - Vector2(30,36)
+	ball_marker.visible = started and game.state!="finished"
+	ball_tag.visible = started and game.state!="finished"
 	selection_arrow.position = cat_nodes[game.controlled].position + Vector3(0,3.8+sin(anim_time*3)*0.08,0)
-	selection_arrow.visible = started
+	selection_arrow.visible = started and game.state!="finished"
 	score_label.text = "HOME   %d  :  %d   AWAY" % [game.score[0],game.score[1]]
 	var remaining := ceili((210 if game.overtime else 180) - game.elapsed)
 	clock_label.text = ("GOLDEN GOAL  " if game.overtime else "") + "%02d:%02d" % [remaining/60,remaining%60]
 	stamina_bar.value = game.cats[game.controlled].stamina
 	shot_bar.value = game.shot_charge*100
+	shot_guide.visible = started and game.state=="playing" and charging_cat>=0 and game.owner==charging_cat and game.controlled==charging_cat
+	shot_guide.queue_redraw()
 	possession_label.text = TEAM_NAMES[0] + "  /  " + ("YOUR BALL  >" if game.owner==game.controlled else "ATTACK THE RIGHT GOAL  >")
 	announcement.text = str(ceili(game.phase_time)) if started and game.state == "countdown" else ("HOME GOAL!" if game.goal_team == 0 else "AWAY GOAL!") if game.state == "goal" else ""
 	if not started: possession_label.text = ""
+	update_action_hint()
+
+func result_portrait(team: int) -> VBoxContainer:
+	var column := VBoxContainer.new()
+	column.alignment=BoxContainer.ALIGNMENT_CENTER
+	var portrait := TextureRect.new()
+	var atlas := AtlasTexture.new()
+	atlas.atlas=TEAM_SHEETS[team]
+	atlas.region=Rect2(0,208 if team==0 else 416,192,208)
+	portrait.texture=atlas
+	portrait.texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
+	portrait.custom_minimum_size=Vector2(104,90)
+	portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	column.add_child(portrait)
+	var name_label := label("MALLOW" if team==0 else "SILVERBELT",15)
+	name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(name_label)
+	return column
+
+func result_stat(value: String, caption: String) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("panel",style_box(Color("16392d"),Color("577960")))
+	var column := VBoxContainer.new()
+	card.add_child(column)
+	var number := label(value,24)
+	number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	number.add_theme_color_override("font_color",Color("ffe39a"))
+	column.add_child(number)
+	var title := label(caption,13)
+	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(title)
+	return card
 
 func show_result() -> void:
 	settled = true
 	bridge({"type":"FOOTBALL_COMPLETE","matchId":match_id,"elapsedSeconds":game.elapsed,"homeGoals":game.score[0],"awayGoals":game.score[1]})
-	for child in result_panel.get_children(): child.queue_free()
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation",22)
-	result_panel.add_child(column)
-	column.add_child(label("FULL TIME",18))
-	column.add_child(label("VICTORY" if game.score[0]>game.score[1] else ("DRAW" if game.score[0]==game.score[1] else "NEXT MATCH IS YOURS"),30))
-	column.add_child(label("HOME  %d  :  %d  AWAY" % [game.score[0],game.score[1]],32))
-	column.add_child(label("%d passes    %d shots    %d tackles" % [game.passes,game.shots,game.tackles],18))
-	var coins := 50 + (30 if game.score[0]>game.score[1] else 10 if game.score[0]==game.score[1] else 0) + mini(game.score[0],10)*5
-	column.add_child(label("+%d COINS   /   +%d XP" % [coins,25+(15 if game.score[0]>game.score[1] else 0)],22))
-	column.add_child(button("PLAY AGAIN",start_match))
-	column.add_child(button("RETURN TO STADIUM",func():bridge({"type":"FOOTBALL_CLOSE"})))
-	result_panel.show()
+	result_backdrop.show()
+	result_panel.reveal()
+	ball_marker.hide()
+	ball_tag.hide()
 	play_tone(600,0.25)
 
 func bridge(message: Dictionary) -> void:
@@ -515,6 +978,7 @@ func on_host_message(args: Array) -> void:
 	if args.is_empty(): return
 	var message = JSON.parse_string(str(args[0]))
 	if not message is Dictionary: return
+	if message.get("type") == "FOOTBALL_INIT": initialize_entry(message.get("tutorialSeen",false)==true)
 	if message.get("type") == "FOOTBALL_PAUSE" and started and game.state != "paused": toggle_pause()
 
 func play_tone(frequency: float, duration: float) -> void:

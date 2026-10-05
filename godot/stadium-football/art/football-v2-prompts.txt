@@ -1,0 +1,5 @@
+Built-in imagegen, two independent assets.
+
+Loading: original polished pixel-art football stadium viewed from a players' tunnel, blue and gold pennants, limestone stands, striped green pitch, white goal net, football and boots in foreground, dark lower-left space for live progress. No running track, text, or UI baked into image.
+
+Results: transparent pixel-art football presentation frame, navy blank scoreboard, gold edges, goalpost columns and white netting, football trophy with laurel, blue/gold flags, lamps, football pedestals, grass and goal-area markings. No running track or Cat Dash arch; live text and controls remain separate.
