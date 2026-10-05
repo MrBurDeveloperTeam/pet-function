@@ -40,6 +40,7 @@ import type { PetRepository } from '../contracts/petRepository';
 import { SharedPetProvider, useGameState } from './runtime/SharedPetRuntime';
 import { PetRoom } from './internal/PetRoom';
 import { GamePage } from './internal/components/GamePage';
+import { FootballGame } from './internal/components/FootballGame';
 import { KART_GAME_ID } from './internal/kartInteraction';
 import PetAdoptionModal from './internal/components/PetAdoptionModal';
 import { RoomType, type PetAssetUrls, type ExtraGame } from './internal/types';
@@ -47,7 +48,7 @@ import { ROOM_BACKGROUNDS } from './internal/roomBackgrounds';
 
 export type { PetAssetUrls, ExtraGame };
 
-const LANDSCAPE_GAME_IDS = new Set<string>(['paccat', 'tetris']);
+const LANDSCAPE_GAME_IDS = new Set<string>(['paccat', 'tetris', 'stadium-football']);
 
 const requiresLandscapeMode = (gameId: string | null) => gameId !== null && LANDSCAPE_GAME_IDS.has(gameId);
 
@@ -232,7 +233,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
     setActiveGameId(null);
     setView('ROOM');
     setCurrentRoom(activeGameId === KART_GAME_ID ? RoomType.KART_TRACK
-      : activeGameId === 'stadium-hurdles' ? RoomType.SPORTS_STADIUM : RoomType.GAMES);
+      : activeGameId === 'stadium-hurdles' || activeGameId === 'stadium-football' ? RoomType.SPORTS_STADIUM : RoomType.GAMES);
     setShowRotateNotice(false);
 
     if (shouldReleaseLandscape) {
@@ -390,13 +391,13 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
         />
       ) : (
         <>
-          <GamePage
+          {activeGameId === 'stadium-football' ? <FootballGame onClose={handleCloseGame} /> : <GamePage
             gameId={activeGameId || ''}
             onClose={handleCloseGame}
             onExitPet={handleClose}
             gameProgressClient={gameProgressClient}
             userId={userId}
-          />
+          />}
 
           {requiresLandscapeMode(activeGameId) && showRotateNotice && (
             <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 px-6 text-white">
@@ -406,7 +407,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
                 <h2 className="text-xl font-bold">Rotate your device</h2>
 
                 <p className="mt-2 text-sm text-white/75">
-                  {activeGameId === 'tetris' ? 'Tetris' : 'PAC-CAT'} is designed for landscape mode. Please rotate your phone to continue.
+                  {activeGameId === 'stadium-football' ? 'Paw League' : activeGameId === 'tetris' ? 'Tetris' : 'PAC-CAT'} is designed for landscape mode. Please rotate your phone to continue.
                 </p>
 
                 <button

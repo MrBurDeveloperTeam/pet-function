@@ -1,0 +1,8 @@
+Built-in image_gen; sports-stadium.png used as a style reference.
+Create a detailed 16:9 pixel-art soccer stadium matching sports: lush green
+checkerboard grass, warm stone, blue/gold seating and banners, red running
+track, brass lanterns, planters and flags. Elevated side view with goals at
+the left and right ends. Enlarge the playable pitch to occupy approximately
+x=12%-88%, y=28%-83%, wider at the front. Keep both goals and all pitch lines
+visible. Put the rich architecture around the perimeter. No cats, people,
+ball, text, UI or watermark. Preserve crisp pixel clusters and dark outlines.
