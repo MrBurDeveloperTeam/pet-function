@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react';
 import { getPetOption } from '../petOptions';
 import type { PetAssetUrls, RoomType } from '../types';
 import { SCENE_CATS, sampleSceneCat } from '../sceneCats';
+const standingCatsUrl = '/pet-function/pets/scene-standing-cats.png';
+
+const STANDING_CELLS = { mallow: 0, silverbelt: 1, fastrat: 2, gulu: 3, munchkin: 4, mochi: 5 };
 
 export function SceneCats({ room, spriteSheets }: {
   room: RoomType;
@@ -28,10 +31,9 @@ export function SceneCats({ room, spriteSheets }: {
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(layer);
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let elapsed = 0, previous = performance.now(), raf = 0;
     const tick = (now: number) => {
-      if (!document.hidden && !reduceMotion.matches) elapsed += Math.min((now - previous) / 1000, .05);
+      if (!document.hidden) elapsed += Math.min((now - previous) / 1000, .05);
       previous = now;
       cats.forEach((cat, index) => {
         const state = sampleSceneCat(cat, elapsed);
@@ -46,8 +48,9 @@ export function SceneCats({ room, spriteSheets }: {
         node.style.zIndex = String(Math.round(state.y * 10));
         let row = 0, frame = 0;
         if (cat.pose === 'stand') {
-          row = 7;
-          frame = 1;
+          const cell = STANDING_CELLS[cat.pet];
+          row = Math.floor(cell / 3);
+          frame = cell % 3;
         } else if (state.walking) {
           row = state.direction > 0 ? 1 : 2;
           frame = Math.floor(elapsed * 8 + index * 2) % 8;
@@ -74,7 +77,7 @@ export function SceneCats({ room, spriteSheets }: {
           data-cat-pose={cat.pose} className={`pet-scene-cat pet-scene-cat-${cat.pose}`}>
           <div className="pet-scene-cat-shadow" />
           <div className="pet-scene-cat-sprite" style={{
-            backgroundImage: `url(${getPetOption(cat.pet, spriteSheets).spriteSheetUrl})`,
+            backgroundImage: `url(${cat.pose === 'stand' ? standingCatsUrl : getPetOption(cat.pet, spriteSheets).spriteSheetUrl})`,
           }} />
         </div>
       ))}

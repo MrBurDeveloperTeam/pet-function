@@ -1466,6 +1466,10 @@
   filter: blur(1px);
 }
 
+.snabbb-molar-experience .pet-scene-cat-stand .pet-scene-cat-sprite {
+  background-size: 576px 416px;
+}
+
 .snabbb-molar-experience .pet-scene-cat-sit .pet-scene-cat-shadow {
   height: 5%;
   background: #34271420;
