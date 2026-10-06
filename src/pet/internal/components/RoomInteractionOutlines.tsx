@@ -36,7 +36,7 @@ const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label:
     {
       action: 'door',
       label: 'Enter the sports stadium',
-      d: 'M846 283 V203 C846 160 882 136 931 136 C980 136 1016 160 1016 203 V283 Z',
+      d: 'M846 345 V274 C846 231 882 207 931 207 C980 207 1016 231 1016 274 V345 Z',
     },
   ],
   [RoomType.SPORTS_STADIUM]: [

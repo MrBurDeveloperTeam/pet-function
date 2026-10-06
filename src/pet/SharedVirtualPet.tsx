@@ -41,6 +41,7 @@ import { SharedPetProvider, useGameState } from './runtime/SharedPetRuntime';
 import { PetRoom } from './internal/PetRoom';
 import { GamePage } from './internal/components/GamePage';
 import { FootballGame } from './internal/components/FootballGame';
+import { KartGame } from './internal/components/KartGame';
 import { KART_GAME_ID } from './internal/kartInteraction';
 import PetAdoptionModal from './internal/components/PetAdoptionModal';
 import { RoomType, type PetAssetUrls, type ExtraGame } from './internal/types';
@@ -148,6 +149,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   const showOutdoorTravelMap = currentRoom === RoomType.TOWN_HOME
     || currentRoom === RoomType.SHOPPING_STREET
     || currentRoom === RoomType.SPORTS_GROUND
+    || currentRoom === RoomType.SPORTS_STADIUM
     || currentRoom === RoomType.KART_TRACK
     || currentRoom === RoomType.FISHING_POND;
 
@@ -216,8 +218,6 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   };
 
   const handleNavigateToGame = async (gameId: string) => {
-    // Reserved entry hook: enable once the karting game is implemented.
-    if (gameId === KART_GAME_ID) return;
 
     if (requiresLandscapeMode(gameId)) {
       await enterLandscapeMode();
@@ -352,7 +352,8 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
                   </svg>
 
                   {ROOM_MAP_ITEMS.map(({ room, label, x, y, color }) => {
-                    const isActive = currentRoom === room;
+                    const isActive = currentRoom === room
+                      || (currentRoom === RoomType.SPORTS_STADIUM && room === RoomType.SPORTS_GROUND);
                     return (
                       <button
                         key={room}
@@ -391,7 +392,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
         />
       ) : (
         <>
-          {activeGameId === 'stadium-football' ? <FootballGame key={userId ?? "guest"} userId={userId} onClose={handleCloseGame} /> : <GamePage
+          {activeGameId === KART_GAME_ID ? <KartGame onClose={handleCloseGame} /> : activeGameId === 'stadium-football' ? <FootballGame key={userId ?? "guest"} userId={userId} onClose={handleCloseGame} /> : <GamePage
             gameId={activeGameId || ''}
             onClose={handleCloseGame}
             onExitPet={handleClose}

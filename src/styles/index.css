@@ -1432,7 +1432,7 @@
 .snabbb-molar-experience .pet-scene-cats {
   position: absolute;
   inset: 0;
-  z-index: 12;
+  z-index: 16;
   pointer-events: none;
   overflow: hidden;
   user-select: none;
@@ -1455,6 +1455,35 @@
   transform-origin: top left;
 }
 
+.snabbb-molar-experience .pet-scene-cat-dialogue {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(190px, 33vw);
+  padding: 8px 11px;
+  border: 3px solid #684427;
+  border-radius: 12px;
+  background: #fff3c4;
+  color: #51341f;
+  box-shadow: 3px 3px 0 #34271440;
+  font: 700 clamp(10px, 1vw, 14px)/1.35 sans-serif;
+  text-align: center;
+  z-index: 2;
+}
+.snabbb-molar-experience .pet-scene-cat-dialogue::after {
+  content: '';
+  position: absolute;
+  left: calc(50% - 6px);
+  bottom: -9px;
+  width: 12px;
+  height: 12px;
+  background: #fff3c4;
+  border-right: 3px solid #684427;
+  border-bottom: 3px solid #684427;
+  transform: rotate(45deg);
+}
 .snabbb-molar-experience .pet-scene-cat-shadow {
   position: absolute;
   left: 13%;

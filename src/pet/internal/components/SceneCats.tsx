@@ -71,11 +71,12 @@ export function SceneCats({ room, spriteSheets }: {
 
   if (!cats.length) return null;
   return (
-    <div ref={layerRef} className="pet-scene-cats" aria-hidden="true">
+    <div ref={layerRef} className="pet-scene-cats">
       {cats.map(cat => (
         <div key={cat.id} data-scene-cat={cat.id} data-cat-kind={cat.pet}
           data-cat-pose={cat.pose} className={`pet-scene-cat pet-scene-cat-${cat.pose}`}>
           <div className="pet-scene-cat-shadow" />
+          {cat.dialogue && <div className="pet-scene-cat-dialogue">{cat.dialogue}</div>}
           <div className="pet-scene-cat-sprite" style={{
             backgroundImage: `url(${cat.pose === 'stand' ? standingCatsUrl : getPetOption(cat.pet, spriteSheets).spriteSheetUrl})`,
           }} />

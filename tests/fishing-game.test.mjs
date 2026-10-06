@@ -77,7 +77,7 @@ test('reeling uses three fixed struggle states and a fast moving colour-match po
   assert.match(fishingSource, /randomStruggleState\(struggleStateRef\.current\)/);
   assert.match(fishingSource, /struggleStateRef\.current = next/);
   assert.match(fishingSource, /setStruggleCycle\(current => current \+ 1\)/);
-  assert.match(fishingSource, /\}\);\n    advanceStruggle\(\);/);
+  assert.match(fishingSource, /\}\);\r?\n    advanceStruggle\(\);/);
   assert.match(fishingSource, /MATCH!  -15m/);
   assert.match(fishingSource, /WRONG COLOUR  \+5m/);
   assert.match(fishingSource, /gameRef\.current\?\.animate/);

@@ -74,26 +74,26 @@ test('reaching a town road edge automatically changes scene while exit arrows re
   assert.match(petRoomSource, /currentRoom === RoomType\.KART_TRACK && exit\.destination === RoomType\.SPORTS_GROUND/);
 });
 
-test('sports ground return stays left of center and the stadium has a navigable pitch and track', () => {
+test('sports ground uses one approach with a karting fork and the stadium has a navigable pitch and track', () => {
   assert.match(petRoomSource, /isSportsGroundReturn/);
   assert.match(petRoomSource, /left-\[39%\] top-8/);
-  assert.match(navigationSource, /\{ x: 0\.54, y: 0\.095 \}, \{ x: 0\.46, y: 0\.095 \}/);
-  assert.match(navigationSource, /RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.075 \}/);
+  assert.match(navigationSource, /\{ x: 0\.525, y: 0\.235 \}, \{ x: 0\.475, y: 0\.235 \}/);
+  assert.match(navigationSource, /RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.18 \}/);
   assert.match(navigationSource, /RoomType\.SPORTS_STADIUM\]: \{ x: 0\.5, y: 0\.84 \}/);
   assert.match(navigationSource, /\{ x: 0\.08, y: 0\.31 \}, \{ x: 0\.92, y: 0\.31 \}/);
 });
 
 test('town route entry positions depend on the scene the cat came from', () => {
-  assert.match(petRoomSource, /RoomType\.SHOPPING_STREET[\s\S]*?RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.075 \}/);
+  assert.match(petRoomSource, /RoomType\.SHOPPING_STREET[\s\S]*?RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.12 \}/);
   assert.match(petRoomSource, /RoomType\.SHOPPING_STREET[\s\S]*?RoomType\.TOWN_HOME\]: \{ x: 0\.14, y: 0\.30 \}/);
   assert.match(petRoomSource, /RoomType\.SPORTS_GROUND[\s\S]*?RoomType\.SHOPPING_STREET\]: \{ x: 0\.33, y: 0\.82 \}/);
   assert.match(petRoomSource, /RoomType\.SPORTS_GROUND[\s\S]*?RoomType\.SPORTS_STADIUM\]: \{ x: 0\.5, y: 0\.84 \}/);
-  assert.match(petRoomSource, /RoomType\.SPORTS_STADIUM[\s\S]*?RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.075 \}/);
+  assert.match(petRoomSource, /RoomType\.SPORTS_STADIUM[\s\S]*?RoomType\.SPORTS_GROUND\]: \{ x: 0\.5, y: 0\.18 \}/);
   assert.match(petRoomSource, /RoomType\.TOWN_HOME[\s\S]*?RoomType\.SHOPPING_STREET\]: \{ x: 0\.84, y: 0\.53 \}/);
   assert.match(petRoomSource, /RoomType\.TOWN_HOME[\s\S]*?RoomType\.KART_TRACK\]: \{ x: 0\.414, y: 0\.14 \}/);
   assert.match(petRoomSource, /RoomType\.SPORTS_GROUND[\s\S]*?RoomType\.KART_TRACK\]: \{ x: 0\.13, y: 0\.49 \}/);
   assert.match(petRoomSource, /RoomType\.KART_TRACK[\s\S]*?RoomType\.TOWN_HOME\]: \{ x: 0\.83, y: 0\.84 \}/);
-  assert.match(petRoomSource, /RoomType\.KART_TRACK[\s\S]*?RoomType\.SPORTS_GROUND\]: \{ x: 0\.88, y: 0\.18 \}/);
+  assert.match(petRoomSource, /RoomType\.KART_TRACK[\s\S]*?RoomType\.SPORTS_GROUND\]: \{ x: 0\.88, y: 0\.23 \}/);
   assert.match(petRoomSource, /outdoorEntryPlacementRef\.current\?\.room === currentRoom/);
 });
 
@@ -128,8 +128,8 @@ test('clicked exits follow continuous walkable paths around road bends', () => {
   const routes = [
     [RoomType.TOWN_HOME, { x: 0.55, y: 0.48 }, { x: 0.83, y: 0.95 }],
     [RoomType.TOWN_HOME, { x: 0.83, y: 0.84 }, { x: 0.04, y: 0.30 }],
-    [RoomType.SPORTS_GROUND, { x: 0.50, y: 0.075 }, { x: 0.96, y: 0.19 }],
-    [RoomType.SPORTS_GROUND, { x: 0.88, y: 0.18 }, { x: 0.50, y: 0.06 }],
+    [RoomType.SPORTS_GROUND, { x: 0.50, y: 0.18 }, { x: 0.96, y: 0.25 }],
+    [RoomType.SPORTS_GROUND, { x: 0.88, y: 0.23 }, { x: 0.50, y: 0.06 }],
     [RoomType.KART_TRACK, { x: 0.414, y: 0.14 }, { x: 0.04, y: 0.49 }],
     [RoomType.KART_TRACK, { x: 0.13, y: 0.49 }, { x: 0.414, y: 0.06 }],
   ];

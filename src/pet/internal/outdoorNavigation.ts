@@ -41,15 +41,14 @@ const WALKABLE_POLYGONS: Partial<Record<RoomType, Polygon[]>> = {
   ],
   [RoomType.SPORTS_GROUND]: [
     [
-      { x: 0.46, y: 0 }, { x: 0.54, y: 0 },
-      { x: 0.54, y: 0.095 }, { x: 0.46, y: 0.095 },
+      { x: 0.475, y: 0 }, { x: 0.525, y: 0 },
+      { x: 0.525, y: 0.235 }, { x: 0.475, y: 0.235 },
     ],
-    // Branch along the garden behind the stadium, never through its seating.
+    // One fork to karting; the stadium and surrounding gardens stay blocked.
     [
-      { x: 0.50, y: 0.012 }, { x: 0.60, y: 0.02 }, { x: 0.70, y: 0.065 },
-      { x: 0.84, y: 0.125 }, { x: 1, y: 0.15 }, { x: 1, y: 0.22 },
-      { x: 0.84, y: 0.20 }, { x: 0.70, y: 0.14 }, { x: 0.60, y: 0.09 },
-      { x: 0.50, y: 0.085 },
+      { x: 0.50, y: 0.085 }, { x: 0.60, y: 0.13 }, { x: 0.75, y: 0.18 },
+      { x: 1, y: 0.23 }, { x: 1, y: 0.285 }, { x: 0.75, y: 0.235 },
+      { x: 0.60, y: 0.185 }, { x: 0.50, y: 0.14 },
     ],
   ],
   [RoomType.KART_TRACK]: [
@@ -80,7 +79,7 @@ export const OUTDOOR_INITIAL_PLACEMENT: Partial<Record<RoomType, NormalizedPoint
   [RoomType.PLAYROOM]: { x: 0.5, y: 0.55 },
   [RoomType.TOWN_HOME]: { x: 0.55, y: 0.48 },
   [RoomType.SHOPPING_STREET]: { x: 0.84, y: 0.53 },
-  [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.075 },
+  [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.18 },
   [RoomType.SPORTS_STADIUM]: { x: 0.5, y: 0.84 },
   [RoomType.KART_TRACK]: { x: 0.36, y: 0.30 },
 };
@@ -92,8 +91,8 @@ const OUTDOOR_PATH_BENDS: Partial<Record<RoomType, NormalizedPoint[]>> = {
     { x: 0.75, y: 0.59 }, { x: 0.80, y: 0.77 }, { x: 0.835, y: 0.91 },
   ],
   [RoomType.SPORTS_GROUND]: [
-    { x: 0.50, y: 0.06 }, { x: 0.60, y: 0.06 }, { x: 0.72, y: 0.115 },
-    { x: 0.85, y: 0.17 }, { x: 0.96, y: 0.19 },
+    { x: 0.50, y: 0.18 }, { x: 0.50, y: 0.12 }, { x: 0.60, y: 0.155 },
+    { x: 0.75, y: 0.205 }, { x: 0.88, y: 0.23 }, { x: 0.96, y: 0.25 },
   ],
   [RoomType.KART_TRACK]: [
     { x: 0.414, y: 0.14 }, { x: 0.414, y: 0.27 }, { x: 0.357, y: 0.325 },

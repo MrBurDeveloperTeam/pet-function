@@ -46,6 +46,12 @@ test('indoor map keeps the original five clickable room cards', () => {
   assert.match(sharedVirtualPet, /INDOOR_ROOM_ITEMS\.map/);
 });
 
+test('the stadium belongs to the outdoor travel map and marks Sports as the current location', () => {
+  const outdoorRooms = sharedVirtualPet.match(/const showOutdoorTravelMap =([\s\S]*?);/)?.[1] ?? '';
+  assert.match(outdoorRooms, /currentRoom === RoomType\.SPORTS_STADIUM/);
+  assert.match(sharedVirtualPet, /currentRoom === RoomType\.SPORTS_STADIUM && room === RoomType\.SPORTS_GROUND/);
+});
+
 test('loading animation always starts from the beginning and reduced-motion does not jump to the end', () => {
   assert.match(petRoom, /key=\{loadingAnimationKey\}/);
   assert.match(styles, /\.pet-room-loading-progress \{\s*width: 0;\s*animation: molar-room-loading-progress 1800ms linear both;/);

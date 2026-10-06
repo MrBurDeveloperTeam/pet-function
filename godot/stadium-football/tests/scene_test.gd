@@ -7,6 +7,7 @@ func check(condition: bool, description: String) -> void:
 func _initialize() -> void:
 	call_deferred("verify")
 func verify() -> void:
+	root.size = Vector2i(1280, 720)
 	var scene = load("res://main.gd").new()
 	root.add_child(scene)
 	scene.set_process(false)
@@ -14,6 +15,17 @@ func verify() -> void:
 	for i in range(6):
 		check(scene.cat_atlases[i].atlas==scene.TEAM_SHEETS[0 if i<3 else 1],"Each team shares exactly one original cat appearance")
 	check(scene.stadium_backdrop.texture.resource_path.ends_with("stadium-wide-goals.png"),"Pixel stadium with enlarged goals is installed")
+	root.size = Vector2i(1480, 612)
+	scene._process(0.0)
+	var center: Vector3 = scene.pitch_position(Vector2.ZERO)
+	var origin: Vector2 = scene.camera.unproject_position(center)
+	var horizontal: float = origin.distance_to(scene.camera.unproject_position(center + scene.camera.global_basis.x))
+	var vertical: float = origin.distance_to(scene.camera.unproject_position(center + scene.camera.global_basis.y))
+	check(absf(horizontal-vertical)<0.01,"Wide viewport renders cat axes at equal scale")
+	check(is_equal_approx(scene.stadium_backdrop.scale.y,scene.pitch_vertical_scale()),"Stadium alone fits the wide viewport")
+	check(scene.cat_sprites[0].scale==Vector3.ONE,"Wide viewport never stretches the cat sprite")
+	root.size = Vector2i(1280, 720)
+	scene._process(0.0)
 	scene.start_match()
 	check(scene.started and scene.game.state=="countdown","Kickoff creates a fresh match")
 	scene.game.state="playing"

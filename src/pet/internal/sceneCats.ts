@@ -12,16 +12,17 @@ export interface SceneCat {
   speed?: number;
   phase?: number;
   scale?: number;
+  dialogue?: string;
 }
 
 export const SCENE_CATS: Partial<Record<RoomType, readonly SceneCat[]>> = {
   [RoomType.KART_TRACK]: [
     { id: 'kart-bench', pet: 'munchkin', pose: 'sit', position: { x: .254, y: .238 }, scale: .42 },
-    { id: 'kart-spectator', pet: 'fastrat', pose: 'stand', position: { x: .448, y: .613 } },
+    { id: 'kart-spectator', pet: 'fastrat', pose: 'sit', position: { x: .448, y: .613 }, dialogue: 'Bet you can beat my lap! 🏁' },
   ],
   [RoomType.TOWN_HOME]: [
-    { id: 'home-west-grass', pet: 'silverbelt', pose: 'stand', position: { x: .173, y: .307 } },
-    { id: 'home-pond-bank', pet: 'mochi', pose: 'stand', position: { x: .376, y: .549 } },
+    { id: 'home-west-grass', pet: 'silverbelt', pose: 'sit', position: { x: .173, y: .307 } },
+    { id: 'home-pond-bank', pet: 'mochi', pose: 'sit', position: { x: .376, y: .549 }, dialogue: 'Ooh, something shiny in the pond! ✨' },
     { id: 'home-bench', pet: 'gulu', pose: 'sit', position: { x: .859, y: .414 }, scale: .42 },
   ],
   [RoomType.SHOPPING_STREET]: [
@@ -37,8 +38,8 @@ export const SCENE_CATS: Partial<Record<RoomType, readonly SceneCat[]>> = {
       path: [{ x: .72, y: .661 }, { x: .87, y: .606 }], speed: 35, phase: 13 },
   ],
   [RoomType.SPORTS_STADIUM]: [
-    { id: 'stadium-midfield', pet: 'mallow', pose: 'stand', position: { x: .464, y: .529 } },
-    { id: 'stadium-corner', pet: 'mochi', pose: 'stand', position: { x: .729, y: .645 } },
+    { id: 'stadium-midfield', pet: 'mallow', pose: 'sit', position: { x: .464, y: .529 }, dialogue: 'One little kick? I dare you! ⚽' },
+    { id: 'stadium-corner', pet: 'mochi', pose: 'sit', position: { x: .729, y: .645 }, dialogue: 'Think you can jump past me? ✨' },
   ],
 };
 

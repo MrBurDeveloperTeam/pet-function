@@ -126,6 +126,10 @@ func circle(center: Vector3, radius: float, color := CREAM, count := 64) -> void
 
 # The simulation retains its 3D ball height. An orthographic 3D stage aligns
 # original pixel sprites to the stadium artwork, without lighting/recolouring them.
+func pitch_vertical_scale() -> float:
+	var viewport_size := get_viewport().get_visible_rect().size
+	return (1280.0 / 720.0) / maxf(viewport_size.x / maxf(viewport_size.y, 1.0), 0.01)
+
 func pitch_position(point: Vector2, height := 0.0) -> Vector3:
 	var t := (point.y + 13.0) / 26.0
 	var depth := t / (1.0 + 0.18 * (1.0 - t))
@@ -133,7 +137,7 @@ func pitch_position(point: Vector2, height := 0.0) -> Vector3:
 	var right := lerpf(1340.0,1485.0,depth)
 	var px := lerpf(left,right,(point.x+22.0)/44.0)
 	var py := lerpf(285.0,727.0,depth)
-	return Vector3((px-836.0)*58.0/1672.0,height,(py-470.5)*58.0/1672.0*sqrt(2.0))
+	return Vector3((px-836.0)*58.0/1672.0,height,(py-470.5)*58.0/1672.0*sqrt(2.0)*pitch_vertical_scale())
 
 func pixel_sprite(texture: Texture2D, pixel_size: float) -> Sprite3D:
 	var sprite := Sprite3D.new()
@@ -862,6 +866,9 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and started and game.state != "paused" and game.state != "finished": toggle_pause()
 
 func _process(delta: float) -> void:
+	# Fit only the stadium artwork and pitch coordinates to the viewport.
+	# Cats remain uniformly rendered by the orthographic camera.
+	stadium_backdrop.scale.y = pitch_vertical_scale()
 	anim_time += delta
 	if started:
 		input_aim = touch_move + Vector2(

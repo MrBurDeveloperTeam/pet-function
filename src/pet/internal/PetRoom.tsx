@@ -145,7 +145,7 @@ const AUTO_TOWN_EXIT_ROOMS = new Set<RoomType>([
 ]);
 const OUTDOOR_ROUTE_ENTRY_PLACEMENT: Partial<Record<RoomType, Partial<Record<RoomType, { x: number; y: number }>>>> = {
   [RoomType.SHOPPING_STREET]: {
-    [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.075 },
+    [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.12 },
     [RoomType.TOWN_HOME]: { x: 0.14, y: 0.30 },
   },
   [RoomType.SPORTS_GROUND]: {
@@ -159,10 +159,10 @@ const OUTDOOR_ROUTE_ENTRY_PLACEMENT: Partial<Record<RoomType, Partial<Record<Roo
   },
   [RoomType.KART_TRACK]: {
     [RoomType.TOWN_HOME]: { x: 0.83, y: 0.84 },
-    [RoomType.SPORTS_GROUND]: { x: 0.88, y: 0.18 },
+    [RoomType.SPORTS_GROUND]: { x: 0.88, y: 0.23 },
   },
   [RoomType.SPORTS_STADIUM]: {
-    [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.075 },
+    [RoomType.SPORTS_GROUND]: { x: 0.5, y: 0.18 },
   },
 };
 const getOutdoorPetScale = (room: RoomType) => TOWN_ROOMS.has(room) ? TOWN_PET_SCALE : OUTSIDE_PET_SCALE;
@@ -214,7 +214,7 @@ const ROOM_DOOR_PROXIMITY: Partial<Record<RoomType, { min: number; max: number; 
   [RoomType.KITCHEN]: { min: 0.72, max: 0.9 },
   [RoomType.GAMES]: { min: 0.12, max: 0.25 },
   [RoomType.TOWN_HOME]: { min: 0.48, max: 0.62, minY: 0.34, maxY: 0.58 },
-  [RoomType.SPORTS_GROUND]: { min: 0.46, max: 0.54, minY: 0, maxY: 0.14 },
+  [RoomType.SPORTS_GROUND]: { min: 0.46, max: 0.54, minY: 0.11, maxY: 0.25 },
   [RoomType.SPORTS_STADIUM]: { min: 0.38, max: 0.62, minY: 0.72, maxY: 0.96 },
 };
 
@@ -558,6 +558,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           ? rect.height * 0.30
           : exit.direction === 'right' && currentRoom === RoomType.SHOPPING_STREET
             ? rect.height * 0.50
+            : currentRoom === RoomType.SPORTS_GROUND && exit.destination === RoomType.SPORTS_STADIUM
+              ? rect.height * 0.22
             : exit.direction === 'up'
           ? petHalfHeight
           : exit.direction === 'down'
@@ -565,7 +567,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             : exit.direction === 'left' && currentRoom === RoomType.KART_TRACK
               ? rect.height * 0.49
               : exit.direction === 'right' && currentRoom === RoomType.SPORTS_GROUND
-                ? rect.height * 0.19
+                ? rect.height * 0.25
             : outsidePetPosRef.current.y,
       };
       outsidePointerTargetRef.current = constrainOutdoorPosition(
@@ -1524,7 +1526,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       }
       if (exit.direction === 'right') {
         if (currentRoom === RoomType.SPORTS_GROUND && exit.destination === RoomType.KART_TRACK) {
-          return x >= 0.91 && y >= 0.10 && y <= 0.28;
+          return x >= 0.91 && y >= 0.21 && y <= 0.30;
         }
         return x >= 0.91 && y >= 0.27 && y <= 0.67;
       }
@@ -1765,7 +1767,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         const positionClass = currentRoom === RoomType.TOWN_HOME && exit.destination === RoomType.KART_TRACK
           ? 'bottom-3 left-[83%] -translate-x-1/2 sm:bottom-6'
           : currentRoom === RoomType.SPORTS_GROUND && exit.destination === RoomType.KART_TRACK
-            ? 'right-3 top-[19%] -translate-y-1/2 sm:right-6'
+            ? 'right-3 top-[25%] -translate-y-1/2 sm:right-6'
           : currentRoom === RoomType.KART_TRACK && exit.direction === 'up'
             ? 'left-[41.4%] top-3 -translate-x-1/2 sm:top-6'
           : currentRoom === RoomType.KART_TRACK && exit.direction === 'left'

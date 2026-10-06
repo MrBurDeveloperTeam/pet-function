@@ -1,0 +1,578 @@
+✔ Remote choice prevents adoption even without local cache (1.9955ms)
+✔ Empty remote reads cannot clear an account-confirmed choice (1.625ms)
+✔ Only confirmed empty reads without adoption evidence allow first adoption (0.3032ms)
+✔ Runtime guards guest adoption, duplicate submissions, and expired hydration (1.0906ms)
+X [ERROR] Could not resolve "@mrburdeveloperteam/pet-function/apps/inventory"
+
+    ../inventory/aiExperience/petDialogue/buildInventoryDialoguePool.ts:1:14:
+      1 │ export * from '@mrburdeveloperteam/pet-function/apps/inventory';
+        ╵               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "@mrburdeveloperteam/pet-function/apps/inventory" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 1 error:
+../inventory/aiExperience/petDialogue/buildInventoryDialoguePool.ts:1:14: ERROR: Could not resolve "@mrburdeveloperteam/pet-function/apps/inventory"
+    at failureErrorWithLog (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748:15)
+    at C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1207:25
+    at runOnEndCallbacks (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1588:45)
+    at buildResponseToResult (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1205:7)
+    at C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1232:16
+    at responseCallbacks.<computed> (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:884:9)
+    at handleIncomingPacket (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:939:12)
+    at Socket.readFromStdout (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:862:7)
+    at Socket.emit (node:events:509:28)
+    at addChunk (node:internal/streams/readable:563:12) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v24.19.0
+✖ tests\app-adapters.test.mjs (3160.69ms)
+X [ERROR] Could not resolve "@mrburdeveloperteam/pet-function/apps/appointment"
+
+    ../appointment/src/aiExperience/petDialogue/buildAppointmentDialoguePool.ts:1:14:
+      1 │ export * from '@mrburdeveloperteam/pet-function/apps/appointment';
+        ╵               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "@mrburdeveloperteam/pet-function/apps/appointment" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 1 error:
+../appointment/src/aiExperience/petDialogue/buildAppointmentDialoguePool.ts:1:14: ERROR: Could not resolve "@mrburdeveloperteam/pet-function/apps/appointment"
+    at failureErrorWithLog (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748:15)
+    at C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1207:25
+    at runOnEndCallbacks (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1588:45)
+    at buildResponseToResult (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1205:7)
+    at C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1232:16
+    at responseCallbacks.<computed> (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:884:9)
+    at handleIncomingPacket (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:939:12)
+    at Socket.readFromStdout (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:862:7)
+    at Socket.emit (node:events:509:28)
+    at addChunk (node:internal/streams/readable:563:12) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v24.19.0
+✖ tests\appointment-adapters.test.mjs (3191.754ms)
+✔ daily summary includes count, occupied room, and reliable release time (153.2297ms)
+✔ daily summary dedupe changes when appointment load or room occupancy changes (17.0666ms)
+✔ cancelled appointments never count and uncovered dates never claim zero (1.7871ms)
+✔ bath tools stay hidden until the bathtub is clicked or activated with Space (4.7754ms)
+✔ bath tools render as a clear top-side pixel panel beside the map (0.3161ms)
+✔ open bath tools close with Space or Escape (0.3744ms)
+✔ five soap rubs unlock the shower and four completed cycles fill Clean (0.3677ms)
+✔ turning off the bedroom light walks the cat to the bed before sleeping (1.6453ms)
+✔ turning the light back on cancels bedtime movement and wakes the cat (0.5788ms)
+✔ waking walks the cat back to the bedroom entry position before restoring control (0.4681ms)
+✔ the room dims during the walk and the sleep pose stays on the bed (0.2793ms)
+X [ERROR] Could not resolve "@mrburdeveloperteam/pet-function/apps/calculator"
+
+    ../calculator/aiExperience/dataChat/router/classifyProfitDataIntent.ts:1:14:
+      1 │ export * from '@mrburdeveloperteam/pet-function/apps/calculator';
+        ╵               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "@mrburdeveloperteam/pet-function/apps/calculator" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 1 error:
+../calculator/aiExperience/dataChat/router/classifyProfitDataIntent.ts:1:14: ERROR: Could not resolve "@mrburdeveloperteam/pet-function/apps/calculator"
+    at failureErrorWithLog (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748:15)
+    at C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1207:25
+    at runOnEndCallbacks (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1588:45)
+    at buildResponseToResult (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1205:7)
+    at C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1232:16
+    at responseCallbacks.<computed> (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:884:9)
+    at handleIncomingPacket (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:939:12)
+    at Socket.readFromStdout (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:862:7)
+    at Socket.emit (node:events:509:28)
+    at addChunk (node:internal/streams/readable:563:12) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v24.19.0
+✖ tests\calculator-adapters.test.mjs (3103.927ms)
+✔ latest unprofitable saved plan uses historical wording and outranks summary (2.9923ms)
+✔ profitable summary handles zero, singular, plural and invalid procedure counts (0.8513ms)
+✔ unknown profitability or unusable dates produce no fabricated dialogue (0.4921ms)
+✔ damaged historical rows do not break projection or override a valid latest plan (0.7236ms)
+✔ cat bed follows Tutorial first and falls back to SNAI (1.9333ms)
+✔ cat bed locks page movement until the bed is activated again (0.423ms)
+✔ sleeping cat fits inside the bed without blocking its wake button (1.4021ms)
+✔ cat bed suppresses dialogue while sleeping and restores the mounted layer on wake (0.4847ms)
+✔ account sleep state persists to Supabase and is wired through all seven hosts (12.8418ms)
+✔ cat bed is offset toward the right edge while the sleeping cat stays nested (0.7519ms)
+✔ cat bed is keyboard-visible and respects reduced motion (0.3038ms)
+✔ town, shopping, sports and karting form the connected outdoor route (2.1032ms)
+✔ all connected outdoor scenes use their generated backgrounds (1.6571ms)
+✔ keyboard and pointer movement share authored outdoor collision constraints (0.6027ms)
+✔ town scenes use half-size cats and a collapsible top status control (0.7195ms)
+✔ reaching a town road edge automatically changes scene while exit arrows remain clickable (1.4099ms)
+✔ sports ground return stays left of center and the stadium has a navigable pitch and track (0.38ms)
+✔ town route entry positions depend on the scene the cat came from (0.8429ms)
+✔ karting pedestrians cannot enter the removed lower-left spur (5.8628ms)
+✔ the cleared karting plaza supports crossing where the tree planter used to stand (1.2655ms)
+✔ clicked exits follow continuous walkable paths around road bends (36.6617ms)
+✔ closed reminders persist until Welcome Back resets the round (3.7392ms)
+✔ shared progress is scoped to app and user and survives a reload (0.4255ms)
+✔ room doors lead to their requested destinations (1.5871ms)
+✔ doors use clickable pulsing contours (0.3202ms)
+✔ games door prompt follows the door frame perspective (8.4089ms)
+✔ town home prompt follows the stone arch instead of a wall-sized rectangle (0.6203ms)
+✔ sports stadium entrances use fitted clickable contours (0.8418ms)
+✔ Space activates a door only while the cat is beside it (0.6412ms)
+✔ each cat uses the embedded tenth-row eating animation (1.6911ms)
+✔ feeding uses the original selected-cat spritesheet at the original scale (1.0096ms)
+✔ all shared sprite renderers use the ten-row sheet height (2.0603ms)
+✔ unread post from a currently followed creator outranks video analytics (32.2926ms)
+✔ read, unfollowed, malformed and non-video notifications do not qualify (0.4776ms)
+✔ creator display names are sanitized and malformed notification rows do not poison projection (1.5539ms)
+✔ view-count dialogue handles singular/plural and rejects invalid counts (0.7699ms)
+✔ the same video is not shown twice as latest and most viewed (0.5382ms)
+✔ unknown analytics stays silent without hiding a known social candidate (0.492ms)
+✔ town pond contour opens the dedicated fishing scene by click or nearby Space (1.7349ms)
+✔ leaving the fishing pond starts the shared room loading animation immediately (1.5679ms)
+✔ fishing power meter uses the requested difficulty and coin bands (0.7442ms)
+✔ fishing waits for a bite and uses discrete colour matches to reel to zero distance (0.8246ms)
+✔ fishing includes a persistent step-by-step highlighted tutorial (0.7278ms)
+✖ reeling uses three fixed struggle states and a fast moving colour-match pointer (9.8987ms)
+✔ bite feedback includes pond ripples, centered bobber motion, and an alert over the cat (0.567ms)
+✔ a successful catch grants coins and the selected feedable fish species (0.6958ms)
+✔ fishing scene renders a rear-facing cat and fishing rod on the lower dock (1.2385ms)
+✔ completed wins, draws and losses earn bounded coins and XP (3.1265ms)
+✔ quit, malformed and incomplete matches do not earn rewards (2.0639ms)
+✔ settlement requires the active match, real elapsed time, and credits exactly once (0.9364ms)
+✔ all built-in games use the shared authenticated progress bridge (11.1461ms)
+✔ Meowdoku treats authenticated cloud progress as authoritative (5.1081ms)
+✔ shared game progress migration is account scoped and RPC-only for writes (1.617ms)
+✔ Pac-Cat help has an outside-click backdrop and Tetris game over is intrinsically centered (7.6469ms)
+✔ Development serves shared games directly and rejects missing/traversal paths (219.9499ms)
+✔ games are hidden until the television or arcade station is activated (2.7272ms)
+✔ game choices appear in a closable pixel dialog (0.746ms)
+✔ the open game menu closes with Space or Escape (2.347ms)
+X [ERROR] Could not resolve "@mrburdeveloperteam/pet-function/apps/image-generator"
+
+    ../Image-generator/src/aiExperience/resolver/resolveContentStudioInsight.ts:1:14:
+      1 │ export * from '@mrburdeveloperteam/pet-function/apps/image-generator';
+        ╵               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "@mrburdeveloperteam/pet-function/apps/image-generator" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 1 error:
+../Image-generator/src/aiExperience/resolver/resolveContentStudioInsight.ts:1:14: ERROR: Could not resolve "@mrburdeveloperteam/pet-function/apps/image-generator"
+    at failureErrorWithLog (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1748:15)
+    at C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1207:25
+    at runOnEndCallbacks (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1588:45)
+    at buildResponseToResult (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1205:7)
+    at C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:1232:16
+    at responseCallbacks.<computed> (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:884:9)
+    at handleIncomingPacket (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:939:12)
+    at Socket.readFromStdout (C:\Users\ming\Desktop\intern\pet-function\node_modules\.pnpm\esbuild@0.27.7\node_modules\esbuild\lib\main.js:862:7)
+    at Socket.emit (node:events:509:28)
+    at addChunk (node:internal/streams/readable:563:12) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v24.19.0
+✖ tests\image-generator-adapters.test.mjs (2541.668ms)
+✔ latest pending and processing image/video generations use the active-generation dialogue (4.9456ms)
+✔ only the latest generation controls dialogue and failed outranks plan (0.488ms)
+✔ known-empty history may show plan, while unknown generation state stays silent (0.244ms)
+✔ projection removes private generation fields before dialogue evaluation (1.756ms)
+✔ healthy inventory dialogue reports current factual quantity and tracks material changes (3.9301ms)
+✔ risk alerts retain priority over the factual inventory summary (1.4467ms)
+✔ empty or anomalous inventory never produces a positive summary (0.3959ms)
+✔ Inventory falls back to a welcome message after all reminders are dismissed (1.6896ms)
+✔ Inventory preserves configured welcome text and does not expose email addresses (0.4079ms)
+✔ Space works only at the east lamp entrance across viewport sizes (1.5746ms)
+✔ the entrance remains walkable from both outdoor arrival paths (8.4962ms)
+✔ the circuit includes both garden cutouts and keyboard activation cannot bypass proximity (3.179ms)
+✔ food stays hidden until the refrigerator is clicked or activated with Space (2.0167ms)
+✔ food inventory renders as a clear top-side pixel panel beside the map (0.6143ms)
+✔ an open food inventory closes with Space or Escape (2.0848ms)
+✔ level progress uses a high-contrast teal fill instead of yellow (2.3403ms)
+✔ Shared theme is light-only; dark OS cannot change its tokens (2.3971ms)
+✔ Meowdoku host chrome owns its typography, geometry and close-glyph centering (1.6704ms)
+✔ Generated isolation owns existing light paint, not host geometry (89.92ms)
+✔ Package manifest and lockfile versions match (36.5083ms)
+✔ Cat identity cache is account-scoped and auth loading is distinct from guest (0.3429ms)
+✖ Inventory manifest targets the new shared GitHub release (25.5433ms)
+✖ flappy-cat: canonical source and Inventory build output match (0.7088ms)
+✖ pac-cat: canonical source and Inventory build output match (0.2883ms)
+✖ tetris: canonical source and Inventory build output match (0.1951ms)
+✖ meowdoku: canonical source and Inventory build output match (0.2891ms)
+✔ E-learning removes the old implementation and executes only the shared adapter (15.9836ms)
+✔ E-learning guest mascot resolves its default identity before the disabled guard (1.352ms)
+✔ outside renders an interactive pixel mole den with click and nearby Space entry (2.5811ms)
+✔ mole game embeds the shared Godot export and persists validated rewards (0.6523ms)
+✔ mole game launcher declares the current exported pack size (0.5085ms)
+✔ mole game provides a full-screen scene and loading state without a popup dialog (0.2431ms)
+✔ opening the mole game pauses outside movement and Escape closes it (0.1828ms)
+✔ Godot background fills wide screens while gameplay stays inside its safe area (2.1669ms)
+✔ Godot targets use the polished pixel-art sprite set (1.1956ms)
+✔ Godot targets show distinct animated hit reactions before despawning (3.0517ms)
+✔ Mole King stays visible longer and has a larger click target (0.6762ms)
+✔ every visible target has a forgiving hitbox and golden moles are removed (0.91ms)
+✔ advanced game loop includes tooth care, armor, boss phases, skill energy, blackout, and bonus rewards (1.0998ms)
+✔ blackout clues, random timing, time fracture spectacle, and enraged mud attack are state driven (0.759ms)
+✔ boss battle freezes the clock, ends on defeat, and uses icon HUD plus a pixel result card (0.683ms)
+✔ time freeze allows full target emergence and rewards only a boss victory (0.6455ms)
+✔ charged catalyst flashes its border and places the Space key hint outside the meter (0.9187ms)
+✔ mole HUD anchors its scene return arrow to the upper-left viewport corner (1.1186ms)
+✔ mole game has a reusable spotlight tutorial tied to the real advanced mechanics (1.7868ms)
+✔ shared diagnostics expose the complete safe chat and pet lifecycle (3.5861ms)
+✔ shared chat renders typed errors and retry without the old generic error (0.6205ms)
+✔ standard and superapp pet runtimes emit evaluation through action lifecycle events (2.9027ms)
+✔ optional Supabase query cannot store prompts, replies, facts, or free-form metadata (1.5056ms)
+✔ Outside ball doubles to 120px with a matching physics radius (1.0548ms)
+✔ Built-in beds ignore stale catalog URLs; custom beds retain their images (1.3284ms)
+✔ Bed fallback is finite, deduplicated, and ends with network-independent artwork (0.5907ms)
+✔ Public pet option paths all point to shipped shared resources (3.8793ms)
+✔ all room backgrounds cover the desktop viewport without exposed edges (3.0935ms)
+✔ kitchen exits match the reversed room layout (0.4014ms)
+✔ outside has a left-side exit back to the games room (1.4583ms)
+✔ keyboard movement supports all four arrow keys within room bounds (0.355ms)
+✔ each indoor room keeps the cat inside its calibrated floor depth (0.2813ms)
+✔ bathroom keeps the decorative duck and poop pickup hidden (0.2589ms)
+✔ indoor cats use room-specific rug placements and a smaller bedroom scale (0.2421ms)
+✔ map room selection uses the shared loading transition instead of switching immediately (2.0286ms)
+✔ outdoor route map shows outdoor destinations only and marks the current location with a cat head (0.6137ms)
+✔ indoor map keeps the original five clickable room cards (1.2857ms)
+✔ loading animation always starts from the beginning and reduced-motion does not jump to the end (1.6539ms)
+✔ one opening choice, duplicate in-flight messages, fixed cost and replay (1.8568ms)
+✔ insufficient balance, rejected wallet and stale/invalid messages never grant a free effect (0.7086ms)
+✔ timer messages are finite and limited to the ten-second effect window (1.725ms)
+✔ notice opens exactly 100 teeth before a rival and equality needs one more (5.0016ms)
+✔ next closest rival, own record exclusion, NPC score jumps and replay (0.879ms)
+✔ refreshes and late leaderboard responses cannot replay old crossings (0.5008ms)
+✔ ties celebrate once together, invalid rows and unsafe avatars are ignored (0.5175ms)
+✔ first entry needs teaching and starting it persists the visit (5.757ms)
+✔ first-entry records are isolated by account and guest identity (0.6141ms)
+✔ blocked browser storage still remembers teaching for this session (1.5205ms)
+✔ each marked location has the requested seated or standing cat, shopping uses all six appearances (2.4425ms)
+✔ walkers reach both endpoints, pause, turn, and return continuously (0.9298ms)
+✔ scene inhabitants keep their anchors and walkers remain on their authored shopping paths (26.3329ms)
+✔ shop item images use stable public URLs and every referenced file is shipped (20.4382ms)
+✔ shop reuses the shared pixel coin bag and hard-edged pixel chrome (1.5569ms)
+✔ shopping street storefronts own the food and furniture catalogs (3.6458ms)
+✔ store modal toggles with Space and closes with Escape while the global shop button is absent (1.7685ms)
+✔ beds are purchasable from the furniture catalog (1.5483ms)
+✔ inventory SNAI uses the central Worker with fresh auth, grounding, routing, and normalized failures (114.5054ms)
+✔ calculator SNAI uses the central Worker with fresh auth, grounding, routing, and normalized failures (105.0602ms)
+✔ todo SNAI uses the central Worker with fresh auth, grounding, routing, and normalized failures (36.5231ms)
+✔ appointment SNAI uses the central Worker with fresh auth, grounding, routing, and normalized failures (31.9117ms)
+✔ Elearning obtains a fresh session per request and never sends a token in the body (22.36ms)
+✔ Content Studio uses the central authenticated Worker (22.0876ms)
+✔ Superapp preserves its General Chat-only payload on the central Worker (45.7772ms)
+✔ Shared transport has one central endpoint and no Edge Function invocation (0.8422ms)
+✔ SNAI owns a single light support card and keeps its existing link (2.9294ms)
+✔ All six app wrappers defer support presentation to SharedMolarAI (27.5479ms)
+✔ stadium places an interactive football on the pitch and hurdle on the track (2.2901ms)
+✔ nearby Space and clicks enter reserved game scenes (2.1656ms)
+✔ stadium activity artwork has no labels and the hurdle stays lane-sized (1.1425ms)
+✔ teeth convert at 10:1 with whole wallet coins (2.7335ms)
+✔ XP counts complete active minutes only (0.3265ms)
+✔ reject invalid rewards instead of poisoning the pet wallet (0.2742ms)
+✔ incomplete profile outranks every urgent main-page candidate (1.1453ms)
+✔ urgent priorities, event time, and fallback remain deterministic (0.2952ms)
+✔ Superapp welcome back uses the full display name and Appointment-style format (1.0267ms)
+✔ Superapp welcome back never displays a raw email address (0.2368ms)
+✔ Todo grounded intent routing preserves supported questions and mutation guard (2.3808ms)
+✔ Todo data resolution distinguishes loading from a known empty task list (1.318ms)
+✔ Todo semantic router rejects unknown capabilities and transport failures (0.4984ms)
+✔ todo dialogue pool follows overdue-high, high-today, normal-today priority (2.5658ms)
+✔ completed items, events and reminders never become task alerts or task counts (0.4598ms)
+✔ all-caught-up is suppressed by any valid unresolved due or overdue item (0.2262ms)
+✔ invalid dates do not create overdue or today claims (0.2558ms)
+✔ task titles are sanitized before appearing in dialogue (0.2769ms)
+✔ To-do shows a welcome message when there are no undismissed reminders (0.9759ms)
+ℹ tests 188
+ℹ suites 0
+ℹ pass 178
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4077.2305
+
+✖ failing tests:
+
+test at tests\app-adapters.test.mjs:1:1
+✖ tests\app-adapters.test.mjs (3160.69ms)
+  'test failed'
+
+test at tests\appointment-adapters.test.mjs:1:1
+✖ tests\appointment-adapters.test.mjs (3191.754ms)
+  'test failed'
+
+test at tests\calculator-adapters.test.mjs:1:1
+✖ tests\calculator-adapters.test.mjs (3103.927ms)
+  'test failed'
+
+test at tests\fishing-game.test.mjs:63:1
+✖ reeling uses three fixed struggle states and a fast moving colour-match pointer (9.8987ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\}\);\n    advanceStruggle\(\);/. Input:
+  
+  "import React, { useCallback, useEffect, useRef, useState } from 'react';\r\n" +
+    "import type { PetId } from '../petOptions';\r\n" +
+    '\r\n' +
+    "type FishingBand = 'white' | 'green' | 'orange' | 'red';\r\n" +
+    "type FishStruggleState = 'green' | 'orange' | 'red';\r\n" +
+    'interface RouletteSlice { band: FishStruggleState; size: number }\r\n' +
+    "type FishingPhase = 'ready' | 'waiting' | 'power' | 'reeling' | 'result';\r\n" +
+    "const FISHING_TUTORIAL_STORAGE_KEY = 'pet-function:fishing-tutorial-complete-v1';\r\n" +
+    'const FISHING_TUTORIAL_STEPS = [\r\n' +
+    "  { title: 'Cast the line', detail: 'Press Space or click to cast. Wait for the bobber to bite.', target: 'cast' },\r\n" +
+    "  { title: 'Choose your power', detail: 'Stop the pointer on a colour. Orange and red power can hook rarer fish.', target: 'control' },\r\n" +
+    "  { title: 'Follow the !!! signal', detail: 'Match the roulette to the green, orange or red !!! above the bobber. The matching colour has fewer, separated spaces.', target: 'control' },\r\n" +
+    "  { title: 'Hit the matching colour', detail: 'Press Space or click on the matching colour. Every attempt changes the !!! and reshuffles the roulette.', target: 'control' },\r\n" +
+    "  { title: 'Pull the fish closer', detail: 'A correct hit flashes gold stars and pulls the fish 15m closer. A miss lets it escape 5m farther.', target: 'control' },\r\n" +
+    "  { title: 'Catch and collect', detail: 'Reach 0m to catch the fish and collect fish, coins and XP.', target: 'result' },\r\n" +
+    '] as const;\r\n' +
+    "export type FishingRodId = 'beginner_rod' | 'forest_rod' | 'carbon_rod' | 'crystal_rod' | 'legendary_rod';\r\n" +
+    'interface FishingSpecies { id: string; label: string; image: string; rarity: number }\r\n' +
+    'interface FishingResult { caught: boolean; coins: number; xp: number; band: FishingBand; fish: FishingSpecies | null }\r\n' +
+    'interface FishingGameProps { petId: PetId; equippedRodId?: FishingRodId; onCatch: (fishId: string, coins: number, xp: number) => void }\r\n' +
+    '\r\n' +
+    'export const FISHING_RODS: Record<FishingRodId, { id: FishingRodId; label: string; image: string; rarityBoost: number }> = {\r\n' +
+    "  beginner_rod: { id: 'beginner_rod', label: 'Beginner Rod', image: '/pet-function/fishing/beginner-fishing-rod.png', rarityBoost: 0 },\r\n" +
+    "  forest_rod: { id: 'forest_rod', label: 'Forest Rod', image: '/pet-function/fishing/forest-fishing-rod.png', rarityBoost: 0.45 },\r\n" +
+    "  carbon_rod: { id: 'carbon_rod', label: 'Carbon Rod', image: '/pet-function/fishing/carbon-fishing-rod.png', rarityBoost: 0.9 },\r\n" +
+    "  crystal_rod: { id: 'crystal_rod', label: 'Crystal Rod', image: '/pet-function/fishing/crystal-fishing-rod.png', rarityBoost: 1.45 },\r\n" +
+    "  legendary_rod: { id: 'legendary_rod', label: 'Legendary Rod', image: '/pet-function/fishing/legendary-fishing-rod.png', rarityBoost: 2.2 },\r\n" +
+    '};\r\n' +
+    '\r\n' +
+    'const FISH_SPECIES: Record<string, FishingSpecies> = {\r\n' +
+    "  pond_fish: { id: 'pond_fish', label: 'Pond Fish', image: '/pet-function/items/pond-fish-pixel.png', rarity: 0 },\r\n" +
+    "  perch: { id: 'perch', label: 'Perch', image: '/pet-function/items/perch-pixel.png', rarity: 0 },\r\n" +
+    "  catfish: { id: 'catfish', label: 'Catfish', image: '/pet-function/items/catfish-pixel.png', rarity: 1 },\r\n" +
+    "  rainbow_trout: { id: 'rainbow_trout', label: 'Rainbow Trout', image: '/pet-function/items/rainbow-trout-pixel.png', rarity: 2 },\r\n" +
+    "  koi_fish: { id: 'koi_fish', label: 'Koi Fish', image: '/pet-function/items/koi-fish-pixel.png', rarity: 3 },\r\n" +
+    "  golden_fish: { id: 'golden_fish', label: 'Golden Fish', image: '/pet-function/items/golden-fish-pixel.png', rarity: 4 },\r\n" +
+    '};\r\n' +
+    'const FISH_POOLS: Record<FishingBand, FishingSpecies[]> = {\r\n' +
+    '  white: [FISH_SPECIES.pond_fish, FISH_SPECIES.perch],\r\n' +
+    '  green: [FISH_SPECIES.pond_fish, FISH_SPECIES.perch, FISH_SPECIES.catfish],\r\n' +
+    '  orange: [FISH_SPECIES.rainbow_trout, FISH_SPECIES.koi_fish],\r\n' +
+    '  red: [FISH_SPECIES.koi_fish, FISH_SPECIES.golden_fish],\r\n' +
+    '};\r\n' +
+    'const FISHING_BANDS: { band: FishingBand; start: number; end: number }[] = [\r\n' +
+    "  { band: 'white', start: 0, end: 20 }, { band: 'green', start: 20, end: 34 },\r\n" +
+    "  { band: 'orange', start: 34, end: 44 }, { band: 'red', start: 44, end: 56 },\r\n" +
+    "  { band: 'orange', start: 56, end: 66 }, { band: 'green', start: 66, end: 80 },\r\n" +
+    "  { band: 'white', start: 80, end: 100 },\r\n" +
+    '];\r\n' +
+    'const FISHING_CAT_BACK_IMAGES: Record<PetId, string> = {\r\n' +
+    "  mallow: '/pet-function/fishing/mallow-fishing-back.png', silverbelt: '/pet-function/fishing/silverbelt-fishing-back.png',\r\n" +
+    "  fastrat: '/pet-function/fishing/fastrat-fishing-back.png', gulu: '/pet-function/fishing/gulu-fishing-back.png',\r\n" +
+    "  munchkin: '/pet-function/fishing/munchkin-fishing-back.png', mochi: '/pet-function/fishing/mochi-fishing-back.png',\r\n" +
+    '};\r\n' +
+    'const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;\r\n' +
+    'const randomFish = (band: FishingBand, rodId: FishingRodId) => {\r\n' +
+    '  const pool = FISH_POOLS[band];\r\n' +
+    '  const boost = FISHING_RODS[rodId].rarityBoost;\r\n' +
+    '  const weights = pool.map(fish => 1 + fish.rarity * boost);\r\n' +
+    '  let roll = Math.random() * weights.reduce((total, weight) => total + weight, 0);\r\n' +
+    '  for (let index = 0; index < pool.length; index += 1) {\r\n' +
+    '    roll -= weights[index];\r\n' +
+    '    if (roll <= 0) return pool[index];\r\n' +
+    '  }\r\n' +
+    '  return pool[pool.length - 1];\r\n' +
+    '};\r\n' +
+    "const resolveBand = (value: number) => FISHING_BANDS.find(({ start, end }) => value >= start && value < end)?.band || 'white';\r\n" +
+    'const randomStruggleState = (avoid?: FishStruggleState): FishStruggleState => {\r\n' +
+    "  const states: FishStruggleState[] = ['green', 'orange', 'red'];\r\n" +
+    '  const choices = avoid ? states.filter(state => state !== avoid) : states;\r\n' +
+    '  return choices[randomInt(0, choices.length - 1)];\r\n' +
+    '};\r\n' +
+    'const createRouletteSlices = (target: FishStruggleState, avoid?: RouletteSlice[]): RouletteSlice[] => {\r\n' +
+    "  const others = (['green', 'orange', 'red'] as FishStruggleState[]).filter(band => band !== target);\r\n" +
+    '  const raw = [\r\n' +
+    '    ...Array.from({ length: 3 }, () => ({ band: target, weight: 1.33 })),\r\n' +
+    '    ...Array.from({ length: 7 }, () => ({ band: others[0], weight: 1 })),\r\n' +
+    '    ...Array.from({ length: 8 }, () => ({ band: others[1], weight: 1 })),\r\n' +
+    '  ];\r\n' +
+    '  let shuffled = raw;\r\n' +
+    '  do {\r\n' +
+    '    shuffled = raw.map(slice => ({ ...slice }));\r\n' +
+    '    for (let index = shuffled.length - 1; index > 0; index -= 1) {\r\n' +
+    '      const swapIndex = randomInt(0, index);\r\n' +
+    '      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];\r\n' +
+    '    }\r\n' +
+    '  } while (\r\n' +
+    '    shuffled.some((slice, index) => slice.band === target && shuffled[(index + 1) % shuffled.length].band === target)\r\n' +
+    '    || (avoid && shuffled.every((slice, index) => slice.band === avoid[index]?.band))\r\n' +
+    '  );\r\n' +
+    '  const totalWeight = shuffled.reduce((total, slice) => total + slice.weight, 0);\r\n' +
+    '  return shuffled.map(slice => ({ band: slice.band, size: slice.weight / totalWeight * 100 }));\r\n' +
+    '};\r\n' +
+    'const resolveRouletteBand = (value: number, slices: RouletteSlice[]) => {\r\n' +
+    '  let boundary = 0;\r\n' +
+    '  return slices.find(slice => { boundary += slice.size; return value < boundary; })?.band || slices[slices.length - 1].band;\r\n' +
+    '};\r\n' +
+    'const rouletteSliceCenter = (slices: RouletteSlice[], band: FishStruggleState) => {\r\n' +
+    '  let boundary = 0;\r\n' +
+    '  for (const slice of slices) { const start = boundary; boundary += slice.size; if (slice.band === band) return start + slice.size / 2; }\r\n' +
+    '  return 0;\r\n' +
+    '};\r\n' +
+    'const rouletteGradient = (slices: RouletteSlice[]) => {\r\n' +
+    '  let boundary = 0;\r\n' +
+    "  const colours: Record<FishStruggleState, string> = { red: '#ff3045', orange: '#ff9d12', green: '#20dc68' };\r\n" +
+    "  return slices.map(slice => { const start = boundary; boundary += slice.size; const colourEnd = Math.max(start, boundary - 0.42); return `${colours[slice.band]} ${start}% ${colourEnd}%, #5b301c ${colourEnd}% ${boundary}%`; }).join(', ');\r\n" +
+    '};\r\n' +
+    'const rollResult = (band: FishingBand, rodId: FishingRodId): FishingResult => {\r\n' +
+    "  if (band === 'white') { const caught = Math.random() >= 0.6; return { band, caught, coins: caught ? randomInt(1, 2) : 0, xp: caught ? randomInt(2, 3) : 0, fish: caught ? randomFish(band, rodId) : null }; }\r\n" +
+    "  if (band === 'green') return { band, caught: true, coins: randomInt(2, 5), xp: randomInt(4, 6), fish: randomFish(band, rodId) };\r\n" +
+    "  if (band === 'orange') return { band, caught: true, coins: randomInt(6, 10), xp: randomInt(8, 12), fish: randomFish(band, rodId) };\r\n" +
+    '  return { band, caught: true, coins: randomInt(10, 20), xp: randomInt(14, 20), fish: randomFish(band, rodId) };\r\n' +
+    '};\r\n' +
+    '\r\n' +
+    'const FishingCatBack = ({ petId, rodId, sway, landing }: { petId: PetId; rodId: FishingRodId; sway: number; landing: boolean }) => <div className="relative h-full w-full" aria-label="Selected cat sitting with its back to the screen and holding the equipped fishing rod">\r\n' +
+    '  <img src={FISHING_RODS[rodId].image} alt="" draggable={false} className="absolute -right-[38%] -top-[42%] z-10 h-[150%] w-[150%] origin-[45%_82%] select-none object-contain [image-rendering:pixelated]" style={{ transform: `rotate(${landing ? -18 : sway * 8}deg)`, willChange: \'transform\' }} />\r\n' +
+    '  <img src={FISHING_CAT_BACK_IMAGES[petId]} alt="" draggable={false} className="absolute inset-0 z-20 h-full w-full select-none object-contain [image-rendering:pixelated]" />\r\n' +
+    '</div>;\r\n' +
+    '\r\n' +
+    "export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId = 'beginner_rod', onCatch }) => {\r\n" +
+    "  const [phase, setPhase] = useState<FishingPhase>('ready');\r\n" +
+    '  const [pointer, setPointer] = useState(0);\r\n' +
+    '  const [reelPointer, setReelPointer] = useState(0);\r\n' +
+    "  const [struggleState, setStruggleState] = useState<FishStruggleState>('orange');\r\n" +
+    "  const struggleStateRef = useRef<FishStruggleState>('orange');\r\n" +
+    "  const [rouletteSlices, setRouletteSlices] = useState<RouletteSlice[]>(() => createRouletteSlices('orange'));\r\n" +
+    '  const [struggleCycle, setStruggleCycle] = useState(0);\r\n' +
+    '  const [reelFeedback, setReelFeedback] = useState<{ id: number; correct: boolean; text: string } | null>(null);\r\n' +
+    "  const [selectedBand, setSelectedBand] = useState<FishingBand>('white');\r\n" +
+    '  const [distance, setDistance] = useState(72);\r\n' +
+    '  const [result, setResult] = useState<FishingResult | null>(null);\r\n' +
+    '  const [motionTime, setMotionTime] = useState(0);\r\n' +
+    '  const gameRef = useRef<'... 26280 more characters
+  
+      at TestContext.<anonymous> (file:///C:/Users/ming/Desktop/intern/pet-function/tests/fishing-game.test.mjs:80:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'import React, { useCallback, useEffect, useRef, useState } from \'react\';\r\nimport type { PetId } from \'../petOptions\';\r\n\r\ntype FishingBand = \'white\' | \'green\' | \'orange\' | \'red\';\r\ntype FishStruggleState = \'green\' | \'orange\' | \'red\';\r\ninterface RouletteSlice { band: FishStruggleState; size: number }\r\ntype FishingPhase = \'ready\' | \'waiting\' | \'power\' | \'reeling\' | \'result\';\r\nconst FISHING_TUTORIAL_STORAGE_KEY = \'pet-function:fishing-tutorial-complete-v1\';\r\nconst FISHING_TUTORIAL_STEPS = [\r\n  { title: \'Cast the line\', detail: \'Press Space or click to cast. Wait for the bobber to bite.\', target: \'cast\' },\r\n  { title: \'Choose your power\', detail: \'Stop the pointer on a colour. Orange and red power can hook rarer fish.\', target: \'control\' },\r\n  { title: \'Follow the !!! signal\', detail: \'Match the roulette to the green, orange or red !!! above the bobber. The matching colour has fewer, separated spaces.\', target: \'control\' },\r\n  { title: \'Hit the matching colour\', detail: \'Press Space or click on the matching colour. Every attempt changes the !!! and reshuffles the roulette.\', target: \'control\' },\r\n  { title: \'Pull the fish closer\', detail: \'A correct hit flashes gold stars and pulls the fish 15m closer. A miss lets it escape 5m farther.\', target: \'control\' },\r\n  { title: \'Catch and collect\', detail: \'Reach 0m to catch the fish and collect fish, coins and XP.\', target: \'result\' },\r\n] as const;\r\nexport type FishingRodId = \'beginner_rod\' | \'forest_rod\' | \'carbon_rod\' | \'crystal_rod\' | \'legendary_rod\';\r\ninterface FishingSpecies { id: string; label: string; image: string; rarity: number }\r\ninterface FishingResult { caught: boolean; coins: number; xp: number; band: FishingBand; fish: FishingSpecies | null }\r\ninterface FishingGameProps { petId: PetId; equippedRodId?: FishingRodId; onCatch: (fishId: string, coins: number, xp: number) => void }\r\n\r\nexport const FISHING_RODS: Record<FishingRodId, { id: FishingRodId; label: string; image: string; rarityBoost: number }> = {\r\n  beginner_rod: { id: \'beginner_rod\', label: \'Beginner Rod\', image: \'/pet-function/fishing/beginner-fishing-rod.png\', rarityBoost: 0 },\r\n  forest_rod: { id: \'forest_rod\', label: \'Forest Rod\', image: \'/pet-function/fishing/forest-fishing-rod.png\', rarityBoost: 0.45 },\r\n  carbon_rod: { id: \'carbon_rod\', label: \'Carbon Rod\', image: \'/pet-function/fishing/carbon-fishing-rod.png\', rarityBoost: 0.9 },\r\n  crystal_rod: { id: \'crystal_rod\', label: \'Crystal Rod\', image: \'/pet-function/fishing/crystal-fishing-rod.png\', rarityBoost: 1.45 },\r\n  legendary_rod: { id: \'legendary_rod\', label: \'Legendary Rod\', image: \'/pet-function/fishing/legendary-fishing-rod.png\', rarityBoost: 2.2 },\r\n};\r\n\r\nconst FISH_SPECIES: Record<string, FishingSpecies> = {\r\n  pond_fish: { id: \'pond_fish\', label: \'Pond Fish\', image: \'/pet-function/items/pond-fish-pixel.png\', rarity: 0 },\r\n  perch: { id: \'perch\', label: \'Perch\', image: \'/pet-function/items/perch-pixel.png\', rarity: 0 },\r\n  catfish: { id: \'catfish\', label: \'Catfish\', image: \'/pet-function/items/catfish-pixel.png\', rarity: 1 },\r\n  rainbow_trout: { id: \'rainbow_trout\', label: \'Rainbow Trout\', image: \'/pet-function/items/rainbow-trout-pixel.png\', rarity: 2 },\r\n  koi_fish: { id: \'koi_fish\', label: \'Koi Fish\', image: \'/pet-function/items/koi-fish-pixel.png\', rarity: 3 },\r\n  golden_fish: { id: \'golden_fish\', label: \'Golden Fish\', image: \'/pet-function/items/golden-fish-pixel.png\', rarity: 4 },\r\n};\r\nconst FISH_POOLS: Record<FishingBand, FishingSpecies[]> = {\r\n  white: [FISH_SPECIES.pond_fish, FISH_SPECIES.perch],\r\n  green: [FISH_SPECIES.pond_fish, FISH_SPECIES.perch, FISH_SPECIES.catfish],\r\n  orange: [FISH_SPECIES.rainbow_trout, FISH_SPECIES.koi_fish],\r\n  red: [FISH_SPECIES.koi_fish, FISH_SPECIES.golden_fish],\r\n};\r\nconst FISHING_BANDS: { band: FishingBand; start: number; end: number }[] = [\r\n  { band: \'white\', start: 0, end: 20 }, { band: \'green\', start: 20, end: 34 },\r\n  { band: \'orange\', start: 34, end: 44 }, { band: \'red\', start: 44, end: 56 },\r\n  { band: \'orange\', start: 56, end: 66 }, { band: \'green\', start: 66, end: 80 },\r\n  { band: \'white\', start: 80, end: 100 },\r\n];\r\nconst FISHING_CAT_BACK_IMAGES: Record<PetId, string> = {\r\n  mallow: \'/pet-function/fishing/mallow-fishing-back.png\', silverbelt: \'/pet-function/fishing/silverbelt-fishing-back.png\',\r\n  fastrat: \'/pet-function/fishing/fastrat-fishing-back.png\', gulu: \'/pet-function/fishing/gulu-fishing-back.png\',\r\n  munchkin: \'/pet-function/fishing/munchkin-fishing-back.png\', mochi: \'/pet-function/fishing/mochi-fishing-back.png\',\r\n};\r\nconst randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;\r\nconst randomFish = (band: FishingBand, rodId: FishingRodId) => {\r\n  const pool = FISH_POOLS[band];\r\n  const boost = FISHING_RODS[rodId].rarityBoost;\r\n  const weights = pool.map(fish => 1 + fish.rarity * boost);\r\n  let roll = Math.random() * weights.reduce((total, weight) => total + weight, 0);\r\n  for (let index = 0; index < pool.length; index += 1) {\r\n    roll -= weights[index];\r\n    if (roll <= 0) return pool[index];\r\n  }\r\n  return pool[pool.length - 1];\r\n};\r\nconst resolveBand = (value: number) => FISHING_BANDS.find(({ start, end }) => value >= start && value < end)?.band || \'white\';\r\nconst randomStruggleState = (avoid?: FishStruggleState): FishStruggleState => {\r\n  const states: FishStruggleState[] = [\'green\', \'orange\', \'red\'];\r\n  const choices = avoid ? states.filter(state => state !== avoid) : states;\r\n  return choices[randomInt(0, choices.length - 1)];\r\n};\r\nconst createRouletteSlices = (target: FishStruggleState, avoid?: RouletteSlice[]): RouletteSlice[] => {\r\n  const others = ([\'green\', \'orange\', \'red\'] as FishStruggleState[]).filter(band => band !== target);\r\n  const raw = [\r\n    ...Array.from({ length: 3 }, () => ({ band: target, weight: 1.33 })),\r\n    ...Array.from({ length: 7 }, () => ({ band: others[0], weight: 1 })),\r\n    ...Array.from({ length: 8 }, () => ({ band: others[1], weight: 1 })),\r\n  ];\r\n  let shuffled = raw;\r\n  do {\r\n    shuffled = raw.map(slice => ({ ...slice }));\r\n    for (let index = shuffled.length - 1; index > 0; index -= 1) {\r\n      const swapIndex = randomInt(0, index);\r\n      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];\r\n    }\r\n  } while (\r\n    shuffled.some((slice, index) => slice.band === target && shuffled[(index + 1) % shuffled.length].band === target)\r\n    || (avoid && shuffled.every((slice, index) => slice.band === avoid[index]?.band))\r\n  );\r\n  const totalWeight = shuffled.reduce((total, slice) => total + slice.weight, 0);\r\n  return shuffled.map(slice => ({ band: slice.band, size: slice.weight / totalWeight * 100 }));\r\n};\r\nconst resolveRouletteBand = (value: number, slices: RouletteSlice[]) => {\r\n  let boundary = 0;\r\n  return slices.find(slice => { boundary += slice.size; return value < boundary; })?.band || slices[slices.length - 1].band;\r\n};\r\nconst rouletteSliceCenter = (slices: RouletteSlice[], band: FishStruggleState) => {\r\n  let boundary = 0;\r\n  for (const slice of slices) { const start = boundary; boundary += slice.size; if (slice.band === band) return start + slice.size / 2; }\r\n  return 0;\r\n};\r\nconst rouletteGradient = (slices: RouletteSlice[]) => {\r\n  let boundary = 0;\r\n  const colours: Record<FishStruggleState, string> = { red: \'#ff3045\', orange: \'#ff9d12\', green: \'#20dc68\' };\r\n  return slices.map(slice => { const start = boundary; boundary += slice.size; const colourEnd = Math.max(start, boundary - 0.42); return `${colours[slice.band]} ${start}% ${colourEnd}%, #5b301c ${colourEnd}% ${boundary}%`; }).join(\', \');\r\n};\r\nconst rollResult = (band: FishingBand, rodId: FishingRodId): FishingResult => {\r\n  if (band === \'white\') { const caught = Math.random() >= 0.6; return { band, caught, coins: caught ? randomInt(1, 2) : 0, xp: caught ? randomInt(2, 3) : 0, fish: caught ? randomFish(band, rodId) : null }; }\r\n  if (band === \'green\') return { band, caught: true, coins: randomInt(2, 5), xp: randomInt(4, 6), fish: randomFish(band, rodId) };\r\n  if (band === \'orange\') return { band, caught: true, coins: randomInt(6, 10), xp: randomInt(8, 12), fish: randomFish(band, rodId) };\r\n  return { band, caught: true, coins: randomInt(10, 20), xp: randomInt(14, 20), fish: randomFish(band, rodId) };\r\n};\r\n\r\nconst FishingCatBack = ({ petId, rodId, sway, landing }: { petId: PetId; rodId: FishingRodId; sway: number; landing: boolean }) => <div className="relative h-full w-full" aria-label="Selected cat sitting with its back to the screen and holding the equipped fishing rod">\r\n  <img src={FISHING_RODS[rodId].image} alt="" draggable={false} className="absolute -right-[38%] -top-[42%] z-10 h-[150%] w-[150%] origin-[45%_82%] select-none object-contain [image-rendering:pixelated]" style={{ transform: `rotate(${landing ? -18 : sway * 8}deg)`, willChange: \'transform\' }} />\r\n  <img src={FISHING_CAT_BACK_IMAGES[petId]} alt="" draggable={false} className="absolute inset-0 z-20 h-full w-full select-none object-contain [image-rendering:pixelated]" />\r\n</div>;\r\n\r\nexport const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId = \'beginner_rod\', onCatch }) => {\r\n  const [phase, setPhase] = useState<FishingPhase>(\'ready\');\r\n  const [pointer, setPointer] = useState(0);\r\n  const [reelPointer, setReelPointer] = useState(0);\r\n  const [struggleState, setStruggleState] = useState<FishStruggleState>(\'orange\');\r\n  const struggleStateRef = useRef<FishStruggleState>(\'orange\');\r\n  const [rouletteSlices, setRouletteSlices] = useState<RouletteSlice[]>(() => createRouletteSlices(\'orange\'));\r\n  const [struggleCycle, setStruggleCycle] = useState(0);\r\n  const [reelFeedback, setReelFeedback] = useState<{ id: number; correct: boolean; text: string } | null>(null);\r\n  const [selectedBand, setSelectedBand] = useState<FishingBand>(\'white\');\r\n  const [distance, setDistance] = useState(72);\r\n  const [result, setResult] = useState<FishingResult | null>(null);\r\n  const [motionTime, setMotionTime] = useState(0);\r\n  const gameRef = useRef<'... 26280 more characters,
+    expected: /\}\);\n    advanceStruggle\(\);/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests\image-generator-adapters.test.mjs:1:1
+✖ tests\image-generator-adapters.test.mjs (2541.668ms)
+  'test failed'
+
+test at tests\migration.test.mjs:23:1
+✖ Inventory manifest targets the new shared GitHub release (25.5433ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'github:mrburdeveloperteam/pet-function#v0.9.44'
+  - 'github:mrburdeveloperteam/pet-function#v0.9.49'
+  
+      at TestContext.<anonymous> (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:26:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'github:mrburdeveloperteam/pet-function#v0.9.44',
+    expected: 'github:mrburdeveloperteam/pet-function#v0.9.49',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\migration.test.mjs:28:64
+✖ flappy-cat: canonical source and Inventory build output match (0.7088ms)
+  Error: ENOENT: no such file or directory, scandir 'C:\Users\ming\Desktop\intern\inventory\node_modules\@mrburdeveloperteam\pet-function\public\games\flappy-cat'
+      at readdirSync (node:fs:1631:26)
+      at files (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:9:28)
+      at TestContext.<anonymous> (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:32:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'scandir',
+    path: 'C:\\Users\\ming\\Desktop\\intern\\inventory\\node_modules\\@mrburdeveloperteam\\pet-function\\public\\games\\flappy-cat'
+  }
+
+test at tests\migration.test.mjs:28:64
+✖ pac-cat: canonical source and Inventory build output match (0.2883ms)
+  Error: ENOENT: no such file or directory, scandir 'C:\Users\ming\Desktop\intern\inventory\node_modules\@mrburdeveloperteam\pet-function\public\games\pac-cat'
+      at readdirSync (node:fs:1631:26)
+      at files (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:9:28)
+      at TestContext.<anonymous> (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:32:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'scandir',
+    path: 'C:\\Users\\ming\\Desktop\\intern\\inventory\\node_modules\\@mrburdeveloperteam\\pet-function\\public\\games\\pac-cat'
+  }
+
+test at tests\migration.test.mjs:28:64
+✖ tetris: canonical source and Inventory build output match (0.1951ms)
+  Error: ENOENT: no such file or directory, scandir 'C:\Users\ming\Desktop\intern\inventory\node_modules\@mrburdeveloperteam\pet-function\public\games\tetris'
+      at readdirSync (node:fs:1631:26)
+      at files (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:9:28)
+      at TestContext.<anonymous> (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:32:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'scandir',
+    path: 'C:\\Users\\ming\\Desktop\\intern\\inventory\\node_modules\\@mrburdeveloperteam\\pet-function\\public\\games\\tetris'
+  }
+
+test at tests\migration.test.mjs:28:64
+✖ meowdoku: canonical source and Inventory build output match (0.2891ms)
+  Error: ENOENT: no such file or directory, scandir 'C:\Users\ming\Desktop\intern\inventory\node_modules\@mrburdeveloperteam\pet-function\public\games\meowdoku'
+      at readdirSync (node:fs:1631:26)
+      at files (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:9:28)
+      at TestContext.<anonymous> (file:///C:/Users/ming/Desktop/intern/pet-function/tests/migration.test.mjs:32:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'scandir',
+    path: 'C:\\Users\\ming\\Desktop\\intern\\inventory\\node_modules\\@mrburdeveloperteam\\pet-function\\public\\games\\meowdoku'
+  }
