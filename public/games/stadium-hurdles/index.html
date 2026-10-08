@@ -9,8 +9,8 @@
 <main id="loading"><div class="scene"><div class="eyebrow">STADIUM CLUB</div><h1>CAT DASH</h1>
 <div class="meter" role="progressbar" aria-label="Loading Cat Dash" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill"></div></div><div class="labels"><span id="phase">PREPARING THE TRACK</span><span id="percent">0%</span></div><p id="error" hidden>Unable to load the track. Please try again.</p><button id="retry" hidden>TRY AGAIN</button>
 </div></main><noscript>Enable JavaScript to play Cat Dash.</noscript>
-<script src="index.js"></script><script>
-const engine=new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":22897752,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
+<script src="/games/mole-game/index.js"></script><script>
+const engine=new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"/games/mole-game/index","mainPack":"/games/stadium-hurdles/index.pck","experimentalVK":false,"fileSizes":{"index.pck":22897752,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
 const loading=document.getElementById('loading'),meter=document.querySelector('.meter'),fill=document.querySelector('.fill'),percent=document.getElementById('percent'),phase=document.getElementById('phase');
 let progress=0;
 document.getElementById('retry').onclick=()=>location.reload();

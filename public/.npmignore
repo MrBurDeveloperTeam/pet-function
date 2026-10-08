@@ -1,0 +1,17 @@
+# Godot engine is shared through /games/mole-game/index.{js,wasm}.
+games/cat-kart/index.wasm
+games/cat-kart/index.js
+games/stadium-football/index.wasm
+games/stadium-football/index.js
+games/stadium-hurdles/index.wasm
+games/stadium-hurdles/index.js
+# Historical artwork and unused source/reference images, retained locally.
+pet-function/rooms-wide-v*/
+pet-function/rooms/
+pet-function/rooms-wide/outside-stepping-stones-backup.png
+games/air-strike/hangar.png
+games/air-strike/hangar-integrated.png
+games/air-strike/hangar-talents.png
+games/meowdoku/cover &image/
+games/meowdoku/cat-149-source.png
+games/meowdoku/paw-life-source.png
