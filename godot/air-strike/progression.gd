@@ -28,6 +28,7 @@ const LIBRARY = [
  ["shield","Energy shield","One shield every 20 seconds",1,"life",[]],
  ["defense","Defense","Incoming damage -8%",1,"",[]],
  ["life","Vitality","Maximum HP +15%",1,"life",[]],
+ ["drone","Combat drone","One following drone, 50% aircraft base damage",1,"",[]],
  ["laser","Laser weapon","Piercing laser, damage +10%",2,"laser",[]],
  ["reflect","Ricochet","Bounce once to another enemy",2,"reflect",[]],
  ["double_damage","Double damage","Critical hit adds normal damage",2,"critical",["crit_damage"]],
@@ -35,7 +36,7 @@ const LIBRARY = [
  ["counter","Counterattack","Dodge launches 3 homing missiles",2,"counter",["evade"]],
  ["vampire","Vampire","40%: heal 25% of actual damage",2,"vampire",["leech"]],
  ["nuclear_shield","Nuclear shield","Three shield layers every 20s",2,"life",["shield"]],
- ["drone_boost","Drone upgrade","Twice as many drone bullets",2,"",[]],
+ ["drone_boost","Drone upgrade","Twice as many drone bullets",2,"",["drone"]],
  ["life_evolve","Life evolution","HP +30%, survive fatal hit once",2,"life",["life"]],
  ["ring_laser","Ring laser","Radial laser, laser damage +20%",3,"laser",["laser"]],
  ["reflect2","Ricochet II","Three bounces, third target 50%",3,"reflect",["reflect"]],
@@ -181,7 +182,9 @@ func crit_scale() -> float:
 func max_health() -> float:
 	return 3.0*(1.15 if skill("life") else 1.0)*(1.3 if skill("life_evolve") else 1.0)*(1.6 if skill("dimension") else 1.0)*(0.85 if skill("supercrit") else 1.0)
 func drone_count() -> int:
-	return 2 if has(12) else (1 if has(10) else 0)
+	return 2 if has(12) else (1 if has(10) or skill("drone") else 0)
+func drone_damage() -> float:
+	return base_damage()*0.5*(1.1 if skill("vamp_drone") else 1.0)*(0.8 if skill("dimension") else 1.0)
 func drone_positions() -> Array:
 	var result = []
 	for i in range(drone_count()):
@@ -190,7 +193,7 @@ func drone_positions() -> Array:
 func projectile(pos: Vector2, velocity: Vector2, damage: float, source: String = "player", missile: bool = false) -> Dictionary:
 	var crit = game.rng.randf() < crit_chance() if source == "player" else false
 	var laser = source == "player" and (skill("laser") or skill("ring_laser")) and not missile
-	return {"pos":pos,"vel":velocity,"damage":damage*(crit_scale() if crit else 1.0),"base_damage":damage,"crit":crit,"source":source,"missile":missile,"laser":laser,"life":4.0,"hits":[],"pierce":0 if missile else (999 if laser else (2 if has(7) else (1 if has(6) else 0))),"bounces":0 if missile else (3 if skill("reflect2") else (1 if skill("reflect") else 0)),"bounce_count":0}
+	return {"pos":game.laser_origin() if laser else pos,"vel":velocity,"damage":damage*(crit_scale() if crit else 1.0),"base_damage":damage,"crit":crit,"source":source,"missile":missile,"laser":laser,"life":0.26 if laser else 4.0,"charge":0.1 if laser else 0.0,"hits":[],"pierce":0 if missile else (999 if laser else (2 if has(7) else (1 if has(6) else 0))),"bounces":0 if missile else (3 if skill("reflect2") else (1 if skill("reflect") else 0)),"bounce_count":0}
 func nearest(pos: Vector2, excluded: Array = []) -> Dictionary:
 	var found: Dictionary = {}
 	var distance = INF
@@ -217,7 +220,7 @@ func update(delta: float):
 	for pos in drone_positions():
 		if drone_timer <= 0:
 			for i in range(2 if skill("drone_boost") else 1):
-				game.shots.append(projectile(pos+Vector2(i*10-5,-12),Vector2(0,-580),current_damage()*0.5*(1.1 if skill("vamp_drone") else 1.0),"drone"))
+				game.shots.append(projectile(pos+Vector2(i*10-5,-12),Vector2(0,-580),drone_damage(),"drone"))
 		if has(11) and drone_missile_timer <= 0:
 			missile(pos,current_damage()*0.5,"drone")
 	if drone_timer <= 0:

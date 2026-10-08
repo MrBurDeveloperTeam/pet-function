@@ -16,10 +16,13 @@ var paint: CanvasItem
 var battle_clip: Control
 var render_nodes: Array = []
 const PLAYER_SPEED = 340.0
+const ENEMY_FLIGHT_SPEED_SCALE = 0.5
+const PLAYER_SHOT_INTERVAL = 0.28
 var state = "menu"
 var player = Vector2(480, 360)
 var hp = 3.0
 var progression = preload("res://progression.gd").new()
+var skill_cards = preload("res://skill_cards.gd").new()
 var allow_skill_choices = true
 var bombs = 3
 var power = 1
@@ -45,6 +48,8 @@ var effects: Array = []
 var notice = ""
 var notice_time = 0.0
 var bomb_flash = 0.0
+var impact_shake = 0.0
+var impact_light = 0.0
 var rng = RandomNumberGenerator.new()
 var font: Font
 var sfx: AudioStreamPlayer
@@ -71,6 +76,8 @@ func _ready():
 		infinite_mode = bool(JavaScriptBridge.eval("new URLSearchParams(location.search).get('mode') === 'endless'"))
 		launch_token = str(JavaScriptBridge.eval("new URLSearchParams(location.search).get('token') || ''"))
 	font = load("res://art/Quadrit.ttf")
+	skill_cards.atlas = load("res://art/skill-atlas.png")
+	skill_cards.drone_icon = load("res://art/skill-combat-drone.png")
 	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	visual_rng.seed = 1945
@@ -142,6 +149,8 @@ func _ready():
 
 func redraw_layers():
 	for node in render_nodes:
+		if node.layer == "battle":
+			node.position = Vector2(sin(impact_shake*91),cos(impact_shake*113))*impact_shake if state == "playing" else Vector2.ZERO
 		node.queue_redraw()
 
 func remap_point(point: Vector2, old: Rect2, next: Rect2) -> Vector2:
@@ -203,6 +212,8 @@ func reset_run():
 	notice = "ENDLESS / THREAT 1" if infinite_mode else "MISSION %03d / %s" % [stage_level,campaign.CHAPTERS[campaign.chapter()]]
 	notice_time = 3.0
 	bomb_flash = 0.0
+	impact_shake = 0.0
+	impact_light = 0.0
 	progression.offer(true)
 
 func toggle_pause():
@@ -307,7 +318,7 @@ func _physics_process(delta):
 	fire_timer -= delta
 	if fire_timer <= 0:
 		fire_player()
-		fire_timer += 0.14/(1.1 if progression.has(2) else 1.0)
+		fire_timer += PLAYER_SHOT_INTERVAL/(1.1 if progression.has(2) else 1.0)
 	campaign.update(delta)
 	if state != "playing":
 		redraw_layers()
@@ -322,6 +333,8 @@ func _physics_process(delta):
 	redraw_layers()
 
 func update_visual_effects(delta: float):
+	impact_shake = move_toward(impact_shake,0.0,delta*38.0)
+	impact_light = maxf(0.0,impact_light-delta)
 	bomb_flash = maxf(0,bomb_flash-delta)
 	muzzle_flash = maxf(0,muzzle_flash-delta)
 	hit_flash = maxf(0,hit_flash-delta)
@@ -339,8 +352,11 @@ func update_visual_effects(delta: float):
 		if particle.life <= 0:
 			particles.remove_at(i)
 
+func laser_origin() -> Vector2:
+	return player+Vector2(0,-aircraft_dimensions("player").y*0.48).rotated(bank)
+
 func fire_player():
-	muzzle_flash = 0.065
+	muzzle_flash = 0.0 if progression.skill("laser") or progression.skill("ring_laser") else 0.065
 	var count = (3 if progression.has(5) else (2 if progression.has(4) else 1))+(1 if progression.skill("bullet") else 0)
 	var damage: float = progression.current_damage()
 	if progression.skill("ring_laser"):
@@ -380,13 +396,13 @@ func update_enemies(delta: float):
 		e.age += delta
 		e.flash = maxf(0.0, e.flash - delta)
 		if e.kind == "boss":
-			e.pos.y = minf(combat_rect.position.y + 108.0, e.pos.y + delta * 70.0)
-			e.pos.x = arena_size.x * 0.5 + sin(e.age * (0.85 if e.get("mutations",[]).has("berserk") else 0.65)) * minf(arena_size.x * 0.25, 240.0)
+			e.pos.y = minf(combat_rect.position.y + 108.0, e.pos.y + delta * 70.0 * ENEMY_FLIGHT_SPEED_SCALE)
+			e.pos.x = arena_size.x * 0.5 + sin(e.age * ENEMY_FLIGHT_SPEED_SCALE * (0.85 if e.get("mutations",[]).has("berserk") else 0.65)) * minf(arena_size.x * 0.25, 240.0)
 		else:
 			var speed = 120.0 if e.kind == "fighter" else (72.0 if e.kind == "bomber" else 44.0)
-			e.pos.y += speed * e.get("speed_scale",1.0) * delta
+			e.pos.y += speed * e.get("speed_scale",1.0) * delta * ENEMY_FLIGHT_SPEED_SCALE
 			if e.kind == "fighter":
-				e.pos.x = clampf(e.origin_x + sin(e.age * 2.0 + e.phase) * 48.0, e.radius + 16.0, arena_size.x - e.radius - 16.0)
+				e.pos.x = clampf(e.origin_x + sin(e.age * 2.0 * ENEMY_FLIGHT_SPEED_SCALE + e.phase) * 48.0, e.radius + 16.0, arena_size.x - e.radius - 16.0)
 		if e.kind == "boss":
 			if e.pos.y >= combat_rect.position.y+108:
 				update_boss_attack(e,delta)
@@ -485,24 +501,39 @@ func update_shots(delta: float):
 			if not target_enemy.is_empty():
 				var turn = clampf(wrapf((target_enemy.pos-b.pos).angle()-b.vel.angle(),-PI,PI),-4.2*delta,4.2*delta)
 				b.vel = b.vel.rotated(turn)
-		b.pos += b.vel * delta
+		var laser: bool = b.get("laser",false)
+		var endpoint: Vector2
+		if laser:
+			if b.get("bounce_count",0) == 0:
+				b.pos = laser_origin()
+				prev = b.pos
+			if b.get("charge",0.0) > 0:
+				b.charge = maxf(0,b.charge-delta)
+				if b.charge > 0:
+					continue
+			endpoint = b.pos+b.vel.normalized()*arena_size.length()
+			b.beam_end = endpoint
+		else:
+			b.pos += b.vel * delta
+			endpoint = b.pos
 		var consumed = false
-		var candidates = enemies.filter(func(enemy): return enemy.hp > 0 and segment_hits(prev,b.pos,enemy.pos,enemy.radius))
+		var candidates = enemies.filter(func(enemy): return enemy.hp > 0 and segment_hits(prev,endpoint,enemy.pos,enemy.radius+(5.0 if laser else 0.0)))
 		candidates.sort_custom(func(a,c): return prev.distance_squared_to(a.pos) < prev.distance_squared_to(c.pos))
 		for e in candidates:
 			if not enemies.has(e) or e.hp <= 0:
 				continue
 			if b.get("hits",[]).has(e):
 				continue
-			if segment_hits(prev, b.pos, e.pos, e.radius):
+			if segment_hits(prev, endpoint, e.pos, e.radius+(5.0 if laser else 0.0)):
 				var actual_damage = campaign.damage_enemy(e,b.damage,b.get("crit",false))
 				if b.has("hits"):
 					b.hits.append(e)
 				if actual_damage > 0: progression.on_hit(b,e,actual_damage)
 				e.flash = 0.13
 				var impact: Vector2 = e.pos+(prev-e.pos).normalized()*e.radius*0.8
-				add_effect(impact,"impact",0.25,30.0)
-				burst(impact,14,"spark")
+				add_effect(impact,"impact",0.32,52.0)
+				burst(impact,22,"spark")
+				impact_shake = maxf(impact_shake,2.5)
 				if e.hp <= 0:
 					kill_enemy(enemies.find(e))
 				if e.kind != "boss" and b.get("bounces",0) > 0 and not progression.skill("ring_laser"):
@@ -517,6 +548,8 @@ func update_shots(delta: float):
 						break
 				if e.kind != "boss" and b.get("pierce",0) > 0:
 					b.pierce -= 1
+					continue
+				if laser:
 					continue
 				consumed = true
 				break
@@ -571,7 +604,9 @@ func hit_player(allow_evade: bool = true, damage: float = 1.0):
 	power = maxi(1, power - 1)
 	invincible = 2.0
 	hit_flash = 0.45
-	add_effect(player,"damage",0.55,70.0)
+	add_effect(player,"damage",0.65,115.0)
+	impact_shake = maxf(impact_shake,12.0)
+	burst(player,42,"energy")
 	burst(player,30,"spark")
 	burst(player,20,"energy")
 	play_sound(110.0, 0.15)
@@ -588,6 +623,8 @@ func use_bomb():
 	enemy_shots.clear()
 	invincible = maxf(invincible, 1.2)
 	bomb_flash = 0.6
+	impact_shake = maxf(impact_shake,18.0)
+	add_effect(player,"shockwave",1.0,arena_size.x*0.75)
 	add_effect(player,"bomb",0.9,arena_size.x*0.9)
 	play_sound(55.0, 0.3)
 	for i in range(enemies.size() - 1, -1, -1):
@@ -684,13 +721,16 @@ func add_effect(pos: Vector2, kind: String, duration: float, size: float, delay:
 	effects.append({"pos":pos,"kind":kind,"life":duration+delay,"duration":duration,"size":size})
 
 func explode(pos: Vector2, radius: float, large: bool = false):
-	add_effect(pos,"explosion",1.05,radius*2.65)
-	burst(pos,72 if large else 40,"fire")
-	burst(pos,36 if large else 18,"debris")
-	burst(pos,26 if large else 14,"smoke")
-	for i in range(7 if large else (3 if radius > 30 else 0)):
-		var offset = Vector2.from_angle(visual_rng.randf()*TAU)*radius*visual_rng.randf_range(0.3,0.85)
-		add_effect(pos+offset,"explosion",0.7,radius*1.05,0.06+i*0.08)
+	impact_shake = maxf(impact_shake,16.0 if large else 6.5)
+	impact_light = maxf(impact_light,0.18 if large else 0.06)
+	add_effect(pos,"explosion",1.25,radius*3.6)
+	add_effect(pos,"shockwave",0.8,radius*(7.0 if large else 4.8))
+	burst(pos,110 if large else 60,"fire")
+	burst(pos,55 if large else 28,"debris")
+	burst(pos,32 if large else 16,"smoke")
+	for i in range(12 if large else 4):
+		var offset = Vector2.from_angle(visual_rng.randf()*TAU)*radius*visual_rng.randf_range(0.35,1.45)
+		add_effect(pos+offset,"explosion",0.65,radius*1.4,0.05+i*0.075)
 
 func glow(pos: Vector2, radius: float, color: Color, strength: float = 1.0, step: float = 1.0):
 	# Discrete square clusters rather than a smooth radial bloom.
@@ -772,8 +812,9 @@ func draw_aircraft_sprite(pos: Vector2, kind: String, flash: bool):
 			paint.draw_line(Vector2(x,-height*0.26)+Vector2.from_angle(a)*10,Vector2(x,-height*0.26)-Vector2.from_angle(a)*10,Color(1,0.94,0.75,0.45),2,false)
 		if muzzle_flash > 0:
 			for x in [-9.0,9.0]:
-				glow(Vector2(x,-31),15,Color("ffdc8a"),muzzle_flash/0.065)
-				poly([Vector2(x-3,-30),Vector2(x,-45),Vector2(x+3,-30)],Color("fff4c6"))
+				glow(Vector2(x,-31),27,Color("ffdc8a"),muzzle_flash/0.065*1.6)
+				poly([Vector2(x-6,-30),Vector2(x-3,-42),Vector2(x,-62),Vector2(x+3,-42),Vector2(x+6,-30)],Color("fff4c6"))
+				paint.draw_line(Vector2(x-14,-34),Vector2(x+14,-34),Color("ffcb64"),2.76,false)
 	paint.draw_set_transform(Vector2.ZERO)
 
 func draw_shield():
@@ -790,6 +831,7 @@ func draw_shield():
 				points.append(player+pos+Vector2.from_angle(i*TAU/6)*6)
 			paint.draw_rect(Rect2((player+pos).snapped(Vector2.ONE),Vector2(2,2)),Color(0.46,0.89,0.96,0.25))
 	pixel_ring(player,radius,Color(0.4,0.85,0.96,0.7))
+	paint.draw_arc(player,radius+4,elapsed*1.8,elapsed*1.8+PI*1.35,40,Color(0.4,0.95,1,0.75),3.0,false)
 	for i in range(3):
 		var angle = elapsed*0.8+i*TAU/3
 		pixel_ring(player,radius+2,Color("dbffff"),angle,0.55)
@@ -928,18 +970,30 @@ func draw_combat_effect(effect: Dictionary):
 	var ratio: float = effect.life/effect.duration
 	var age = 1.0-ratio
 	var kind: String = effect.get("kind","explosion")
+	if kind == "shockwave":
+		var points = PackedVector2Array()
+		for i in range(65):
+			points.append((effect.pos+Vector2.from_angle(i*TAU/64)*effect.size*sqrt(age)).snapped(Vector2.ONE*2.76))
+		paint.draw_polyline(points,Color(1,0.64,0.25,ratio*0.55),maxf(2,ratio*12),false)
+		for i in range(12):
+			var direction = Vector2.from_angle(i*TAU/12)
+			paint.draw_line(effect.pos+direction*effect.size*age*0.55,effect.pos+direction*effect.size*age,Color(1,0.88,0.55,ratio*0.75),maxf(2,ratio*5),false)
+		return
 	if kind == "impact":
 		glow(effect.pos,28,Color("ffca6a"),ratio*1.5,2.76)
 		pixel_disc(effect.pos,8.0*ratio,Color(1,0.98,0.8,ratio),1.38)
 		pixel_ring(effect.pos,effect.size*age,Color(1,0.82,0.4,ratio*0.75),0,TAU,2.76)
-		for i in range(8):
-			var direction = Vector2.from_angle(i*TAU/8+0.3)
+		for i in range(12):
+			var direction = Vector2.from_angle(i*TAU/12+0.3)
 			paint.draw_line((effect.pos+direction*5).snapped(Vector2.ONE*1.38),(effect.pos+direction*(10+age*effect.size)).snapped(Vector2.ONE*1.38),Color(1,0.78,0.35,ratio),4.14,false)
 		return
 	if kind == "damage" or kind == "shield_hit":
 		var tint = Color(0.35,0.85,1,ratio*0.9) if kind == "shield_hit" else Color(1,0.35,0.22,ratio*0.9)
 		pixel_ring(effect.pos,effect.size*(0.35+age*0.65),tint,0,TAU,2.76)
 		pixel_ring(effect.pos,effect.size*(0.2+age*0.55),Color(1,0.8,0.4,ratio*0.7),0,TAU,2.76)
+		for i in range(8):
+			var direction = Vector2.from_angle(i*TAU/8+age)
+			paint.draw_line(effect.pos+direction*effect.size*age*0.3,effect.pos+direction*effect.size*(0.5+age*0.5),tint,4.14,false)
 		return
 	if kind == "bomb":
 		pixel_ring(effect.pos,effect.size*age,Color(0.7,0.95,1,ratio*0.65),0,TAU,2.76)
@@ -965,9 +1019,21 @@ func draw_battle():
 			draw_plane(e.pos,e.kind,e.flash > 0)
 		campaign.draw_enemy(e)
 	for b in shots:
-		if b.get("laser",false) or b.get("missile",false):
-			var tail: Vector2 = b.pos-b.vel.normalized()*(48 if b.get("laser",false) else 24)
-			var color = Color("c79aff") if b.get("laser",false) else Color("ffc45f")
+		if b.get("laser",false):
+			if b.get("charge",0.0) > 0:
+				continue
+			var beam_end: Vector2 = b.get("beam_end",b.pos+b.vel.normalized()*arena_size.length())
+			var intensity = clampf(b.life/0.16,0.0,1.0)
+			paint.draw_line(b.pos,beam_end,Color(0.5,0.3,1,intensity*0.08),maxf(0.5,38*intensity),false)
+			paint.draw_line(b.pos,beam_end,Color(0.55,0.4,1,intensity*0.17),maxf(0.5,24*intensity),false)
+			paint.draw_line(b.pos,beam_end,Color(0.6,0.55,1,intensity*0.4),maxf(0.5,15*intensity),false)
+			paint.draw_line(b.pos,beam_end,Color(0.65,0.85,1,intensity*0.95),maxf(0.5,8*intensity),false)
+			paint.draw_line(b.pos,beam_end,Color(0.97,1,1,intensity),maxf(0.5,3.5*intensity),false)
+			glow(b.pos,26,Color("a5dfff"),intensity*2.0,1.38)
+			continue
+		if b.get("missile",false):
+			var tail: Vector2 = b.pos-b.vel.normalized()*24
+			var color = Color("ffc45f")
 			paint.draw_line(tail.snapped(Vector2.ONE*1.38),b.pos.snapped(Vector2.ONE*1.38),color,5.52,false)
 			paint.draw_line(tail.snapped(Vector2.ONE*1.38),b.pos.snapped(Vector2.ONE*1.38),Color("fff8dc"),1.38,false)
 			continue
@@ -1022,13 +1088,38 @@ func draw_battle():
 			poly([drone_pos+Vector2(0,-16),drone_pos+Vector2(9,9),drone_pos+Vector2(-9,9)],Color("59cdd7"))
 			pixel_disc(drone_pos,3,Color("f5efd1"),1.38)
 		draw_plane(player,"player",hit_flash>0.1)
+		var charge_level = 0.0
+		var pulse_level = 0.0
+		for b in shots:
+			if b.get("laser",false) and b.get("bounce_count",0) == 0:
+				if b.get("charge",0.0) > 0:
+					charge_level = maxf(charge_level,1.0-b.charge/0.1)
+				else:
+					pulse_level = maxf(pulse_level,clampf(b.life/0.16,0,1))
+		if charge_level > 0 or pulse_level > 0:
+			var nose = laser_origin()
+			var brightness = maxf(charge_level,pulse_level)
+			glow(nose,32,Color("96dfff"),brightness*2.5,1.38)
+			paint.draw_circle(nose,3+brightness*7,Color(0.42,0.72,1,brightness*0.7))
+			paint.draw_circle(nose,2+brightness*3.5,Color(0.92,1,1,brightness))
+			if charge_level > 0:
+				for i in range(6):
+					var direction = Vector2.from_angle(i*TAU/6+elapsed*7)
+					paint.draw_line(nose+direction*(10+(1-charge_level)*24),nose+direction*9,Color(0.6,0.85,1,charge_level),2,false)
 		if invincible > 0 or progression.shield_layers > 0:
 			draw_shield()
 	if bomb_flash > 0:
 		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(0.98,0.83,0.56,bomb_flash*0.14))
+	if impact_light > 0:
+		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(1,0.85,0.6,impact_light*0.55))
+	# Hostile projectiles stay readable above the explosion layers.
+	for b in enemy_shots:
+		paint.draw_circle(b.pos,b.radius+2,Color("301622"))
+		paint.draw_circle(b.pos,b.radius,Color("ff703d"))
+		paint.draw_circle(b.pos,maxf(1,b.radius*0.45),Color("fff0ac"))
 
 func skill_card_rect(index: int) -> Rect2:
-	return Rect2(arena_size/2+Vector2(-230,-progression.choices.size()*41+index*82),Vector2(460,70))
+	return skill_cards.card_rect(arena_size,progression.choices.size(),index)
 
 func draw_hud():
 	if state != "menu":
@@ -1065,12 +1156,8 @@ func draw_hud():
 		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(0.02,0.08,0.12,0.85))
 		centered("CHOOSE A SKILL",skill_card_rect(0).position.y-24,24,Color("ffe0a1"))
 		for i in range(progression.choices.size()):
-			var card = skill_card_rect(i)
-			var entry = progression.choices[i]
-			metal_plate(card)
-			text_at("%d  %s" % [i+1,entry[1]],card.position+Vector2(12,24),17,Color("d3aeff") if entry[3] == 3 else Color("ffe0a1"))
-			text_at(entry[2],card.position+Vector2(12,49),12)
-		centered("CLICK / TAP OR PRESS 1 - %d" % progression.choices.size(),skill_card_rect(progression.choices.size()-1).end.y+25,12)
+			skill_cards.draw_card(self,progression.choices[i],i)
+		centered("CLICK / TAP TO SELECT",skill_card_rect(progression.choices.size()-1).end.y+25,12)
 		return
 	if state in ["menu","paused","defeat","victory"]:
 		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(0.02,0.08,0.12,0.72))

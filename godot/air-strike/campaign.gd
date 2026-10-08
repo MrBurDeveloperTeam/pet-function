@@ -175,9 +175,9 @@ func update_enemy(e: Dictionary, delta: float):
 	if e.get("role","") == "sniper" and e.fire < 0.7 and not e.has("sniper_aim"):
 		e.sniper_aim = (game.player-e.pos).normalized()
 	if e.get("role","") == "dash" and e.age > 2 and e.age < 2.7:
-		e.pos += (game.player-e.pos).normalized()*180*delta
+		e.pos += (game.player-e.pos).normalized()*180*delta*game.ENEMY_FLIGHT_SPEED_SCALE
 	if e.get("role","") == "suicide":
-		e.pos.x = move_toward(e.pos.x,game.player.x,70*delta)
+		e.pos.x = move_toward(e.pos.x,game.player.x,70*delta*game.ENEMY_FLIGHT_SPEED_SCALE)
 	if e.ability > 0: return
 	e.ability = 3
 	if e.role == "healer" or e.affixes.has("regeneration"):

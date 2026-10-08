@@ -45,6 +45,26 @@ func run():
 	check(p.kills == 30 and not p.airstrike_pending,"airstrike kills do not recursively trigger airstrike")
 	game.reset_run()
 	p.talents.clear()
+	var drone_skill = p.LIBRARY.filter(func(s): return s[0] == "drone")[0]
+	var drone_upgrade = p.LIBRARY.filter(func(s): return s[0] == "drone_boost")[0]
+	check(drone_skill[3] == 1 and p.eligible(drone_skill),"drone is an eligible initial skill")
+	check(p.drone_count() == 0 and not p.eligible(drone_upgrade),"drone upgrade hidden before selecting initial drone")
+	p.skills = ["drone","damage"]
+	game.player_tier = 4
+	check(p.drone_count() == 1 and p.eligible(drone_upgrade),"initial drone generates one drone and unlocks upgrade")
+	game.shots.clear()
+	p.update(0.01)
+	check(game.shots.size() == 1 and game.shots[0].source == "drone" and is_equal_approx(game.shots[0].damage,0.65),"drone deals half tier four aircraft base damage")
+	p.talents = [10,12]
+	check(p.drone_count() == 2,"initial drone does not add a third drone to twin drones")
+	p.talents.clear()
+	p.skills.append("drone_boost")
+	game.shots.clear()
+	p.update(0.5)
+	check(game.shots.size() == 2,"drone upgrade doubles initial drone bullets")
+	game.reset_run()
+	check(p.drone_count() == 0 and not p.eligible(drone_upgrade),"new run resets initial drone and upgrade eligibility")
+	game.player_tier = 1
 	p.skills = ["life","shield","defense"]
 	p.shield_layers = 1
 	game.invincible = 0
@@ -89,6 +109,23 @@ func run():
 	game.shots.append(p.projectile(Vector2(300,400),Vector2(0,-1000),1))
 	game.update_shots(0.25)
 	check(game.enemies.all(func(e): return e.hp <= 11) and game.shots.is_empty(),"pierce I damages two enemies once")
+	game.reset_run()
+	p.talents.clear()
+	p.skills = ["laser"]
+	game.player = Vector2(300,450)
+	game.spawn_enemy("bomber",Vector2(300,100))
+	game.spawn_enemy("bomber",Vector2(300,280))
+	game.shots.append(p.projectile(Vector2(300,400),Vector2(0,-580),1))
+	game.update_shots(0.01)
+	check(game.enemies.all(func(e): return e.hp == e.max_hp),"laser charge does not damage enemies before emission")
+	check(game.shots[0].pos.is_equal_approx(game.laser_origin()),"laser charges at the aircraft nose")
+	game.update_shots(0.1)
+	check(game.enemies.all(func(e): return e.hp < e.max_hp),"long laser immediately hits multiple enemies across its full beam")
+	var laser_hp = game.enemies[0].hp
+	game.update_shots(0.01)
+	check(game.enemies[0].hp == laser_hp and game.shots.size() == 1,"visible laser pulse cannot damage the same enemy each frame")
+	game.update_shots(0.2)
+	check(game.shots.is_empty(),"laser pulse fades before next base firing interval")
 	print("AIR_STRIKE_PROGRESSION: ","PASS" if failures == 0 else "FAIL"," (",failures," failures)")
 	game.queue_free()
 	await process_frame
