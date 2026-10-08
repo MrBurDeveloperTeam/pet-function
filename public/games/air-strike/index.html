@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Sky Patrol — Arcade Air Combat</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0c2230;color:#eed49b;font-family:monospace}
+    canvas{display:block;width:100%;height:100%;touch-action:none;outline:none;image-rendering:pixelated}#loading{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:#0c2230;gap:14px}progress{width:240px;accent-color:#cfab58}button{padding:12px;background:#eed49b;border:0;border-radius:8px;color:#142f40;cursor:pointer}
+  </style>
+</head>
+<body>
+  <canvas id="canvas" tabindex="0" aria-label="Sky Patrol. Drag to move, WASD or arrow keys to fly, B or Space for bomb, P to pause."></canvas>
+  <div id="loading" role="status"><strong>SKY PATROL</strong><span id="status">Preparing mission…</span><progress id="progress"></progress></div>
+  <!-- Reuse the existing single-thread Godot 4.7.2 web engine. The new game owns its own PCK. -->
+  <script src="/games/mole-game/index.js"></script>
+  <script>
+    const panel=document.getElementById('loading'), status=document.getElementById('status'), progress=document.getElementById('progress');
+    function failed(error){status.textContent='Could not load the mission: '+String(error);progress.hidden=true;const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=()=>location.reload();panel.appendChild(retry);window.parent.postMessage({source:'air-strike',type:'ERROR'},location.origin);}
+    try {
+      const engine=new Engine({executable:'/games/mole-game/index',mainPack:'/games/air-strike/index.pck',canvasResizePolicy:2,focusCanvas:true,gdextensionLibs:[],ensureCrossOriginIsolationHeaders:false});
+      const missing=Engine.getMissingFeatures({threads:false});
+      if(missing.length)throw new Error(missing.join(', '));
+      engine.startGame({canvas:document.getElementById('canvas'),onProgress:(current,total)=>{if(total>0){progress.max=total;progress.value=current;}}}).then(()=>{panel.hidden=true;panel.style.display='none';document.getElementById('canvas').focus();},failed);
+    } catch(error){failed(error);}
+  </script>
+</body>
+</html>

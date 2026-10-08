@@ -5,6 +5,61 @@ dist/
 baseline.tar
 migration-backups/
 godot/**/.godot/
+godot/**/*.blend1
+godot/**/*.local.log
+godot/**/*.local.png
+godot/**/blender/source/circuit.glb
+godot/**/blender/source/circuit.blend
 .env
 .env.*
 !.env.example
+
+# Local modeling outputs and review artifacts. Keep generator source in Git.
+__pycache__/
+*.pyc
+*.local.py
+/godot/cat-kart/blender/**/*.blend
+/godot/cat-kart/blender/**/*.glb
+/godot/cat-kart/blender/**/*.png
+/godot/cat-kart/blender/**/*.png.import
+/godot/cat-kart/blender/**/.img2threejs/
+/godot/cat-kart/blender/**/versions/
+/godot/cat-kart/blender/**/REVIEW-*.md
+/godot/cat-kart/blender/**/*report*.json
+/godot/cat-kart/blender/**/diagnostics*.json
+/godot/cat-kart/blender/**/diagnostics.txt
+/godot/cat-kart/blender/**/geometry-audit*.json
+/godot/cat-kart/blender/**/multi-angle*.json
+/godot/cat-kart/blender/**/shape-check.json
+/godot/cat-kart/blender/**/*checks*.json
+/godot/cat-kart/blender/**/export-check.json
+/godot/cat-kart/blender/**/export-validation.json
+/godot/cat-kart/blender/**/validation.json
+/godot/cat-kart/blender/**/tail-fusion-check*.json
+/godot/cat-kart/blender/**/assessment.json
+/godot/cat-kart/blender/**/probe.json
+/godot/cat-kart/blender/**/public/model.js
+
+# Standalone texture copies are embedded in the Cat Kart GLBs.
+/godot/cat-kart/models/*.png
+/godot/cat-kart/models/*.png.import
+# Editable scenes emitted by export_models.gd; runtime uses built/*.scn.
+/godot/cat-kart/models/*.tscn
+# Historical sculpt variants; active kart and driver GLBs stay versioned.
+/godot/cat-kart/models/*_sculpt.glb
+/godot/cat-kart/models/*_sculpt.glb.import
+
+# Local UI verification captures and account-specific verification notes.
+/database/air-strike-*.png
+/database/AIR-STRIKE-LIVE-VERIFICATION.md
+
+# Superseded hangar artwork; current UI uses hangar-rankings.png.
+/public/games/air-strike/hangar.png
+/public/games/air-strike/hangar-integrated.png
+/public/games/air-strike/hangar-talents.png
+/godot/air-strike/art/coral-coast.png
+/godot/air-strike/art/coral-coast.png.import
+/godot/air-strike/art/mechanical-atlas.png
+/godot/air-strike/art/mechanical-atlas.png.import
+/godot/air-strike/art/gulu-player-aircraft-levels-1-10-concept.png
+/godot/air-strike/art/gulu-player-aircraft-levels-1-10-concept.png.import

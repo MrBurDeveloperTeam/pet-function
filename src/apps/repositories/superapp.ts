@@ -2,6 +2,9 @@
 import type { PetDatabaseClient } from '../databaseClient';
 import type { PetRepository } from '../../contracts';
 import type { FoodItem, PetInventoryItem, PetSaveSnapshot } from '../../contracts';
+import {createAirStrikeTalentCloud} from './airStrikeTalentCloud.mjs';
+import {createAirStrikeCampaignCloud} from './airStrikeCampaignCloud.mjs';
+import {createAirStrikeAircraftCloud} from './airStrikeAircraftCloud.mjs';
 
 type PricingItemRow = {
   id: string;
@@ -51,6 +54,9 @@ type InventoryPetRow = {
 
 export function createAppGalleryPetRepository(supabase: PetDatabaseClient): PetRepository {
   return {
+  ...createAirStrikeTalentCloud(supabase),
+  ...createAirStrikeCampaignCloud(supabase),
+  ...createAirStrikeAircraftCloud(supabase),
   async loadSnapshot(userId: string): Promise<PetSaveSnapshot | null> {
     void userId;
     const { data, error } = await supabase

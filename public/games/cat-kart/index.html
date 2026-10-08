@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cat Kart · Town Sprint</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#254451;color:#fff3d0;font-family:system-ui}canvas{display:block;width:100%;height:100%}#loading{position:fixed;inset:0;display:grid;place-content:center;text-align:center;background:#254451}h1{font-size:40px;margin:0 0 12px}p{opacity:.8}button{padding:12px 24px;background:#fff3d0;color:#254451;border:0;border-radius:12px}</style></head>
+<body><canvas id="canvas" aria-label="Cat Kart 3D racing game"></canvas><div id="loading"><h1>CAT KART</h1><p>Town Sprint · Your cat, five rivals.</p><p id="status">Preparing the track…</p><button id="retry" hidden onclick="location.reload()">Try again</button></div><script src="index.js"></script><script>
+const engine=new Engine({args:[],canvasResizePolicy:2,executable:'index',experimentalVK:false,focusCanvas:true,gdextensionLibs:[]});
+window.addEventListener('message',event=>{if(parent===window&&event.origin===location.origin&&event.source===window&&event.data?.source==='cat-kart'&&event.data?.type==='KART_CLOSE')location.assign('/?pet=1');});
+engine.startGame({onProgress(current,total){if(total>0)document.getElementById('status').textContent='Preparing the track · '+Math.round(current/total*100)+'%';}}).then(()=>document.getElementById('loading').remove()).catch(()=>{document.getElementById('status').textContent='Unable to start 3D racing. Please use a browser with WebGL 2 enabled.';document.getElementById('retry').hidden=false;});
+</script></body></html>

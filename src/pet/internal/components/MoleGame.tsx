@@ -74,7 +74,7 @@ interface MoleGameProps {
 
 const MOLE_LEVEL_HEAD = '3,7 3,2 8,6 16,6 21,2 21,7 23,9 23,19 20,19 20,22 16,22 16,24 8,24 8,22 4,22 4,19 1,19 1,9';
 
-const MoleLevelBadge = ({ stats }: { stats: PetStats }) => {
+export const MoleLevelBadge = ({ stats }: { stats: Pick<PetStats, 'level' | 'xp'> }) => {
   const xpPercent = Math.min(100, Math.max(0, stats.xp));
   const fillY = 24 - (xpPercent / 100) * 22;
 

@@ -1,0 +1,14 @@
+{
+  "admitted": true,
+  "reasons": [],
+  "provenance": {
+    "viewpoint": "front",
+    "sourcePath": "C:\\Users\\ming\\Desktop\\intern\\pet-function\\godot\\cat-kart\\blender\\gulu-img2threejs\\reference-front.png",
+    "width": 420,
+    "height": 474,
+    "foregroundCoverage": 0.5979,
+    "largestComponentFraction": 1.0,
+    "pHash": 13683828403566862604,
+    "duplicateOfHash": null
+  }
+}

@@ -42,6 +42,7 @@ import { PetRoom } from './internal/PetRoom';
 import { GamePage } from './internal/components/GamePage';
 import { FootballGame } from './internal/components/FootballGame';
 import { KartGame } from './internal/components/KartGame';
+import { AirStrikeGame } from './internal/components/AirStrikeGame';
 import { KART_GAME_ID } from './internal/kartInteraction';
 import PetAdoptionModal from './internal/components/PetAdoptionModal';
 import { RoomType, type PetAssetUrls, type ExtraGame } from './internal/types';
@@ -392,7 +393,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
         />
       ) : (
         <>
-          {activeGameId === KART_GAME_ID ? <KartGame onClose={handleCloseGame} /> : activeGameId === 'stadium-football' ? <FootballGame key={userId ?? "guest"} userId={userId} onClose={handleCloseGame} /> : <GamePage
+          {activeGameId === 'air-strike' ? <AirStrikeGame key={userId ?? "guest"} userId={userId} onClose={handleCloseGame} /> : activeGameId === KART_GAME_ID ? <KartGame onClose={handleCloseGame} /> : activeGameId === 'stadium-football' ? <FootballGame key={userId ?? "guest"} userId={userId} onClose={handleCloseGame} /> : <GamePage
             gameId={activeGameId || ''}
             onClose={handleCloseGame}
             onExitPet={handleClose}

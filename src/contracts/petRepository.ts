@@ -103,6 +103,20 @@ export interface PetRepository {
    *  runtime falls back to an immediate (non-debounced) `saveSnapshot`
    *  call instead. */
   mutateCoins?(userId: string, delta: number): Promise<number>;
+  /** Server-authoritative Sky Patrol talents. Load uses the authenticated owner;
+   * purchase atomically charges the existing pet wallet and grants the talent.
+   * Duplicate purchases must return ownership without charging again. */
+  loadAirStrikeTalents?(userId: string): Promise<number[]>;
+  purchaseAirStrikeTalent?(userId: string, talentId: number): Promise<{talents: number[]; coins: number}>;
+  loadAirStrikeCampaign?(userId:string):Promise<{highestCleared:number;endlessBest:number}>;
+  loadAirStrikeAircraft?(userId:string):Promise<number>;
+  syncAirStrikeFlight?(userId:string,save:{xp:number;best:number;runs:number}):Promise<{xp:number;best:number;runs:number}>;
+  purchaseAirStrikeAircraft?(userId:string,target:number):Promise<{tier:number;coins:number}>;
+  loadAirStrikeEndlessLeaderboard?(userId:string):Promise<{rank:number;userId:string;name:string;avatarUrl:string|null;wave:number;isYou:boolean}[]>;
+  /** Monotonic migration/merge of client-reported saves; MUST NOT grant rewards. */
+  mergeAirStrikeCampaign?(userId:string,save:{highestCleared:number;endlessBest:number}):Promise<{highestCleared:number;endlessBest:number}>;
+  /** Idempotent result/checkpoint settlement; rewards and progress commit together. */
+  recordAirStrikeCampaign?(userId:string,run:{token:string;stage:number;mode:string;outcome:string;wave:number}):Promise<{highestCleared:number;endlessBest:number;coins:number;reward:number}>;
   /** Atomically executes one shop purchase: validates the CURRENT
    *  authenticated user has at least `price` coins, deducts `price`, and
    *  increments `itemId`'s quantity by 1 — all as a single server-side

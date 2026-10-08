@@ -18,6 +18,9 @@ const outlinesSource = readFileSync(
 test('games are hidden until the television or arcade station is activated', () => {
   assert.match(roomSource, /const \[showGamesMenu, setShowGamesMenu\] = useState\(false\)/);
   assert.match(outlinesSource, /label: 'Play games on the television'/);
+  assert.match(outlinesSource, /action: 'air-strike', label: 'Play Sky Patrol on the left arcade machine'/);
+  assert.match(roomSource, /if \(action === 'air-strike'\) onNavigateToGame\('air-strike'\)/);
+  assert.match(menusSource, /onStartGame\('air-strike'\)/);
   assert.match(outlinesSource, /aria-label=\{label\}/);
   assert.match(roomSource, /event\.code !== 'Space'/);
   assert.match(roomSource, /isNearGameStation/);

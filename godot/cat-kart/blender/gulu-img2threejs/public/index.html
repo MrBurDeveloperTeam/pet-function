@@ -1,0 +1,32 @@
+<!doctype html><html lang="zh"><meta charset="utf-8"><title>Gulu · 形体研究</title>
+<style>body{margin:0;background:#e8e2da;font:14px system-ui;color:#514b45}canvas{display:block}nav{position:fixed;left:20px;top:20px;display:flex;gap:6px;flex-wrap:wrap}button,a{background:#fff9;border:1px solid #aaa7;border-radius:6px;padding:8px;color:inherit;cursor:pointer}footer{position:fixed;bottom:20px;left:20px}#status{position:fixed;right:20px;top:20px}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/":"/node_modules/three/","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<nav><button data-view="front">正面</button><button data-view="left">左侧</button><button data-view="right">右侧</button><button data-view="back">背面</button><button data-view="top">顶部</button><button data-view="bottom">底部</button><button data-view="hero">三分之四</button><button id="export">导出 GLB</button></nav>
+<div id="status">正在构建连续曲面…</div><footer>GULU · img2threejs 灰模研究<br>拖动旋转 · 滚轮缩放 · 尚未通过外形验收</footer>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+import {createGuluSeatedClayKittenModel} from './model.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#e8e2da');
+const camera=new THREE.OrthographicCamera(-.68,.68,.70,-.70,.01,20);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;document.body.append(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(-.055,.50,0);controls.enableDamping=true;
+scene.add(new THREE.HemisphereLight(0xffffff,0x756757,2));
+for(const [pos,intensity] of [[[ -2,3,4],3],[[2,2,2],1],[[0,2,-3],2]]){const l=new THREE.DirectionalLight(0xffffff,intensity);l.position.set(...pos);l.castShadow=intensity===3;l.shadow.normalBias=.004;l.shadow.mapSize.set(1024,1024);l.shadow.camera.left=-1;l.shadow.camera.right=1;l.shadow.camera.top=1.5;l.shadow.camera.bottom=-.5;l.shadow.bias=-.0005;scene.add(l);}
+const model=createGuluSeatedClayKittenModel({textureSize:256});model.name='Gulu';scene.add(model);
+// Geometry study: uniform grey lookdev, preserving explicit ocular semantic materials.
+model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.name.includes('root')||o.userData.sculptComponent?.material==='hidden'){o.visible=false;return;}if(Array.isArray(o.material)||o.material.vertexColors)return;const id=o.userData?.componentId||o.name;const ocular=/iris|pupil|philtrum|mouth/.test(id);o.material=new THREE.MeshStandardMaterial({color:ocular?0x88837d:0xa6a19a,roughness:/eye/.test(id)?.36:.76});}});
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.MeshStandardMaterial({color:0xe8e2da,roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.018;ground.receiveShadow=true;scene.add(ground);
+function setView(view){ground.visible=view!=='bottom';const positions={front:[-.055,.522,3],left:[3,.522,0],right:[-3,.522,0],back:[-.055,.522,-3],top:[-.055,3,0],bottom:[-.055,-3,0],hero:[1.8,1.0,2.6]};camera.up.set(0,1,0);if(view==='top')camera.up.set(0,0,-1);if(view==='bottom')camera.up.set(0,0,1);camera.position.set(...positions[view]);controls.target.set(-.055,.522,0);camera.lookAt(controls.target);controls.update();render();}
+function render(){renderer.render(scene,camera)}
+function resize(){renderer.setSize(innerWidth,innerHeight);const aspect=innerWidth/innerHeight;const half=new URLSearchParams(location.search).has('capture')?.528:.70;camera.left=-half*aspect;camera.right=half*aspect;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();render();}onresize=resize;resize();setView('front');
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+document.querySelector('#export').onclick=async()=>{const saved=[];model.traverse(o=>{saved.push([o,o.userData]);o.userData={componentId:o.userData.sculptComponent?.id,source:'Gulu img2threejs grey study'};});let result;try{result=await new GLTFExporter().parseAsync(model,{binary:true,onlyVisible:true});}finally{saved.forEach(([o,data])=>o.userData=data);}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([result],{type:'model/gltf-binary'}));a.download='gulu-img2threejs.glb';a.click();};
+window.__IMG2THREEJS_READY__=true;window.__GULU__={model,scene,camera,renderer,setView};
+window.__IMG2THREEJS_CAPTURE__={setCamera:({view})=>setView(view),capturePass:async()=>({ok:true,selector:'canvas'})};
+document.querySelector('#status').textContent='连续曲面 · 静态灰模';
+if(new URLSearchParams(location.search).has('capture')){document.querySelectorAll('nav,footer,#status').forEach(o=>o.style.display='none');controls.target.y=.522;}
+function loop(){requestAnimationFrame(loop);controls.update();render();}loop();
+</script></html>
+

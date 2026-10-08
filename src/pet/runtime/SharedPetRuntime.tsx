@@ -150,6 +150,18 @@ interface GameStateContextType {
     addCoins: (delta: number) => void;
     /** Confirm a coin-only purchase against the wallet before granting its effect. */
     spendCoins: (amount: number) => Promise<boolean>;
+    skyTalentCloud?: {
+        load: () => Promise<number[]>;
+        purchase: (id: number) => Promise<number[]>;
+    };
+    skyAircraftCloud?: {load:()=>Promise<number>;purchase:(target:number)=>Promise<number>};
+    skyFlightCloud?: {sync:(save:{xp:number;best:number;runs:number})=>Promise<{xp:number;best:number;runs:number}>};
+    skyCampaignCloud?: {
+        leaderboard?: () => Promise<{rank:number;userId:string;name:string;avatarUrl:string|null;wave:number;isYou:boolean}[]>;
+        load: () => Promise<{highestCleared:number;endlessBest:number}>;
+        merge: (save:{highestCleared:number;endlessBest:number}) => Promise<{highestCleared:number;endlessBest:number}>;
+        record: (run:{token:string;stage:number;mode:string;outcome:string;wave:number}) => Promise<{highestCleared:number;endlessBest:number;coins:number;reward:number}>;
+    };
     activeBallId: string;
     setActiveBallId: (id: string) => void;
     activeBedId: string | null;
@@ -897,6 +909,78 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
         } finally { coinSpendInFlight.current = false; }
     };
 
+    const skyTalentCloud = userId && repository.loadAirStrikeTalents && repository.purchaseAirStrikeTalent ? {
+        load: async () => {
+            const result = await repository.loadAirStrikeTalents!(userId);
+            if (!mounted.current || owner.current !== userId) throw new Error('Account changed');
+            return result;
+        },
+        purchase: async (id: number) => {
+            if (!isHydrated.current || coinSpendInFlight.current) throw new Error('Wallet not ready');
+            coinSpendInFlight.current = true;
+            try {
+                const receipt = await repository.purchaseAirStrikeTalent!(userId,id);
+                if (!mounted.current || owner.current !== userId) throw new Error('Account changed');
+                currentStats.current = {...currentStats.current,coins:receipt.coins};
+                setStats(prev => ({...prev,coins:receipt.coins}));
+                return receipt.talents;
+            } finally { coinSpendInFlight.current = false; }
+        }
+    } : undefined;
+
+    const skyAircraftCloud = userId && repository.loadAirStrikeAircraft && repository.purchaseAirStrikeAircraft ? {
+        load: async () => {
+            const tier=await repository.loadAirStrikeAircraft!(userId);
+            if (!mounted.current || owner.current!==userId) throw new Error('Account changed');
+            return tier;
+        },
+        purchase: async (target:number) => {
+            if (!isHydrated.current || coinSpendInFlight.current) throw new Error('Wallet busy');
+            coinSpendInFlight.current=true;
+            try {
+                const receipt=await repository.purchaseAirStrikeAircraft!(userId,target);
+                if (!mounted.current || owner.current!==userId) throw new Error('Account changed');
+                currentStats.current={...currentStats.current,coins:receipt.coins};
+                setStats(prev=>({...prev,coins:receipt.coins}));return receipt.tier;
+            } finally {coinSpendInFlight.current=false;}
+        }
+    } : undefined;
+    const skyFlightCloud = userId && repository.syncAirStrikeFlight ? {
+        sync: async (save:{xp:number;best:number;runs:number}) => {
+            const result=await repository.syncAirStrikeFlight!(userId,save);
+            if (!mounted.current || owner.current!==userId) throw new Error('Account changed');
+            return result;
+        }
+    } : undefined;
+    const skyCampaignCloud = userId && repository.loadAirStrikeCampaign && repository.mergeAirStrikeCampaign && repository.recordAirStrikeCampaign ? {
+        leaderboard: repository.loadAirStrikeEndlessLeaderboard ? async () => {
+            const result=await repository.loadAirStrikeEndlessLeaderboard!(userId);
+            if (!mounted.current || owner.current!==userId) throw new Error('Account changed');
+            return result;
+        } : undefined,
+        load: async () => {
+            const result=await repository.loadAirStrikeCampaign!(userId);
+            if (!mounted.current || owner.current!==userId) throw new Error('Account changed');
+            return result;
+        },
+        merge: async (save:{highestCleared:number;endlessBest:number}) => {
+            const result=await repository.mergeAirStrikeCampaign!(userId,save);
+            if (!mounted.current || owner.current!==userId) throw new Error('Account changed');
+            return result;
+        },
+        record: async (run:{token:string;stage:number;mode:string;outcome:string;wave:number}) => {
+            if (!isHydrated.current || coinSpendInFlight.current) throw new Error('Wallet busy; settlement queued');
+            coinSpendInFlight.current=true;
+            try {
+                const receipt=await repository.recordAirStrikeCampaign!(userId,run);
+                if (!mounted.current || owner.current!==userId) throw new Error('Account changed');
+                currentStats.current={...currentStats.current,coins:receipt.coins};
+                setStats(prev=>({...prev,coins:receipt.coins}));
+                return receipt;
+            } finally { coinSpendInFlight.current=false; }
+        }
+    } : undefined;
+
     const adoptPet = async (name: string) => {
         if (hasAdoptedPet || !userId || !isPetAdoptionReady || !isHydrated.current || adoptionInFlight.current) return false;
         adoptionInFlight.current = true;
@@ -1042,6 +1126,10 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             addXP,
             addCoins,
             spendCoins,
+            skyTalentCloud,
+            skyAircraftCloud,
+            skyFlightCloud,
+            skyCampaignCloud,
             activeBallId,
             setActiveBallId,
             activeBedId,

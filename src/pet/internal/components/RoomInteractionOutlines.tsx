@@ -2,7 +2,7 @@ import { RoomType } from '../types';
 import { KART_CIRCUIT_OUTLINE } from '../kartInteraction';
 
 // Traced in the rooms-wide artwork coordinate system; slice matches object-fit: cover.
-type RoomInteractionAction = 'food' | 'bath' | 'games' | 'door' | 'food-shop' | 'furniture-shop' | 'fishing' | 'karting';
+type RoomInteractionAction = 'food' | 'bath' | 'games' | 'air-strike' | 'door' | 'food-shop' | 'furniture-shop' | 'fishing' | 'karting';
 
 const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label: string; d: string; interactive?: boolean }[]>> = {
   [RoomType.KART_TRACK]: [
@@ -18,7 +18,7 @@ const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label:
   ],
   [RoomType.GAMES]: [
     { action: 'games', label: 'Play games on the television', d: 'M914 216 H923 V212 H1065 L1079 218 V333 L1072 341 V350 H919 V342 H908 L901 334 V226 L906 219 Z' },
-    { action: 'games', label: 'Play games on the left arcade machine', d: 'M597 220 H683 L691 216 L703 225 V329 L692 347 V451 L686 462 H587 V352 L598 336 L605 263 L597 257 Z' },
+    { action: 'air-strike', label: 'Play Sky Patrol on the left arcade machine', d: 'M597 220 H683 L691 216 L703 225 V329 L692 347 V451 L686 462 H587 V352 L598 336 L605 263 L597 257 Z' },
     { action: 'games', label: 'Play games on the right arcade machine', d: 'M707 220 H791 L798 216 L814 225 V450 L803 461 H697 V351 L706 333 L711 263 L704 253 Z' },
     // Trace the outside of the perspective door frame: the left jamb starts
     // higher, the right jamb starts lower, and the threshold rises to the right.

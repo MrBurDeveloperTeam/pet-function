@@ -1828,6 +1828,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           if (action === 'food') setShowFoodMenu(true);
           if (action === 'bath') setShowBathroomMenu(true);
           if (action === 'games') setShowGamesMenu(true);
+          if (action === 'air-strike') onNavigateToGame('air-strike');
           if (action === 'food-shop') setActiveShop('food');
           if (action === 'furniture-shop') setActiveShop('furniture');
           if (action === 'fishing') startRoomTransition(TOWN_HOME_FISHING_EXIT);

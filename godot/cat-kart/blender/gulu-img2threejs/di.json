@@ -1,0 +1,199 @@
+{
+  "scanMethod": "component-zones",
+  "targetMinDetails": 10,
+  "note": "Enumerate every identity-defining small detail before authoring the spec. Each detail must map to a component.localFeatures entry or material.localOverrides entry, never prose only. Use forge/stage1_intake/build_detail_inventory.py to scan zones.",
+  "details": [
+    {
+      "id": "ear-roots",
+      "kind": "contour",
+      "description": "root overlap .04",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.ear-l.localFeatures.ear-roots"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "eye-sockets",
+      "kind": "contour",
+      "description": "subtract socket depth .073",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.head.localFeatures.eye-sockets"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "cheek-volume",
+      "kind": "contour",
+      "description": "continuous smooth blend",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.head.localFeatures.cheek-volume"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "muzzle-pads",
+      "kind": "contour",
+      "description": "two short pads joined to face",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.head.localFeatures.muzzle-pads"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "chin-setback",
+      "kind": "contour",
+      "description": "chin behind nose",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.head.localFeatures.chin-setback"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "tail-arc",
+      "kind": "contour",
+      "description": "thick curved sweep",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.tail.localFeatures.tail-arc"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "foreleg-roots",
+      "kind": "contour",
+      "description": "embedded into chest",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.body.localFeatures.foreleg-roots"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "seated-haunches",
+      "kind": "contour",
+      "description": "wide pelvic support",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.body.localFeatures.seated-haunches"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "toe-separation",
+      "kind": "contour",
+      "description": "rounded toe groups",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.toe-l-0.localFeatures.toe-separation"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "eyelid-rim",
+      "kind": "contour",
+      "description": "shallow ocular lip",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.eyelid-l.localFeatures.eyelid-rim"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "nose-pad",
+      "kind": "contour",
+      "description": "short nasal pad",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.nose.localFeatures.nose-pad"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "philtrum-groove",
+      "kind": "contour",
+      "description": "nasal to oral central line",
+      "confidence": 0.85,
+      "evidenceRef": "reference-front.png",
+      "mapsTo": [
+        "componentTree.philtrum.localFeatures.philtrum-groove"
+      ],
+      "region": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    }
+  ]
+}
