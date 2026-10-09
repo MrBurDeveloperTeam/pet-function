@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AIRCRAFT,levelForXp,normalizeProgress,progressKey,awardRun,upgradeAircraft,UPGRADE_COSTS} from '../src/pet/internal/components/airStrikeProgress.mjs';
+import {AIRCRAFT,levelForXp,normalizeProgress,progressKey,awardRun,flightExperience,upgradeAircraft,UPGRADE_COSTS} from '../src/pet/internal/components/airStrikeProgress.mjs';
+test('pet XP reward continues after flight XP cap and rejects malformed results',()=>{
+ assert.equal(flightExperience({score:500,outcome:'defeat'}),5);
+ assert.equal(flightExperience({score:500,outcome:'victory'}),105);
+ assert.equal(awardRun(normalizeProgress({xp:8100}),{score:500,outcome:'victory'}).xp,8100);
+ assert.equal(flightExperience({score:-1,outcome:'victory'}),0);
+ assert.equal(flightExperience({score:500,outcome:'paused'}),0);
+});
 test('flight progression is separate, capped and has ten aircraft',()=>{
  assert.equal(AIRCRAFT.length,10);
  for(let lv=1;lv<=10;lv++) assert.equal(levelForXp(100*(lv-1)**2),lv);

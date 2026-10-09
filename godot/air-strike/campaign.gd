@@ -4,6 +4,8 @@ var game
 var active = false
 var waiting = 1.0
 var boss_phase = false
+var alert_age = 0.0
+var alert_pulse = -1
 var bosses_defeated = 0
 var infinite_wave = 0
 var super_offer = false
@@ -17,6 +19,8 @@ func reset():
 	active = false
 	waiting = 1
 	boss_phase = false
+	alert_age = 0.0
+	alert_pulse = -1
 	bosses_defeated = 0
 	infinite_wave = 0
 	super_offer = false
@@ -84,21 +88,16 @@ func update(delta: float):
 		active = false
 		waiting = 1.5
 		game.enemy_shots.clear()
-		if not game.infinite_mode: game.progression.offer()
 		return
 	waiting -= delta
 	if waiting > 0: return
-	if not game.infinite_mode and game.wave >= wave_limit():
-		boss_phase = true
-		game.spawn_boss()
-		prepare_boss(game.enemies.back())
+	if not game.infinite_mode and game.wave >= wave_limit() and not game.progression.routes(true).is_empty():
+		begin_boss_alert()
 		return
 	game.wave += 1
 	infinite_wave = game.wave if game.infinite_mode else 0
-	if game.infinite_mode and game.wave%10 == 0:
-		boss_phase = true
-		game.spawn_boss()
-		prepare_boss(game.enemies.back())
+	if game.infinite_mode and game.wave%10 == 0 and not game.progression.routes(true).is_empty():
+		begin_boss_alert()
 		return
 	active = true
 	var scale = scaling()
@@ -115,11 +114,34 @@ func update(delta: float):
 		game.spawn_enemy(kind,Vector2(game.arena_size.x*x,-40-int(i/6)*70),i,role,elite)
 	game.notice = "WAVE %d / %s" % [game.wave,"THREAT %d" % threat() if game.infinite_mode else str(wave_limit())]
 	game.notice_time = 2
+func begin_boss_alert():
+	boss_phase = true
+	alert_age = 0.0
+	alert_pulse = -1
+	game.enemy_shots.clear()
+	hazards.clear()
+	game.dragging = false
+	game.state = "boss_alert"
+func update_alert(delta: float):
+	alert_age += delta
+	var pulse = int(alert_age / 0.55)
+	if pulse != alert_pulse:
+		alert_pulse = pulse
+		game.play_cue("boss_warning")
+	game.impact_shake = 4.0 + 2.0 * sin(alert_age * 18.0)
+	if alert_age >= 3.0:
+		game.impact_shake = 0.0
+		game.state = "playing"
+		game.spawn_boss()
+		prepare_boss(game.enemies.back())
 func prepare_boss(e: Dictionary):
 	decorate(e,"boss",false)
+	# Vary the opening pair so shorter boss fights also expose the new attacks.
+	e.attack = game.rng.randi_range(0,8)*2
 	e.mutations = []
 	e.stage_phase = 1
 	e.boss_ability = 7.0
+	e.summon_timer = 5.0
 	e.max_hp *= 1.5 if game.infinite_mode and infinite_wave%50 == 0 else 1.0
 	e.hp = e.max_hp
 	if not game.infinite_mode:
@@ -145,9 +167,7 @@ func boss_defeated():
 	hazards.clear()
 	game.enemies.clear()
 	if not game.infinite_mode and game.stage_level == 99 and bosses_defeated < 3:
-		game.spawn_boss()
-		prepare_boss(game.enemies.back())
-		game.progression.offer()
+		begin_boss_alert()
 		return
 	if not game.infinite_mode:
 		game.finish_run("victory")
@@ -156,9 +176,9 @@ func boss_defeated():
 	game.boss_spawned = false
 	waiting = 2
 	super_offer = infinite_wave%50 == 0
-	game.progression.offer()
 	game.send_checkpoint()
 func damage_enemy(e: Dictionary, damage: float, critical: bool = false) -> float:
+	if not game.boss_can_take_damage(e): return 0
 	if e.get("shield",0) > 0:
 		e.shield -= 1
 		game.add_effect(e.pos,"shield_hit",0.3,e.radius+12)
@@ -214,6 +234,11 @@ func fire(e: Dictionary) -> bool:
 		game.enemy_shots.append({"pos":origin,"vel":direction*speed,"radius":5.0,"damage":e.get("damage",1.0),"homing_time":0.65 if role == "missile" else 0.0,"pattern":role == "spread" and chapter() >= 7})
 	return true
 func update_boss(e: Dictionary, delta: float):
+	if not game.boss_can_take_damage(e): return
+	e.summon_timer = e.get("summon_timer",5.0)-delta
+	if e.summon_timer <= 0:
+		e.summon_timer += 5.0
+		summon(e,["fighter","fighter","fighter"])
 	if not e.has("mutations"): return
 	if game.stage_level in [98,100] and not game.infinite_mode:
 		var phase = 1 if e.hp/e.max_hp > 0.75 else (2 if e.hp/e.max_hp > 0.5 else (3 if e.hp/e.max_hp > 0.25 else 4))
@@ -221,7 +246,6 @@ func update_boss(e: Dictionary, delta: float):
 			e.stage_phase = phase
 			game.notice = "FINAL BOSS / PHASE %d" % phase
 			game.notice_time = 2
-			if phase >= 2: summon(e,["fighter","shield_support","healer"])
 			if phase >= 3: hazard_timer = 0
 			if phase == 4 and not e.mutations.has("berserk"): e.mutations.append("berserk")
 	e.boss_ability -= delta
@@ -231,33 +255,127 @@ func update_boss(e: Dictionary, delta: float):
 	e.boss_ability = 9
 	if e.mutations.has("shield"): e.shield = maxi(e.get("shield",0),1)
 	if e.mutations.has("regeneration"): e.hp = minf(e.max_hp,e.hp+e.max_hp*0.03)
-	if e.mutations.has("summon") or e.mutations.has("clone"): summon(e)
 	if e.mutations.has("teleport"): e.age += PI
 	if e.mutations.has("laser"): hazard_timer = 0
 	if e.mutations.has("missile"):
 		game.enemy_shots.append({"pos":e.pos+Vector2(0,80),"vel":Vector2(0,150),"radius":6.0,"boss":true,"damage":e.damage,"homing_time":0.65})
+func hazard_age(h: Dictionary) -> float:
+	return h.get("age",0.0)
+func hazard_firing(h: Dictionary) -> bool:
+	return hazard_age(h) >= 2.0 and hazard_age(h) < 3.0
+func hazard_station(h: Dictionary) -> Vector2:
+	var size: Vector2 = game.sprites["laser_strike"].get_size()*1.5
+	return Vector2(h.line*game.arena_size.x,size.y/2+8) if h.vertical else Vector2(size.y/2+8,h.line*game.arena_size.y)
+func hazard_position(h: Dictionary) -> Vector2:
+	var station = hazard_station(h)
+	var direction = Vector2.DOWN if h.vertical else Vector2.RIGHT
+	var age = hazard_age(h)
+	if age < 0.5:
+		return station-direction*220*pow(1-age/0.5,2)
+	if age >= 3.0:
+		return station+(direction.orthogonal()*500-direction*180)*pow((age-3.0)/0.5,2)
+	return station
+func hazard_origin(h: Dictionary) -> Vector2:
+	var direction = Vector2.DOWN if h.vertical else Vector2.RIGHT
+	return hazard_station(h)+direction*(game.sprites["laser_strike"].get_height()*0.75-4)
+func hazard_area(h: Dictionary) -> Rect2:
+	var origin = hazard_origin(h)
+	if h.vertical:
+		var width: float = h.width*game.arena_size.x
+		return Rect2(Vector2(origin.x-width,origin.y),Vector2(width*2,maxf(0,game.arena_size.y-origin.y)))
+	var width: float = h.width*game.arena_size.y
+	return Rect2(Vector2(origin.x,origin.y-width),Vector2(maxf(0,game.arena_size.x-origin.x),width*2))
 func update_hazards(delta: float):
 	for i in range(hazards.size()-1,-1,-1):
 		var h = hazards[i]
-		h.life -= delta
+		h.age = hazard_age(h)+delta
+		h.life = 3.5-h.age
 		if h.life <= 0: hazards.remove_at(i); continue
-		var axis: float = game.player.x/game.arena_size.x if h.vertical else game.player.y/game.arena_size.y
-		if h.life < 1.0 and absf(axis-h.line) < h.width:
+		if h.age >= 0.5 and h.age < 2.0 and not h.get("charging",false):
+			h.charging = true
+			game.play_cue("field_charge")
+		if hazard_firing(h) and not h.get("fired",false):
+			h.fired = true
+			game.play_cue("field_laser")
+			game.impact_shake = maxf(game.impact_shake,3.0)
+		if hazard_firing(h) and hazard_area(h).has_point(game.player):
 			game.hit_player(false,scaling().damage)
 	if chapter() < 6 and not game.infinite_mode: return
 	hazard_timer -= delta
 	if hazard_timer > 0 or not hazards.is_empty() or game.enemy_shots.size() > 12: return
 	if boss_phase and game.enemies.any(func(e): return e.kind == "boss" and (e.get("warning",false) or e.get("volley",0) > 0)): return
 	hazard_timer = 12
-	# Narrow marked lanes leave most of the field safe, independent of viewport size.
-	hazards.append({"vertical":game.wave%2 == 0,"line":game.rng.randf_range(0.25,0.75),"width":0.045,"life":2.5})
+	# These invulnerable strike aircraft are scenery hazards, never enemy targets.
+	hazards.append({"vertical":game.wave%2 == 0,"line":game.rng.randf_range(0.25,0.75),"width":0.045,"age":0.0,"life":3.5})
 func draw_hazards():
 	for h in hazards:
-		var area = Rect2((h.line-h.width)*game.arena_size.x,0,h.width*2*game.arena_size.x,game.arena_size.y) if h.vertical else Rect2(0,(h.line-h.width)*game.arena_size.y,game.arena_size.x,h.width*2*game.arena_size.y)
-		game.paint.draw_rect(area,Color(1,0.25,0.12,0.45 if h.life < 1 else 0.10))
-		game.paint.draw_rect(area,Color("ffbd75"),false,2)
-		game.text_at("LASER / MOVE OUT" if h.life >= 1 else "DANGER",area.position+Vector2(8,25),12,Color("ffdf98"))
+		var age = hazard_age(h)
+		if age < 0.5 or age >= 3.0: continue
+		var area = hazard_area(h)
+		var active = hazard_firing(h)
+		var pulse = 0.5+0.5*sin(game.elapsed*18)
+		var start = hazard_origin(h)
+		var finish = Vector2(start.x,game.arena_size.y) if h.vertical else Vector2(game.arena_size.x,start.y)
+		var width: float = area.size.x if h.vertical else area.size.y
+		game.paint.draw_rect(area,Color(1,0.08,0.18,0.85 if active else 0.22+pulse*0.22))
+		game.paint.draw_rect(area,Color("ffffff") if active else Color("ffba53"),false,4)
+		if active:
+			var fade = minf(1.0,(3.0-age)/0.18)
+			game.paint.draw_line(start,finish,Color(1,0.38,0.05,0.8*fade),width*0.82*fade,false)
+			game.paint.draw_line(start,finish,Color(1,0.94,0.5,fade),width*0.65*fade,false)
+			game.paint.draw_line(start,finish,Color(1,1,1,fade),width*(0.32+pulse*0.08)*fade,false)
+			var previous = start
+			for i in range(1,25):
+				var point = start.lerp(finish,i/24.0)
+				var offset = sin(i*2.3+game.elapsed*32)*width*0.30*fade
+				point += Vector2(offset,0) if h.vertical else Vector2(0,offset)
+				game.paint.draw_line(previous,point,Color(1,0.96,0.82,fade),3,false)
+				previous = point
+		else:
+			for i in range(18):
+				var point = start.lerp(finish,i/18.0)
+				var tangent = Vector2(0,12) if h.vertical else Vector2(12,0)
+				game.paint.draw_line(point,point+tangent,Color(1,0.85,0.45,0.7+pulse*0.3),3,false)
+		var warning_pos = start+(Vector2(0,30) if h.vertical else Vector2(30,0))
+		game.paint.draw_circle(warning_pos,16,Color("32151b"))
+		game.paint.draw_arc(warning_pos,16,0,TAU,24,Color("fff0b5"),2,false)
+		game.paint.draw_rect(Rect2(warning_pos+Vector2(-2,-9),Vector2(4,11)),Color("fff0b5"))
+		game.paint.draw_rect(Rect2(warning_pos+Vector2(-2,6),Vector2(4,4)),Color("fff0b5"))
+func draw_hazard_aircraft():
+	for h in hazards:
+		var pos = hazard_position(h)
+		var direction = Vector2.DOWN if h.vertical else Vector2.RIGHT
+		var size: Vector2 = game.sprites["laser_strike"].get_size()*1.5
+		var rotation = PI if h.vertical else PI/2
+		game.paint.draw_set_transform(pos+Vector2(5,8),rotation)
+		game.paint.draw_texture_rect(game.sprites["laser_strike"],Rect2(-size/2,size),false,Color(0,0.03,0.05,0.5))
+		game.paint.draw_set_transform(pos,rotation)
+		game.paint.draw_texture_rect(game.sprites["laser_strike"],Rect2(-size/2,size),false)
+		game.paint.draw_set_transform(Vector2.ZERO)
+		var age = hazard_age(h)
+		var exhaust = pos-direction*size.y*0.4
+		game.glow(exhaust,28,Color("ffac53"),1.4,1.38)
+		game.paint.draw_line(exhaust,exhaust-direction*(50 if age < 0.5 or age >= 3 else 15),Color("fff0aa"),5,false)
+		if age >= 0.5 and age < 3.0:
+			var nose = hazard_origin(h)
+			var charge = clampf((age-0.5)/1.5,0,1)
+			game.glow(nose,25+charge*35,Color("ffbb63"),1.0+charge*2,1.38)
+			game.paint.draw_circle(nose,4+charge*8,Color("ffffff"))
+			if not hazard_firing(h):
+				game.paint.draw_arc(nose,28-charge*10,game.elapsed*5,game.elapsed*5+PI*1.6,24,Color("ffeb8a"),3)
 func draw_enemy(e: Dictionary):
+	if e.kind == "boss" and not game.boss_can_take_damage(e):
+		var dimensions: Vector2 = game.aircraft_dimensions("boss")
+		var radius = maxf(dimensions.x,dimensions.y)*0.5+18
+		var pulse = 0.5+0.5*sin(game.elapsed*7)
+		game.glow(e.pos,radius*1.2,Color("53cfff"),0.35,1.38)
+		game.paint.draw_circle(e.pos,radius,Color(0.15,0.62,1,0.12+pulse*0.05))
+		game.paint.draw_arc(e.pos,radius,0,TAU,64,Color("8eeeff"),4,false)
+		game.paint.draw_arc(e.pos,radius-7,0,TAU,64,Color(0.3,0.75,1,0.55),2,false)
+		for i in range(4):
+			var angle = game.elapsed*1.7+i*TAU/4
+			game.paint.draw_arc(e.pos,radius+5,angle,angle+0.6,12,Color("e2ffff"),5,false)
+		# The same visibility predicate controls both the shield and damage immunity.
 	if e.get("shield",0) > 0:
 		game.paint.draw_arc(e.pos,e.radius+9,0,TAU,32,Color("8acbff"),3)
 	if e.get("elite",false):

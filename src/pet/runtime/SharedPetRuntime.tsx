@@ -455,7 +455,15 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
         if (!userId) return;
         try {
             if (repository.addXP) {
-                const result = await repository.addXP(userId, delta);
+                // Existing hosts check one level per RPC. Keep each award at
+                // one threshold so large game rewards level up consistently.
+                let result = await repository.addXP(userId, Math.min(delta, XP_TO_LEVEL_UP));
+                let remaining = delta - Math.min(delta, XP_TO_LEVEL_UP);
+                while (remaining > 0) {
+                    const portion = Math.min(remaining, XP_TO_LEVEL_UP);
+                    result = await repository.addXP(userId, portion);
+                    remaining -= portion;
+                }
                 setStats(prev => ({ ...prev, xp: result.xp, level: result.level, coins: result.coins }));
             } else {
                 // Backward-compatible fallback for a host repository that
@@ -854,10 +862,11 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             let newLevel = prev.level;
             let newCoins = prev.coins;
             if (newXP >= XP_TO_LEVEL_UP) {
-                newXP -= XP_TO_LEVEL_UP;
-                newLevel += 1;
-                newCoins = (prev.coins || 0) + 50;
-                coinsDelta = 50;
+                const gainedLevels = Math.floor(newXP / XP_TO_LEVEL_UP);
+                newXP -= XP_TO_LEVEL_UP * gainedLevels;
+                newLevel += gainedLevels;
+                newCoins = (prev.coins || 0) + 50 * gainedLevels;
+                coinsDelta = 50 * gainedLevels;
                 nextStats = {
                     ...prev,
                     level: newLevel,

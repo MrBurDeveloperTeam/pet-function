@@ -90,7 +90,7 @@ body {
 	z-index: 1;
 }
 		@font-face{font-family:Pixel;src:url('Quadrit.ttf')}
-#status{position:fixed;inset:0;background:#211610 url('loading-mine.png') center/cover no-repeat;display:block;color:#fff1d0;font-family:Pixel,monospace;isolation:isolate;z-index:10}
+#status{position:fixed;inset:0;background:#211610 url('loading-mine.png?v=keyart-2') center/cover no-repeat;display:block;color:#fff1d0;font-family:Pixel,monospace;isolation:isolate;z-index:10}
 #status:before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(20,12,8,.05) 30%,rgba(20,12,8,.88) 100%)}
 #status-splash{display:none}.loading-scene{position:absolute;left:8%;bottom:10%;width:min(620px,84%)}.eyebrow{font-size:11px;letter-spacing:3px;color:#dbc9a6}h1{font-size:clamp(30px,4vw,48px);margin:14px 0 28px;line-height:1.2;text-shadow:3px 3px #39271d}
 #status-progress{position:static;display:block;width:100%;height:20px;box-sizing:border-box;border:2px solid #d6b87c;padding:3px;background:#211610;position:relative;overflow:hidden}
@@ -222,6 +222,7 @@ window.addEventListener('message', (event) => {
 					statusFill.style.width = downloadPercent + '%';
 					statusProgress.setAttribute('aria-valuenow', String(downloadPercent));
 					document.getElementById('loading-percent').textContent = downloadPercent+'%';
+					notifyHost('game-progress', { progress: downloadPercent });
 					if(current>=total) document.getElementById('loading-phase').textContent='GETTING READY TO PLAY';
 				} else {
 					statusProgress.removeAttribute('aria-valuenow');

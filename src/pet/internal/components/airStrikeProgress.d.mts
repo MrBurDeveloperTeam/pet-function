@@ -1,6 +1,7 @@
 export type FlightProgress = {version:number;xp:number;best:number;runs:number;aircraftTier:number;highestCleared:number;endlessBest:number};
 export const AIRCRAFT: [string,string,number[]][];
 export function levelForXp(xp:number):number;
+export function flightExperience(result:{score:number;outcome:string}):number;
 export function normalizeProgress(value:unknown):FlightProgress;
 export function progressKey(userId?:string|null):string;
 export function awardRun(progress:FlightProgress,result:{score:number;outcome:string}):FlightProgress;

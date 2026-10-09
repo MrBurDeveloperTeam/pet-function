@@ -1,5 +1,5 @@
 export const TALENTS = [
- ['Firepower Boost','Damage +10%.'],['Rapid Fire','Fire rate +10%.'],['Starting Skill Choice','Choose one starting skill from four options instead of three.'],
+ ['Firepower Boost','Damage +10%.'],['Rapid Fire','Fire rate +10%.'],['Starting Skill Choice','Choose one extra starting skill. Three options per choice.'],
  ['Extra Bullet I','Start with two parallel firing lanes.'],['Extra Bullet II','Start with three spread firing lanes, replacing parallel fire.'],
  ['Piercing Rounds I','Bullets pierce one additional enemy. Bosses stop piercing rounds.'],['Piercing Rounds II','Bullets pierce two additional enemies. Bosses stop piercing rounds.'],
  ['Critical Power','Critical damage +20% (200% → 240%). Base critical chance: 10%.'],

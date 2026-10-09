@@ -221,12 +221,6 @@ export const GamesMenu: React.FC<GamesMenuProps> = ({ onStartGame, onClose, extr
                 ×
             </button>
             <div className="flex flex-wrap justify-center gap-4">
-            <button onClick={() => onStartGame('air-strike')} className="flex flex-col items-center group transition-all duration-200 ease-out hover:scale-105 active:scale-95">
-                <div className="w-20 h-20 rounded-2xl shadow-lg flex items-center justify-center border-4 border-white/50" style={{ background: '#164b62' }}>
-                    <svg viewBox="0 0 80 80" width="64" height="64" aria-hidden="true"><path fill="#d5d9c8" d="M40 8L46 30L70 43L68 51L46 45L44 62L53 67V72H27V67L36 62L34 45L12 51L10 43L34 30Z"/><path fill="#467a93" d="M37 24h6v16h-6z"/><path fill="#edb75d" d="M36 73h8l-4 7z"/></svg>
-                </div>
-                <span className="text-[10px] font-black text-white mt-1.5 uppercase tracking-wide drop-shadow-md">Sky Patrol</span>
-            </button>
             <button
                 onClick={() => onStartGame('flappy')}
                 className="flex flex-col items-center group transition-all duration-200 ease-out hover:scale-105 active:scale-95"

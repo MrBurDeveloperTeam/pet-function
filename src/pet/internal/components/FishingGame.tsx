@@ -347,10 +347,19 @@ const CaughtFishReveal = ({ fish, onDismiss, preview }: { fish: FishingSpecies; 
   >
     <style>{`
       @keyframes fishingCatchReveal { from { opacity: 0; transform: scale(.08) } to { opacity: 1; transform: scale(1) } }
+      @keyframes fishingCatchRays { from { transform: translate(-50%,-50%) rotate(0deg) } to { transform: translate(-50%,-50%) rotate(360deg) } }
+      @keyframes fishingCatchSparkle { 0%,100% { opacity:.25; transform:scale(.55) rotate(-12deg) } 50% { opacity:1; transform:scale(1.15) rotate(12deg) } }
+      @keyframes fishingCatchRing { from { opacity:.85; transform:translate(-50%,-50%) scale(.1) } to { opacity:0; transform:translate(-50%,-50%) scale(1.5) } }
+      @keyframes fishingCatchHint { from { opacity:0; transform:translate(-50%,12px) } to { opacity:1; transform:translate(-50%,0) } }
       .fishing-catch-reveal img { animation: fishingCatchReveal 1100ms cubic-bezier(.16,.65,.25,1) both; }
-      @media (prefers-reduced-motion: reduce) { .fishing-catch-reveal img { animation: none; } }
+      @media (prefers-reduced-motion: reduce) { .fishing-catch-reveal img,.fishing-catch-reveal .catch-sparkle { animation:none;opacity:1 } .fishing-catch-reveal .catch-rays,.fishing-catch-reveal .catch-ring { animation:none } .fishing-catch-reveal .catch-ring { display:none } .fishing-catch-reveal .catch-hint { animation:none;transform:translateX(-50%) } }
     `}</style>
-    <img src={fish.image} alt={fish.label} draggable={false} style={{ width: '96%', height: '94%', objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', userSelect: 'none', filter: 'drop-shadow(0 12px 28px rgba(0,0,0,.65))' }} />
+    <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center,rgba(255,204,96,.26),rgba(85,160,155,.08) 48%,transparent 72%)', pointerEvents: 'none' }} />
+    <span className="catch-rays" aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%', width: '150vmax', height: '150vmax', background: 'repeating-conic-gradient(from 10deg,transparent 0deg 13deg,rgba(255,216,133,.12) 13deg 18deg,transparent 18deg 30deg)', maskImage: 'radial-gradient(circle,transparent 8%,black 22%,transparent 67%)', animation: 'fishingCatchRays 40s linear infinite', pointerEvents: 'none' }} />
+    {[0, 1].map(index => <span key={index} className="catch-ring" aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%', width: '65vmin', height: '65vmin', border: '2px solid rgba(255,227,158,.65)', borderRadius: '50%', boxShadow: '0 0 18px rgba(255,213,117,.4)', animation: `fishingCatchRing 1600ms ${index * 240}ms ease-out both`, pointerEvents: 'none' }} />)}
+    {[[14,24],[25,15],[42,10],[66,14],[82,23],[90,45],[80,70],[68,82],[40,84],[23,74],[10,56],[19,44]].map(([left, top], index) => <svg key={index} className="catch-sparkle" viewBox="0 0 32 32" aria-hidden="true" style={{ position: 'absolute', left: `${left}%`, top: `${top}%`, width: `clamp(16px,${index % 3 + 1.3}vw,42px)`, height: `clamp(16px,${index % 3 + 1.3}vw,42px)`, overflow: 'visible', filter: 'drop-shadow(0 0 8px #ffd577)', animation: `fishingCatchSparkle ${1800 + index * 110}ms ${index * 130}ms ease-in-out infinite`, pointerEvents: 'none' }}><path d="M16 0 20 11 32 16 20 20 16 32 12 20 0 16 12 11Z" fill={index % 3 === 0 ? '#fff8d9' : '#ffda7b'} /><path d="M16 8 18 14 24 16 18 18 16 24 14 18 8 16 14 14Z" fill="#fffbee" /></svg>)}
+    <img src={fish.image} alt={fish.label} draggable={false} style={{ position: 'relative', width: '96%', height: '90%', objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', userSelect: 'none', filter: 'drop-shadow(0 12px 28px rgba(0,0,0,.65)) drop-shadow(0 0 22px rgba(255,213,113,.25))' }} />
+    <span className="catch-hint" style={{ position: 'absolute', left: '50%', bottom: 'max(4%, env(safe-area-inset-bottom))', width: '90%', color: '#fff1ce', fontFamily: 'monospace', fontSize: 'clamp(12px,1.3vw,18px)', fontWeight: 700, textAlign: 'center', letterSpacing: '.06em', textShadow: '0 2px 6px #000', animation: 'fishingCatchHint 500ms 900ms ease-out both', pointerEvents: 'none' }}>PRESS SPACE OR CLICK ANYWHERE TO CLOSE</span>
   </button>;
   return preview ? reveal : createPortal(reveal, document.body);
 };

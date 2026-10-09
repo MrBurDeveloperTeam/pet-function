@@ -12,7 +12,7 @@ func run():
 	root.add_child(game)
 	game.allow_skill_choices = false
 	game.set_physics_process(false)
-	check(game.sprites.size() == 4 and game.ocean_texture != null, "all production visual assets load")
+	check(["player","fighter","bomber","ship","drone"].all(func(kind): return game.sprites.has(kind)) and game.ocean_texture != null, "all production visual assets load")
 	for sprite in game.sprites.values():
 		check(sprite.get_width() > 0 and sprite.get_height() > 0, "atlas regions have valid dimensions")
 	game.burst(Vector2(200,200),700,"fire")
@@ -33,15 +33,22 @@ func run():
 	check(game.enemies.is_empty() and game.score == 100, "swept bullet collision prevents tunneling")
 	check(game.effects[0].kind == "impact" and game.effects[0].pos.distance_to(Vector2(240,400)) < 30, "fast bullets emit impact at the enemy rather than beyond it")
 	check(game.particles.any(func(p): return p.kind == "debris") and game.particles.any(func(p): return p.kind == "smoke"), "destroyed aircraft emit debris and smoke")
-	game.drops = [{"pos":game.player,"kind":"power","age":0.0}]
-	game.update_drops(0.01)
-	check(game.power == 2, "weapon pickup")
-	game.fire_player()
-	check(game.shots.size() == 3, "upgrade adds wing guns")
-	game.enemy_shots.append({"pos":game.player,"vel":Vector2.ZERO,"radius":5.0})
 	game.spawn_enemy("bomber",Vector2(100,300))
-	game.use_bomb()
-	check(game.bombs == 2 and game.enemy_shots.is_empty() and game.enemies.is_empty(), "bomb clears bullets and destroys regular enemies")
+	game.kill_enemy(0)
+	check(game.drops.all(func(d): return d.kind != "power"),"bomber no longer drops weapon upgrades")
+	game.shots.clear()
+	game.fire_player()
+	check(game.shots.size() == 1,"enemy kill does not add wing guns")
+	game.enemy_shots.append({"pos":Vector2(200,200),"vel":Vector2.ZERO,"radius":5.0})
+	game.spawn_enemy("bomber",Vector2(100,300))
+	for key in [KEY_B,KEY_SPACE]:
+		var press = InputEventKey.new()
+		press.keycode = key
+		press.pressed = true
+		game._unhandled_input(press)
+	check(game.enemy_shots.size() == 1 and game.enemies.size() == 1,"B and Space cannot trigger bombs")
+	game.enemies.clear()
+	game.enemy_shots.clear()
 	game.toggle_pause()
 	var time = game.elapsed
 	var pos = game.player
@@ -51,7 +58,7 @@ func run():
 	for i in range(3):
 		game.invincible = 0
 		game.hit_player()
-	check(game.state == "defeat" and game.hp == 0, "three armor hits end run")
+	check(game.state == "ending_defeat" and game.hp == 0, "three armor hits end run")
 	check(game.effects.any(func(e): return e.kind == "damage") and game.effects.any(func(e): return e.kind == "explosion"), "fatal player hit emits damage feedback and explosion")
 	game._physics_process(2.0)
 	check(game.effects.is_empty() and game.particles.is_empty() and game.hit_flash == 0, "effects finish after defeat instead of freezing behind results")
@@ -65,10 +72,10 @@ func run():
 	game._physics_process(0.01)
 	check(game.boss_spawned and game.enemies[0].kind == "boss", "boss appears at end of stage")
 	game.enemies[0].hp = 1
-	game.use_bomb()
-	check(game.state == "victory", "boss defeat clears mission")
+	game.kill_enemy(0)
+	check(game.state == "ending_victory", "boss defeat clears mission")
 	game.reset_run()
-	check(game.score == 0 and game.enemies.is_empty() and game.shots.is_empty() and game.drops.is_empty() and not game.boss_spawned and game.bombs == 3, "restart clears previous run")
+	check(game.score == 0 and game.enemies.is_empty() and game.shots.is_empty() and game.drops.is_empty() and not game.boss_spawned, "restart clears previous run")
 	game.hp = 2
 	game.invincible = 1
 	game.hit_player()
@@ -82,7 +89,7 @@ func run():
 	touch.pressed = true
 	touch.position = Vector2(100,100)
 	game._unhandled_input(touch)
-	check(game.bombs == 2 and game.dragging and game.pointer_id == 0, "second finger bombs while first finger steers")
+	check(game.dragging and game.pointer_id == 0, "second finger is ignored while first finger steers")
 	game.reset_run()
 	for frame in range(4501):
 		game.invincible = 999
@@ -111,8 +118,6 @@ func run():
 	game.shots.append({"pos":Vector2(game.arena_size.x/2,400),"vel":Vector2(0,-10000),"damage":1})
 	game.update_shots(0.04)
 	check(game.enemies.is_empty(), "collision still works after repeated resizes")
-	game.use_bomb()
-	check(game.bombs == 2, "bomb still works after resizing")
 	game.reset_run()
 	game.explode(Vector2(400,200),82,true)
 	check(game.effects.size() == 8 and game.effects[1].life > game.effects[1].duration, "boss explosion schedules staggered fireballs")

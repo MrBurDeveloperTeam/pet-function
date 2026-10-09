@@ -16,7 +16,10 @@ var airstriking = false
 var energy = 0
 var skill_level = 0
 var choices: Array = []
+var choice_age = 0.0
+const CHOICE_ANIMATION_DURATION = 0.2
 var opening_choices = 0
+var missile_side = -1
 var ascensions = {"laser":0,"crit":0,"shield":0}
 const LIBRARY = [
  ["bullet","Extra bullet","One extra starting bullet",1,"",[]],
@@ -66,7 +69,9 @@ func reset():
 	energy = 0
 	skill_level = 0
 	choices.clear()
+	choice_age = 0.0
 	opening_choices = 0
+	missile_side = -1
 	ascensions = {"laser":0,"crit":0,"shield":0}
 
 func routes(ultimate_only: bool = false) -> Array:
@@ -111,13 +116,15 @@ func candidate_pool(tier: int) -> Array:
 			result.append(entry)
 	return result
 func offer(initial: bool = false):
-	if not game.allow_skill_choices:
+	if not game.allow_skill_choices or routes(true).size() >= 4:
 		return
+	if initial and opening_choices == 0:
+		opening_choices = 2 if has(3) else 1
 	choices.clear()
 	if game.infinite_mode and routes(true).size() >= 6:
 		choices = [["ascend_laser","Ring laser II","Laser damage +5%",0,"",[]],["ascend_crit","Super critical II","Critical damage +5%",0,"",[]],["ascend_shield","Shield II","Shield cooldown -5%",0,"",[]]]
 	else:
-		for slot in range(4 if has(3) else 3):
+		for slot in range(3):
 			var tier = 1 if initial else roll_tier()
 			var pool = candidate_pool(tier)
 			while pool.is_empty() and tier > 1:
@@ -134,6 +141,8 @@ func offer(initial: bool = false):
 		choices = [["repair","Field repair","Recover 15% maximum HP",0,"",[]]]
 	game.campaign.super_offer = false
 	if not choices.is_empty():
+		choice_age = 0.0
+		game.play_cue("skill_offer")
 		game.state = "skill_choice"
 		game.dragging = false
 		game.pointer_id = -1
@@ -142,6 +151,7 @@ func choose(index: int):
 		return
 	var old_max = max_health()
 	var selected: String = choices[index][0]
+	game.play_cue("skill_choose")
 	if selected.begins_with("ascend_"):
 		ascensions[selected.trim_prefix("ascend_")] += 1
 	elif selected == "repair":
@@ -153,21 +163,25 @@ func choose(index: int):
 		shield_layers = 3 if skill("nuclear_shield") else 1
 	choices.clear()
 	game.state = "playing"
+	if opening_choices > 0:
+		opening_choices -= 1
+		if opening_choices > 0:
+			offer(true)
+			return
 	if energy >= energy_required():
 		collect_energy(0)
 func energy_required() -> int:
-	return 6+skill_level*3
+	return ceili((6+skill_level*3)*1.5)
 func collect_energy(amount: int):
 	energy += amount
 	if game.state == "skill_choice":
 		return
-	if energy >= energy_required():
+	while energy >= energy_required():
 		energy -= energy_required()
 		skill_level += 1
-		offer()
-		if game.allow_skill_choices and choices.is_empty():
-			skill_level -= 1
-			energy += energy_required()
+		if routes(true).size() < 4:
+			offer()
+			if game.state == "skill_choice": break
 
 func base_damage() -> float:
 	return 1.0+(game.player_tier-1)*0.1
@@ -188,7 +202,8 @@ func drone_damage() -> float:
 func drone_positions() -> Array:
 	var result = []
 	for i in range(drone_count()):
-		result.append((game.player+Vector2(-58 if i == 0 else 58,24)).clamp(Vector2(20,20),game.arena_size-Vector2(20,20)))
+		var pos: Vector2 = game.player+Vector2(-78 if i == 0 else 78,24)
+		result.append(pos if game.escaping else pos.clamp(Vector2(38,38),game.arena_size-Vector2(38,38)))
 	return result
 func projectile(pos: Vector2, velocity: Vector2, damage: float, source: String = "player", missile: bool = false) -> Dictionary:
 	var crit = game.rng.randf() < crit_chance() if source == "player" else false
@@ -209,7 +224,17 @@ func missile(pos: Vector2, damage: float, source: String = "player"):
 	var target = nearest(pos)
 	if target.is_empty():
 		return
-	game.shots.append(projectile(pos,(target.pos-pos).normalized()*360,damage,source,true))
+	var side = missile_side
+	missile_side *= -1
+	if pos.x < 80: side = 1
+	if pos.x > game.arena_size.x-80: side = -1
+	var launch = pos+Vector2(side*(24 if source == "drone" else 36),5)
+	var rocket = projectile(launch,Vector2(side*260,-160).normalized()*360,damage,source,true)
+	rocket.launch_age = 0.0
+	rocket.trail = [launch]
+	game.shots.append(rocket)
+	game.play_cue("missile")
+	game.glow_launch(launch)
 func update(delta: float):
 	missile_timer -= delta
 	if has(9) and missile_timer <= 0:
@@ -219,8 +244,9 @@ func update(delta: float):
 	drone_timer -= delta
 	for pos in drone_positions():
 		if drone_timer <= 0:
+			game.play_cue("drone")
 			for i in range(2 if skill("drone_boost") else 1):
-				game.shots.append(projectile(pos+Vector2(i*10-5,-12),Vector2(0,-580),drone_damage(),"drone"))
+				game.shots.append(projectile(pos+Vector2(i*10-5,-28),Vector2(0,-580),drone_damage(),"drone"))
 		if has(11) and drone_missile_timer <= 0:
 			missile(pos,current_damage()*0.5,"drone")
 	if drone_timer <= 0:
@@ -230,6 +256,7 @@ func update(delta: float):
 	if skill("shield") or skill("nuclear_shield"):
 		shield_timer -= delta
 		if shield_timer <= 0:
+			game.play_cue("shield")
 			shield_layers = 3 if skill("nuclear_shield") else 1
 			shield_timer = maxf(5,20*pow(0.95,ascensions.shield))
 	if airstrike_pending:
@@ -237,10 +264,11 @@ func update(delta: float):
 		airstriking = true
 		game.add_effect(game.player,"bomb",0.9,game.arena_size.x*0.9)
 		game.bomb_flash = 0.6
-		game.play_sound(55,0.3)
+		game.play_cue("airstrike")
 		for i in range(game.enemies.size()-1,-1,-1):
 			if i >= game.enemies.size(): continue
 			var e = game.enemies[i]
+			if not game.boss_can_take_damage(e): continue
 			e.hp -= current_damage()*5 if e.kind == "boss" else e.max_hp*(1.0 if e.kind == "fighter" and not e.get("elite",false) else 0.5)
 			e.flash = 0.13
 			if e.hp <= 0:
@@ -268,11 +296,13 @@ func on_hit(b: Dictionary, enemy: Dictionary, actual_damage: float):
 			game.hp = minf(max_health(),game.hp+(actual_damage+extra)*heal)
 func prevent_hit(allow_evade: bool = true) -> bool:
 	if shield_layers > 0:
+		game.play_cue("shield")
 		shield_layers -= 1
 		game.add_effect(game.player,"shield_hit",0.35,55)
 		return true
 	var evade = ((0.1 if skill("evade") else 0.0)+(0.2 if skill("double_counter") else 0.0)) if allow_evade else 0.0
 	if game.rng.randf() < evade:
+		game.play_cue("dodge")
 		game.add_effect(game.player,"impact",0.25,35)
 		if skill("counter") or skill("double_counter"):
 			for i in range(6 if skill("double_counter") else 3):
@@ -289,9 +319,11 @@ func survive() -> bool:
 		revive_used = true
 		game.hp = maxf(1,max_health()*0.3)
 		game.invincible = 2
+		game.play_cue("revive")
 		return true
 	else:
 		return false
 	game.hp = 1
+	game.play_cue("revive")
 	game.invincible = 2
 	return true

@@ -35,6 +35,13 @@ func card_rect(arena: Vector2, count: int, index: int) -> Rect2:
 func icon_index(id: String) -> int:
  var aliases = {"drone":"drone_boost","ascend_laser":"ring_laser","ascend_crit":"supercrit","ascend_shield":"nuclear_shield","repair":"life"}
  return maxi(0,IDS.find(aliases.get(id,id)))
+func draw_icon(g, id: String, image: Rect2):
+ if id == "drone" and drone_icon:
+  g.paint.draw_texture_rect(drone_icon,image,false)
+ elif atlas:
+  var cell = atlas.get_size()/Vector2(6,4)
+  var icon = icon_index(id)
+  g.paint.draw_texture_rect_region(atlas,image,Rect2(Vector2(icon%6,int(icon/6))*cell,cell))
 func label(g, text: String, rect: Rect2, y: float, size: int, color: Color):
  var fitted = size
  while fitted > 8 and g.font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,fitted).x > rect.size.x-16:
@@ -58,12 +65,7 @@ func draw_card(g, entry: Array, index: int):
  label(g,entry[1],title,title.position.y+21*ui_scale,maxi(8,int(16*ui_scale)),Color("f2eddb"))
  var image_height = minf(s.x-22,s.y*(.52 if s.y >= 280 else .42))
  var image = Rect2(Vector2(card.get_center().x-image_height/2,p.y+43*ui_scale),Vector2(image_height,image_height))
- if entry[0] == "drone" and drone_icon:
-  g.paint.draw_texture_rect(drone_icon,image,false)
- elif atlas:
-  var cell = atlas.get_size()/Vector2(6,4)
-  var icon = icon_index(entry[0])
-  g.paint.draw_texture_rect_region(atlas,image,Rect2(Vector2(icon%6,int(icon/6))*cell,cell))
+ draw_icon(g,entry[0],image)
  var divider = image.end.y+8*ui_scale
  g.paint.draw_line(Vector2(p.x+12,divider),Vector2(card.end.x-12,divider),Color(accent,0.5),1)
  for i in range(maxi(1,tier)):

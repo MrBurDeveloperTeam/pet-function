@@ -19,13 +19,15 @@ const PLAYER_SPEED = 340.0
 const ENEMY_FLIGHT_SPEED_SCALE = 0.5
 const PLAYER_SHOT_INTERVAL = 0.28
 var state = "menu"
+var arrival_age = 0.0
+const ARRIVAL_DURATION = 2.2
 var player = Vector2(480, 360)
 var hp = 3.0
+var boss_patterns = preload("res://boss_patterns.gd").new()
 var progression = preload("res://progression.gd").new()
 var skill_cards = preload("res://skill_cards.gd").new()
+var skill_inventory = preload("res://skill_inventory.gd").new()
 var allow_skill_choices = true
-var bombs = 3
-var power = 1
 var score = 0
 var best = 0
 var elapsed = 0.0
@@ -52,7 +54,12 @@ var impact_shake = 0.0
 var impact_light = 0.0
 var rng = RandomNumberGenerator.new()
 var font: Font
-var sfx: AudioStreamPlayer
+var audio = preload("res://combat_audio.gd").new()
+var ending_result = ""
+var ending_wait = 0.0
+var escaping = false
+var abandoned = false
+var pause_return_state = "playing"
 var sprites: Dictionary = {}
 var ocean_texture: Texture2D
 var glow_texture: GradientTexture2D
@@ -80,6 +87,18 @@ func _ready():
 	skill_cards.drone_icon = load("res://art/skill-combat-drone.png")
 	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var drone_art: Texture2D = load("res://art/combat-drone.png")
+	var drone_pixels = drone_art.get_image()
+	drone_pixels = drone_pixels.get_region(drone_pixels.get_used_rect())
+	drone_pixels.resize(64,roundi(64*drone_pixels.get_height()/float(drone_pixels.get_width())),Image.INTERPOLATE_NEAREST)
+	sprites["drone"] = ImageTexture.create_from_image(drone_pixels)
+	for asset in ["laser_strike","missile"]:
+		var art: Texture2D = load("res://art/"+asset+".png")
+		var pixels = art.get_image()
+		pixels = pixels.get_region(pixels.get_used_rect())
+		var size = 96 if asset == "laser_strike" else 32
+		pixels.resize(size,roundi(size*pixels.get_height()/float(pixels.get_width())),Image.INTERPOLATE_NEAREST)
+		sprites[asset] = ImageTexture.create_from_image(pixels)
 	visual_rng.seed = 1945
 	var gradient = Gradient.new()
 	gradient.colors = PackedColorArray([Color(1,1,1,0.8),Color(1,1,1,0.18),Color(1,1,1,0)])
@@ -138,8 +157,7 @@ func _ready():
 	var save = ConfigFile.new()
 	if save.load("user://sky-patrol.cfg") == OK:
 		best = int(save.get_value("record", "best", 0))
-	sfx = AudioStreamPlayer.new()
-	add_child(sfx)
+	add_child(audio)
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.airStrikeReady = true; window.parent.postMessage({source:'air-strike',type:'READY'}, window.location.origin)")
 	redraw_layers()
@@ -150,7 +168,7 @@ func _ready():
 func redraw_layers():
 	for node in render_nodes:
 		if node.layer == "battle":
-			node.position = Vector2(sin(impact_shake*91),cos(impact_shake*113))*impact_shake if state == "playing" else Vector2.ZERO
+			node.position = Vector2(sin(impact_shake*91),cos(impact_shake*113))*impact_shake if state in ["playing","boss_alert"] else Vector2.ZERO
 		node.queue_redraw()
 
 func remap_point(point: Vector2, old: Rect2, next: Rect2) -> Vector2:
@@ -182,6 +200,12 @@ func resize_arena(next_size: Vector2):
 	redraw_layers()
 
 func reset_run():
+	skill_inventory.reset()
+	ending_result = ""
+	ending_wait = 0
+	escaping = false
+	abandoned = false
+	play_cue("launch")
 	progression.reset()
 	campaign.reset()
 	run_id += 1
@@ -189,8 +213,6 @@ func reset_run():
 	player = Vector2(arena_size.x / 2.0, player_bounds.end.y - 28.0)
 	target = player
 	hp = 3
-	bombs = 3
-	power = 1
 	score = 0
 	elapsed = 0.0
 	fire_timer = 0.0
@@ -214,24 +236,69 @@ func reset_run():
 	bomb_flash = 0.0
 	impact_shake = 0.0
 	impact_light = 0.0
-	progression.offer(true)
+	if lobby_launch:
+		state = "arriving"
+		arrival_age = 0.0
+		player = Vector2(arena_size.x * 0.5, arena_size.y + 150.0)
+	else:
+		progression.offer(true)
 
 func toggle_pause():
-	if state == "playing":
+	if state in ["playing","skill_choice"]:
+		pause_return_state = state
+		play_cue("pause")
 		state = "paused"
 		dragging = false
 		pointer_id = -1
 	elif state == "paused":
-		state = "playing"
+		play_cue("resume")
+		state = pause_return_state
+
+func exit_run():
+	if state not in ["playing","paused","skill_choice"]: return
+	abandoned = true
+	ending_result = "defeat"
+	dragging = false
+	pointer_id = -1
+	complete_ending()
+	redraw_layers()
+
+func pause_button_rect() -> Rect2:
+	return Rect2(arena_size.x-114,12,44,40)
+
+func exit_button_rect() -> Rect2:
+	return Rect2(arena_size.x-60,12,44,40)
+
+func draw_run_controls():
+	if state not in ["playing","paused","skill_choice"]: return
+	var pause = pause_button_rect()
+	var door = exit_button_rect()
+	metal_plate(pause)
+	metal_plate(door,true)
+	for x in [pause.position.x+14,pause.position.x+25]:
+		paint.draw_rect(Rect2(x,pause.position.y+11,5,18),Color("fff0ad"))
+	paint.draw_rect(Rect2(door.position+Vector2(10,8),Vector2(17,25)),Color("8fdcd3"),false,2)
+	paint.draw_line(door.position+Vector2(19,20),door.position+Vector2(35,20),Color("fff0ad"),3)
+	paint.draw_polyline(PackedVector2Array([door.position+Vector2(29,14),door.position+Vector2(35,20),door.position+Vector2(29,26)]),Color("fff0ad"),3)
+	skill_inventory.draw_button(self)
+	if skill_inventory.opened:
+		skill_inventory.draw(self)
 
 func _notification(what):
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and state == "playing":
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and state == "playing" and not skill_inventory.opened:
 		toggle_pause()
 
 func _unhandled_input(event):
+	if skill_inventory.opened and event is InputEventKey:
+		if event.pressed and not event.echo and event.keycode in [KEY_ESCAPE,KEY_P]:
+			skill_inventory.toggle(self)
+		return
+	if state == "boss_alert": return
+	if lobby_launch and state in ["arriving", "victory", "defeat"]: return
 	if state == "skill_choice" and event is InputEventKey and event.pressed:
-		if event.keycode in [KEY_1,KEY_2,KEY_3,KEY_4]:
+		if not event.echo and progression.choice_age >= 0.3 and event.keycode in [KEY_1,KEY_2,KEY_3]:
 			progression.choose(event.keycode-KEY_1)
+		elif not event.echo and event.keycode in [KEY_P,KEY_ESCAPE]: toggle_pause()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ENTER or event.keycode == KEY_SPACE:
@@ -239,16 +306,10 @@ func _unhandled_input(event):
 				return_to_hangar()
 			elif state == "menu" or state == "defeat" or state == "victory":
 				reset_run()
-			elif event.keycode == KEY_SPACE:
-				use_bomb()
 		elif event.keycode == KEY_P or event.keycode == KEY_ESCAPE:
 			toggle_pause()
-		elif event.keycode == KEY_B:
-			use_bomb()
 	if event is InputEventScreenTouch:
-		if event.pressed and state == "playing" and pointer_id != -1 and event.index != pointer_id:
-			use_bomb()
-		elif event.pressed and pointer_id == -1:
+		if event.pressed and pointer_id == -1:
 			pointer_id = event.index
 			pointer_press(event.position)
 		elif not event.pressed and event.index == pointer_id:
@@ -265,13 +326,27 @@ func _unhandled_input(event):
 		pointer_move(event.position)
 
 func pointer_press(pos: Vector2):
+	if state in ["playing","paused","skill_choice"] and skill_inventory.button_rect(self).has_point(pos):
+		skill_inventory.toggle(self)
+		return
+	if skill_inventory.opened:
+		skill_inventory.pointer_press(self,pos)
+		return
+	if state == "boss_alert": return
+	if lobby_launch and state in ["arriving", "victory", "defeat"]: return
+	if state in ["playing","paused","skill_choice"]:
+		if pause_button_rect().has_point(pos):
+			toggle_pause()
+			return
+		if exit_button_rect().has_point(pos):
+			exit_run()
+			return
 	if state == "skill_choice":
+		if progression.choice_age < 0.3: return
 		for i in range(progression.choices.size()):
 			if skill_card_rect(i).has_point(pos):
 				progression.choose(i)
-		return
-	if lobby_launch and state == "paused" and hangar_rect.has_point(pos):
-		return_to_hangar()
+				return
 		return
 	if state in ["menu", "victory", "defeat"]:
 		if start_rect.has_point(pos):
@@ -298,10 +373,38 @@ func pointer_move(pos: Vector2):
 		target = target.clamp(player_bounds.position, player_bounds.end)
 
 func _physics_process(delta):
+	if skill_inventory.opened:
+		redraw_layers()
+		return
+	if state == "boss_alert":
+		campaign.update_alert(delta)
+		redraw_layers()
+		return
+	if state == "arriving":
+		arrival_age += delta
+		scroll += delta * 95.0
+		var t = clampf(arrival_age / ARRIVAL_DURATION, 0.0, 1.0)
+		var destination = Vector2(arena_size.x * 0.5, player_bounds.end.y - 28.0)
+		player = Vector2(arena_size.x * 0.5, arena_size.y + 150.0).lerp(destination, 1.0 - pow(1.0-t, 3.0))
+		target = player
+		if t >= 1.0:
+			state = "playing"
+			progression.offer(true)
+		redraw_layers()
+		return
+	if state == "skill_choice":
+		progression.choice_age += delta
 	if state not in ["paused","skill_choice"]:
 		scroll += delta * 44.0
 		update_visual_effects(delta)
+	if state in ["ending_victory","ending_defeat"]:
+		update_ending(delta)
 	if state != "playing":
+		redraw_layers()
+		return
+	# Never advance combat before the player has confirmed the opening choice.
+	if allow_skill_choices and progression.skills.is_empty() and progression.skill_level == 0:
+		progression.offer(true)
 		redraw_layers()
 		return
 	elapsed += delta
@@ -356,6 +459,7 @@ func laser_origin() -> Vector2:
 	return player+Vector2(0,-aircraft_dimensions("player").y*0.48).rotated(bank)
 
 func fire_player():
+	play_cue("laser_charge" if progression.skill("laser") or progression.skill("ring_laser") else "shot")
 	muzzle_flash = 0.0 if progression.skill("laser") or progression.skill("ring_laser") else 0.065
 	var count = (3 if progression.has(5) else (2 if progression.has(4) else 1))+(1 if progression.skill("bullet") else 0)
 	var damage: float = progression.current_damage()
@@ -367,11 +471,6 @@ func fire_player():
 		if progression.skill("ring_laser"):
 			angle = i*TAU/12
 		shots.append(progression.projectile(player+Vector2(offset if count < 3 else 0,-30),Vector2(0,-690).rotated(angle),damage))
-	if power >= 2:
-		for side in [-1.0, 1.0]:
-			shots.append(progression.projectile(player+Vector2(side*22,-10),Vector2(side*70,-660),damage))
-	if power >= 3:
-		shots.append(progression.projectile(player+Vector2(0,-38),Vector2(0,-730),damage*2))
 
 func spawn_enemy(kind: String, pos: Vector2, phase: float = 0.0, role: String = "", elite: bool = false):
 	var health = 3 if kind == "fighter" else (12 if kind == "bomber" else 18)
@@ -380,13 +479,20 @@ func spawn_enemy(kind: String, pos: Vector2, phase: float = 0.0, role: String = 
 	campaign.decorate(enemies.back(),role if role != "" else kind,elite)
 
 func spawn_boss():
+	play_cue("boss_warning")
 	boss_spawned = true
 	# Give the boss phase a clean field; lingering ships must not fill its safe lanes.
 	enemies.clear()
 	enemy_shots.clear()
 	notice = "WARNING  /  HEAVY BOMBER"
 	notice_time = 3.0
-	enemies.append({"kind": "boss", "pos": Vector2(arena_size.x * 0.5, combat_rect.position.y - 120), "origin_x": arena_size.x * 0.5, "phase": 0.0, "age": 0.0, "hp": 420, "max_hp": 420, "radius": 82.0, "fire": 2.0, "flash": 0.0,"attack":0,"volley":0,"warning":false,"telegraph":0.0,"gap_x":arena_size.x/2})
+	enemies.append({"kind": "boss", "pos": Vector2(arena_size.x * 0.5, combat_rect.position.y - 120), "origin_x": arena_size.x * 0.5, "phase": 0.0, "age": 0.0, "hp": 504, "max_hp": 504, "radius": 82.0, "fire": 2.0, "flash": 0.0,"attack":0,"volley":0,"warning":false,"telegraph":0.0,"gap_x":arena_size.x/2})
+
+func boss_entry_y() -> float:
+	return combat_rect.position.y+maxf(108.0,aircraft_dimensions("boss").y/2.0+8.0)
+
+func boss_can_take_damage(e: Dictionary) -> bool:
+	return e.kind != "boss" or combat_rect.encloses(Rect2(e.pos-aircraft_dimensions("boss")/2.0,aircraft_dimensions("boss")))
 
 func update_enemies(delta: float):
 	for i in range(enemies.size() - 1, -1, -1):
@@ -396,7 +502,7 @@ func update_enemies(delta: float):
 		e.age += delta
 		e.flash = maxf(0.0, e.flash - delta)
 		if e.kind == "boss":
-			e.pos.y = minf(combat_rect.position.y + 108.0, e.pos.y + delta * 70.0 * ENEMY_FLIGHT_SPEED_SCALE)
+			e.pos.y = minf(boss_entry_y(), e.pos.y + delta * 70.0 * ENEMY_FLIGHT_SPEED_SCALE)
 			e.pos.x = arena_size.x * 0.5 + sin(e.age * ENEMY_FLIGHT_SPEED_SCALE * (0.85 if e.get("mutations",[]).has("berserk") else 0.65)) * minf(arena_size.x * 0.25, 240.0)
 		else:
 			var speed = 120.0 if e.kind == "fighter" else (72.0 if e.kind == "bomber" else 44.0)
@@ -404,7 +510,7 @@ func update_enemies(delta: float):
 			if e.kind == "fighter":
 				e.pos.x = clampf(e.origin_x + sin(e.age * 2.0 * ENEMY_FLIGHT_SPEED_SCALE + e.phase) * 48.0, e.radius + 16.0, arena_size.x - e.radius - 16.0)
 		if e.kind == "boss":
-			if e.pos.y >= combat_rect.position.y+108:
+			if e.pos.y >= boss_entry_y():
 				update_boss_attack(e,delta)
 		else:
 			e.fire -= delta
@@ -438,7 +544,7 @@ func update_boss_attack(e: Dictionary, delta: float):
 		e.volley -= 1
 		e.fire = 0.65 if e.volley > 0 else 1.8
 		if e.volley == 0:
-			e.attack = (e.attack+1)%4
+			e.attack = (e.attack+1)%boss_patterns.LABELS.size()
 		return
 	# Never begin another pattern before the previous pattern has left the field.
 	if not campaign.hazards.is_empty(): return
@@ -448,23 +554,27 @@ func update_boss_attack(e: Dictionary, delta: float):
 		e.warning = true
 		e.telegraph = 1.1
 		e.gap_x = clampf(player.x,150,arena_size.x-150)
+		e.aim_point = player
 		return
 	e.telegraph -= delta
 	if e.telegraph > 0:
 		return
 	e.warning = false
 	fire_boss_pattern(e)
-	if e.attack == 0:
-		e.volley = 2
+	if boss_patterns.extra_volleys(e.attack) > 0:
+		e.volley = boss_patterns.extra_volleys(e.attack)
 		e.fire = 0.65
 	else:
-		e.attack = (e.attack+1)%4
+		e.attack = (e.attack+1)%boss_patterns.LABELS.size()
 		e.fire = 1.8
 
 func fire_boss_pattern(e: Dictionary):
+	play_cue("boss_shot")
 	var origin: Vector2 = e.pos+Vector2(0,80)
 	var first = enemy_shots.size()
-	if e.attack == 0:
+	if e.attack >= 8:
+		boss_patterns.fire(self,e)
+	elif e.attack == 0:
 		for i in range(7):
 			var angle = PI*0.28+float(i)/6*PI*0.44
 			if e.get("stage_phase",1) >= 3 or stage_level == 97:
@@ -474,13 +584,30 @@ func fire_boss_pattern(e: Dictionary):
 		for side in [-1,1]:
 			var launch = origin+Vector2(side*55,0)
 			enemy_shots.append({"pos":launch,"vel":(player-launch).normalized()*150,"radius":6.0,"boss":true,"homing_time":0.75})
+	elif e.attack == 4:
+		# Side volleys travel outward, leaving the marked center corridor clear.
+		for side in [-1,1]:
+			for i in range(5):
+				var launch = Vector2(e.gap_x+side*(boss_patterns.SAFE_HALF_WIDTH+10+i*34),origin.y)
+				if launch.x < 25 or launch.x > arena_size.x-25: continue
+				enemy_shots.append({"pos":launch,"vel":Vector2(side*(20+i*12),175),"radius":5.0,"boss":true})
+	elif e.attack == 6:
+		# Lock the target during the warning; moving away beats all three bursts.
+		for side in [-1,1]:
+			var launch = origin+Vector2(side*65,0)
+			var aim: Vector2 = e.get("aim_point",player)
+			enemy_shots.append({"pos":launch,"vel":(aim-launch).normalized()*190,"radius":6.0,"boss":true})
 	else:
 		var count = clampi(int(arena_size.x/90),8,16)
 		for i in range(count):
 			var x = lerpf(45,arena_size.x-45,float(i)/(count-1))
-			if absf(x-e.gap_x) < 95:
+			if absf(x-e.gap_x) < boss_patterns.SAFE_HALF_WIDTH:
 				continue
-			enemy_shots.append({"pos":Vector2(x,origin.y),"vel":Vector2(0,180),"radius":5.0,"boss":true})
+			var stagger = 28.0*(i%2) if e.attack == 7 else 0.0
+			var drift = (20.0 if x > e.gap_x else -20.0) if e.attack == 5 else 0.0
+			enemy_shots.append({"pos":Vector2(x,origin.y-stagger),"vel":Vector2(drift,180),"radius":5.0,"boss":true})
+		for side in [-1,1]:
+			enemy_shots.append({"pos":Vector2(e.gap_x+side*boss_patterns.SAFE_HALF_WIDTH,origin.y),"vel":Vector2(0,180),"radius":5.0,"boss":true})
 	for i in range(first,enemy_shots.size()):
 		enemy_shots[i].vel *= e.get("bullet_scale",1.0)
 		enemy_shots[i].damage = e.get("damage",1.0)
@@ -491,14 +618,22 @@ func fire_boss_pattern(e: Dictionary):
 func segment_hits(a: Vector2, b: Vector2, center: Vector2, radius: float) -> bool:
 	return Geometry2D.get_closest_point_to_segment(center, a, b).distance_squared_to(center) <= radius * radius
 
+func glow_launch(pos: Vector2):
+	add_effect(pos,"impact",0.22,30.0)
+	burst(pos,8,"energy")
+
 func update_shots(delta: float):
 	for i in range(shots.size() - 1, -1, -1):
 		var b = shots[i]
 		var prev: Vector2 = b.pos
 		b.life = b.get("life",4.0)-delta
 		if b.get("missile",false):
+			b.launch_age = b.get("launch_age",0.3)+delta
+			if b.has("trail"):
+				b.trail.append(b.pos)
+				if b.trail.size() > 20: b.trail.pop_front()
 			var target_enemy = progression.nearest(b.pos,b.get("hits",[]))
-			if not target_enemy.is_empty():
+			if not target_enemy.is_empty() and b.launch_age > 0.18:
 				var turn = clampf(wrapf((target_enemy.pos-b.pos).angle()-b.vel.angle(),-PI,PI),-4.2*delta,4.2*delta)
 				b.vel = b.vel.rotated(turn)
 		var laser: bool = b.get("laser",false)
@@ -511,6 +646,7 @@ func update_shots(delta: float):
 				b.charge = maxf(0,b.charge-delta)
 				if b.charge > 0:
 					continue
+				play_cue("laser")
 			endpoint = b.pos+b.vel.normalized()*arena_size.length()
 			b.beam_end = endpoint
 		else:
@@ -528,7 +664,9 @@ func update_shots(delta: float):
 				var actual_damage = campaign.damage_enemy(e,b.damage,b.get("crit",false))
 				if b.has("hits"):
 					b.hits.append(e)
-				if actual_damage > 0: progression.on_hit(b,e,actual_damage)
+				if actual_damage > 0:
+					play_cue("impact")
+					progression.on_hit(b,e,actual_damage)
 				e.flash = 0.13
 				var impact: Vector2 = e.pos+(prev-e.pos).normalized()*e.radius*0.8
 				add_effect(impact,"impact",0.32,52.0)
@@ -569,6 +707,9 @@ func update_shots(delta: float):
 			b.vel = b.vel.rotated(turn)
 			b.homing_time = maxf(0,b.homing_time-delta)
 		b.pos += b.vel * delta
+		if b.has("wave_x"):
+			b.wave_age += delta
+			b.pos.x = b.wave_x+sin(b.wave_age*5+b.wave_phase)*20
 		if segment_hits(prev, b.pos, player, 7.0 + b.radius):
 			hit_player(true,b.get("damage",1.0))
 			enemy_shots.remove_at(i)
@@ -581,15 +722,12 @@ func kill_enemy(index: int):
 	progression.killed()
 	score += 100 if e.kind == "fighter" else (500 if e.kind != "boss" else 5000)
 	explode(e.pos,e.radius,e.kind == "boss")
-	play_sound(80.0, 0.18)
 	if e.kind == "boss":
 		campaign.boss_defeated()
 	else:
 		drops.append({"pos":e.pos+Vector2(-18,0),"kind":"energy","age":0.0,"value":3 if e.kind == "fighter" else 6})
 		drops.append({"pos": e.pos, "kind": "coin", "age": 0.0})
-		if e.kind == "bomber":
-			drops.append({"pos": e.pos + Vector2(22, 0), "kind": "power", "age": 0.0})
-		elif e.kind == "ship" and rng.randf() < 0.4:
+		if e.kind == "ship" and rng.randf() < 0.4:
 			drops.append({"pos": e.pos + Vector2(22, 0), "kind": "repair", "age": 0.0})
 
 func hit_player(allow_evade: bool = true, damage: float = 1.0):
@@ -601,7 +739,6 @@ func hit_player(allow_evade: bool = true, damage: float = 1.0):
 	if invincible > 0 or progression.prevent_hit(allow_evade):
 		return
 	hp = maxf(0,hp-damage*(0.92 if progression.skill("defense") else 1.0))
-	power = maxi(1, power - 1)
 	invincible = 2.0
 	hit_flash = 0.45
 	add_effect(player,"damage",0.65,115.0)
@@ -609,31 +746,15 @@ func hit_player(allow_evade: bool = true, damage: float = 1.0):
 	burst(player,42,"energy")
 	burst(player,30,"spark")
 	burst(player,20,"energy")
-	play_sound(110.0, 0.15)
+	play_cue("damage")
 	if hp <= 0:
 		if progression.survive():
 			return
 		explode(player,40.0)
 		finish_run("defeat")
 
-func use_bomb():
-	if state != "playing" or bombs <= 0:
-		return
-	bombs -= 1
-	enemy_shots.clear()
-	invincible = maxf(invincible, 1.2)
-	bomb_flash = 0.6
-	impact_shake = maxf(impact_shake,18.0)
-	add_effect(player,"shockwave",1.0,arena_size.x*0.75)
-	add_effect(player,"bomb",0.9,arena_size.x*0.9)
-	play_sound(55.0, 0.3)
-	for i in range(enemies.size() - 1, -1, -1):
-		if i >= enemies.size(): continue
-		campaign.damage_enemy(enemies[i],65)
-		if enemies[i].hp <= 0:
-			kill_enemy(i)
-
 func update_drops(delta: float):
+	if state != "playing": return
 	for i in range(drops.size() - 1, -1, -1):
 		var d = drops[i]
 		d.age += delta
@@ -641,15 +762,11 @@ func update_drops(delta: float):
 		if d.pos.distance_to(player) < 85:
 			d.pos = d.pos.move_toward(player, delta * 260.0)
 		if d.pos.distance_to(player) < 24:
+			play_cue(d.kind)
 			if d.kind == "energy":
 				progression.collect_energy(int(d.get("value",3)))
 			elif d.kind == "coin":
 				score += 25
-			elif d.kind == "power":
-				power = mini(3, power + 1)
-				score += 50
-				notice = "WEAPON UPGRADED"
-				notice_time = 1.5
 			elif d.kind == "repair":
 				hp = minf(progression.max_health(),hp+1)
 			drops.remove_at(i)
@@ -659,15 +776,25 @@ func update_drops(delta: float):
 func finish_run(result: String):
 	if state != "playing":
 		return
-	state = result
+	ending_result = result
+	state = "ending_"+result
+	ending_wait = 1.5
+	for effect in effects: ending_wait = maxf(ending_wait,effect.life)
+	for particle in particles: ending_wait = maxf(ending_wait,particle.life)
+	invincible = 0
+	progression.shield_layers = 0
 	dragging = false
 	pointer_id = -1
+
+func complete_ending():
+	state = ending_result
+	play_cue(state)
 	best = maxi(best, score)
 	var save = ConfigFile.new()
 	save.set_value("record", "best", best)
 	save.save("user://sky-patrol.cfg")
 	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.parent.postMessage(%s, window.location.origin)" % JSON.stringify({"source":"air-strike","type":"RUN_FINISHED","score":mini(score,1000000),"outcome":result,"runId":run_id,"wave":campaign.infinite_wave,"token":launch_token}))
+		JavaScriptBridge.eval("window.parent.postMessage(%s, window.location.origin)" % JSON.stringify({"source":"air-strike","type":"RUN_FINISHED","score":mini(score,1000000),"outcome":ending_result,"abandoned":abandoned,"runId":run_id,"wave":campaign.infinite_wave,"token":launch_token}))
 
 func send_checkpoint():
 	if OS.has_feature("web"):
@@ -679,19 +806,23 @@ func return_to_hangar():
 		JavaScriptBridge.eval("window.parent.postMessage({source: 'air-strike', type: 'HANGAR'}, window.location.origin)")
 	redraw_layers()
 
-func play_sound(frequency: float, duration: float):
-	var data = PackedByteArray()
-	var sample_count = int(duration * 11025)
-	data.resize(sample_count)
-	for i in range(sample_count):
-		var value = sin(TAU * frequency * float(i) / 11025.0) * (1.0 - float(i) / sample_count) * 90.0
-		data[i] = int(value) & 255
-	var stream = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_8_BITS
-	stream.mix_rate = 11025
-	stream.data = data
-	sfx.stream = stream
-	sfx.play()
+func play_cue(cue: String):
+	audio.play(cue)
+
+func update_ending(delta: float):
+	if not escaping:
+		ending_wait -= delta
+		if ending_wait > 0: return
+		if ending_result == "defeat":
+			complete_ending()
+			return
+		escaping = true
+		ending_wait = 0
+		play_cue("escape")
+	ending_wait += delta
+	player.y -= (220+ending_wait*900)*delta
+	bank = lerpf(bank,0.0,minf(1,delta*8))
+	if player.y+aircraft_dimensions("player").y/2 < 0: complete_ending()
 
 func text_at(message: String, pos: Vector2, size: int = 18, color: Color = Color("e4f3f5")):
 	paint.draw_string(font, pos, message, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
@@ -721,6 +852,7 @@ func add_effect(pos: Vector2, kind: String, duration: float, size: float, delay:
 	effects.append({"pos":pos,"kind":kind,"life":duration+delay,"duration":duration,"size":size})
 
 func explode(pos: Vector2, radius: float, large: bool = false):
+	play_cue("boss_explosion" if large else "explosion")
 	impact_shake = maxf(impact_shake,16.0 if large else 6.5)
 	impact_light = maxf(impact_light,0.18 if large else 0.06)
 	add_effect(pos,"explosion",1.25,radius*3.6)
@@ -1032,10 +1164,28 @@ func draw_battle():
 			glow(b.pos,26,Color("a5dfff"),intensity*2.0,1.38)
 			continue
 		if b.get("missile",false):
-			var tail: Vector2 = b.pos-b.vel.normalized()*24
-			var color = Color("ffc45f")
-			paint.draw_line(tail.snapped(Vector2.ONE*1.38),b.pos.snapped(Vector2.ONE*1.38),color,5.52,false)
-			paint.draw_line(tail.snapped(Vector2.ONE*1.38),b.pos.snapped(Vector2.ONE*1.38),Color("fff8dc"),1.38,false)
+			var trail: Array = b.get("trail",[])
+			for i in range(1,trail.size()):
+				var strength = float(i)/trail.size()
+				paint.draw_line(trail[i-1],trail[i],Color(1,0.38,0.08,strength*0.35),14*strength,false)
+				paint.draw_line(trail[i-1],trail[i],Color(1,0.83,0.35,strength*0.9),5*strength,false)
+			var direction: Vector2 = b.vel.normalized()
+			var exhaust: Vector2 = b.pos-direction*14
+			glow(exhaust,32,Color("ff9e38"),1.8,1.38)
+			paint.draw_line(exhaust-direction*55,exhaust,Color(1,0.35,0.08,0.2),16,false)
+			paint.draw_line(exhaust-direction*38,exhaust,Color("ffac38"),8,false)
+			paint.draw_line(exhaust-direction*25,exhaust,Color("fff6bd"),3,false)
+			var missile_size: Vector2 = sprites["missile"].get_size()
+			paint.draw_set_transform(b.pos,direction.angle()+PI/2)
+			paint.draw_texture_rect(sprites["missile"],Rect2(-missile_size/2,missile_size),false)
+			paint.draw_set_transform(Vector2.ZERO)
+			continue
+		if b.get("source","") == "drone":
+			var tail: Vector2 = b.pos-b.vel.normalized()*30
+			glow(b.pos,21,Color("ffc856"),1.2,1.38)
+			paint.draw_line(tail,b.pos,Color(1,0.62,0.15,0.3),12,false)
+			paint.draw_line(tail,b.pos,Color("ffd46a"),6,false)
+			paint.draw_line(tail+b.vel.normalized()*10,b.pos,Color("fffce4"),3,false)
 			continue
 		glow(b.pos+Vector2(0,5),12,Color("59d9e3"),0.5,1.38)
 		var pos: Vector2 = b.pos.snapped(Vector2.ONE*1.38)
@@ -1058,13 +1208,13 @@ func draw_battle():
 			pixel_disc(d.pos,5,Color("73d8ff"),1.38)
 			pixel_disc(d.pos+Vector2(-2,-2),2,Color("e3ffff"),1.38)
 			continue
-		var color = Color("f3c662") if d.kind == "coin" else (Color("70daca") if d.kind == "power" else Color("e0f4e5"))
+		var color = Color("f3c662") if d.kind == "coin" else Color("e0f4e5")
 		glow(d.pos,20,color,0.22+sin(elapsed*4)*0.06)
 		pixel_disc(d.pos+Vector2(2,2),12,Color("1a2527"))
 		pixel_disc(d.pos,11,color.darkened(0.5))
 		pixel_disc(d.pos,8,color)
 		pixel_ring(d.pos,9,color.lightened(0.3),-PI,PI)
-		text_at("$" if d.kind == "coin" else ("P" if d.kind == "power" else "+"),d.pos+Vector2(-5,5),14,Color("143345"))
+		text_at("$" if d.kind == "coin" else "+",d.pos+Vector2(-5,5),14,Color("143345"))
 	for effect in effects:
 		draw_combat_effect(effect)
 	for particle in particles:
@@ -1082,12 +1232,22 @@ func draw_battle():
 				paint.draw_line(particle.pos.snapped(Vector2.ONE*1.38),(particle.pos-particle.vel.normalized()*13*life).snapped(Vector2.ONE*1.38),Color(1,0.92,0.64,life),2.76,false)
 			if particle.kind != "spark":
 				glow(particle.pos,particle.size*4,color,life*0.4,1.38)
-	if state != "defeat":
+	if hp > 0 and state != "defeat":
 		for drone_pos in progression.drone_positions():
-			paint.draw_rect(Rect2(drone_pos-Vector2(16,4),Vector2(32,8)),Color("d4b967"))
-			poly([drone_pos+Vector2(0,-16),drone_pos+Vector2(9,9),drone_pos+Vector2(-9,9)],Color("59cdd7"))
-			pixel_disc(drone_pos,3,Color("f5efd1"),1.38)
+			for offset in [-14,14]:
+				var engine_pos: Vector2 = drone_pos+Vector2(offset,25)
+				glow(engine_pos,18,Color("51e9ff"),0.9,1.38)
+				paint.draw_line(engine_pos,engine_pos+Vector2(0,13+sin(elapsed*28)*4),Color("8cefff"),4,false)
+			var drone_size: Vector2 = sprites["drone"].get_size()*0.9
+			paint.draw_texture_rect(sprites["drone"],Rect2(drone_pos-drone_size/2,drone_size),false)
+			if progression.drone_timer > 0.37:
+				glow(drone_pos+Vector2(0,-28),20,Color("fff0a1"),1.5,1.38)
 		draw_plane(player,"player",hit_flash>0.1)
+		if escaping:
+			var tail = player+Vector2(0,aircraft_dimensions("player").y*0.4)
+			glow(tail,48,Color("83eaff"),1.8)
+			paint.draw_line(tail,tail+Vector2(0,55+ending_wait*60),Color("55ccff"),10,false)
+			paint.draw_line(tail,tail+Vector2(0,45+ending_wait*45),Color("f0ffff"),4,false)
 		var charge_level = 0.0
 		var pulse_level = 0.0
 		for b in shots:
@@ -1113,6 +1273,7 @@ func draw_battle():
 	if impact_light > 0:
 		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(1,0.85,0.6,impact_light*0.55))
 	# Hostile projectiles stay readable above the explosion layers.
+	campaign.draw_hazard_aircraft()
 	for b in enemy_shots:
 		paint.draw_circle(b.pos,b.radius+2,Color("301622"))
 		paint.draw_circle(b.pos,b.radius,Color("ff703d"))
@@ -1122,6 +1283,20 @@ func skill_card_rect(index: int) -> Rect2:
 	return skill_cards.card_rect(arena_size,progression.choices.size(),index)
 
 func draw_hud():
+	if state == "boss_alert":
+		var center = arena_size.y * 0.5
+		var pulse = 0.65 + 0.2 * sin(campaign.alert_age * 12.0)
+		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(0.15,0.0,0.0,0.22))
+		paint.draw_rect(Rect2(0,center-48,arena_size.x,96),Color(0.12,0.01,0.01,0.94))
+		for edge in [center-48,center+46]:
+			paint.draw_rect(Rect2(0,edge,arena_size.x,2),Color(1.0,0.25,0.08,pulse))
+		for x in range(0,int(arena_size.x),28):
+			for edge in [center-43,center+35]:
+				paint.draw_line(Vector2(x,edge),Vector2(x+12,edge+7),Color(1.0,0.5,0.08,pulse),4)
+		var label = "WARNING!!!"
+		var size = 32
+		text_at(label,Vector2((arena_size.x-font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x)*0.5,center+12),size,Color(1.0,0.65,0.3))
+		return
 	if state != "menu":
 		var energy_rect = Rect2(arena_size.x/2-100,arena_size.y-18,200,8)
 		paint.draw_rect(energy_rect.grow(2),Color("102633"))
@@ -1133,15 +1308,26 @@ func draw_hud():
 		text_at("ENDLESS / WAVE %d / THREAT %d" % [wave,campaign.threat()] if infinite_mode else "STAGE %03d / WAVE %d-%d" % [stage_level,wave,campaign.wave_limit()],Vector2(20,20),12,Color("ffe0a1"))
 	for e in enemies:
 		if e.kind == "boss" and e.get("warning",false):
-			var label: String = ["TRIPLE FAN","SAFE LANE","HOMING x2","SAFE LANE"][e.attack]
+			var label: String = boss_patterns.LABELS[e.attack]
 			var label_pos = Vector2((arena_size.x-font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,16).x)/2,30)
 			paint.draw_string_outline(font,label_pos,label,HORIZONTAL_ALIGNMENT_LEFT,-1,16,4,Color("0b202a"))
 			text_at(label,label_pos,16,Color("ffe0a1"))
-			if e.attack == 1 or e.attack == 3:
-				var lane = Rect2(e.gap_x-80,e.pos.y+100,160,arena_size.y-e.pos.y-120)
+			if e.attack in boss_patterns.CORRIDORS:
+				var half_width: float = boss_patterns.SAFE_MARKER_HALF_WIDTH
+				var lane = Rect2(e.gap_x-half_width,e.pos.y+100,half_width*2,arena_size.y-e.pos.y-120)
 				paint.draw_rect(lane,Color(0.3,1,0.75,0.08))
 				paint.draw_line(lane.position,lane.position+Vector2(0,lane.size.y),Color(0.4,1,0.8,0.5),2)
 				paint.draw_line(Vector2(lane.end.x,lane.position.y),lane.end,Color(0.4,1,0.8,0.5),2)
+			if e.attack in boss_patterns.AIMED:
+				var aim: Vector2 = e.get("aim_point",player)
+				paint.draw_arc(aim,24,0,TAU,24,Color("ffb557"),3)
+				for side in [-1,1]:
+					paint.draw_line(e.pos+Vector2(side*65,80),aim,Color(1,0.5,0.2,0.45),2)
+			if e.attack == 15:
+				var origin: Vector2 = e.pos+Vector2(0,80)
+				var length = maxf(0,arena_size.y-origin.y)
+				var width = length*tan(boss_patterns.RING_OPENING_HALF_ANGLE-0.05)
+				paint.draw_colored_polygon(PackedVector2Array([origin,Vector2(origin.x-width,arena_size.y),Vector2(origin.x+width,arena_size.y)]),Color(0.3,1,0.75,0.08))
 	if hit_flash > 0:
 		var alpha = hit_flash/0.45*0.65
 		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(1,0.22,0.1,alpha*0.09))
@@ -1154,11 +1340,17 @@ func draw_hud():
 			draw_health_indicator(player,"player",hp,progression.max_health())
 	if state == "skill_choice":
 		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(0.02,0.08,0.12,0.85))
+		var progress = clampf(progression.choice_age/progression.CHOICE_ANIMATION_DURATION,0,1)
+		var zoom = lerpf(0.25,1.0,1.0-pow(1.0-progress,3))
+		paint.draw_set_transform(arena_size*0.5*(1.0-zoom),0,Vector2.ONE*zoom)
 		centered("CHOOSE A SKILL",skill_card_rect(0).position.y-24,24,Color("ffe0a1"))
 		for i in range(progression.choices.size()):
 			skill_cards.draw_card(self,progression.choices[i],i)
 		centered("CLICK / TAP TO SELECT",skill_card_rect(progression.choices.size()-1).end.y+25,12)
+		paint.draw_set_transform(Vector2.ZERO)
+		draw_run_controls()
 		return
+	if lobby_launch and state in ["defeat", "victory"]: return
 	if state in ["menu","paused","defeat","victory"]:
 		paint.draw_rect(Rect2(Vector2.ZERO,arena_size),Color(0.02,0.08,0.12,0.72))
 		var panel = Rect2(Vector2(arena_size.x/2.0-220,arena_size.y/2.0-182),Vector2(440,364))
@@ -1171,13 +1363,14 @@ func draw_hud():
 		if state == "menu":
 			centered("01  /  CORAL COAST",y+121,17,Color("85c7cb"))
 			centered("Drag to fly  /  WASD or arrow keys",y+169,16)
-			centered("Auto fire  /  B or Space: bomb",y+198,16)
+			centered("Auto fire  /  P: pause",y+198,16)
 			centered("Dodge bullets. Upgrade. Defeat the boss.",y+225,15,Color("95afb8"))
 		else:
 			centered("SCORE  %07d" % score,y+146,24,Color("e6ce91"))
 			centered("P or Esc to pause / resume" if state == "paused" else "BEST  %07d" % best,y+194,16)
 		button(start_rect,"START MISSION" if state == "menu" else ("RESUME" if state == "paused" else ("RETURN TO HANGAR" if lobby_launch else "FLY AGAIN")))
-		if lobby_launch and state == "paused":
-			button(hangar_rect,"RETURN TO HANGAR")
+		if state == "paused":
+			centered("Click RESUME to continue",y+340,13,Color("8ba5ad"))
 		else:
 			centered("BEST  %07d" % best if state == "menu" else "CORAL COAST  /  MISSION 01",y+340,13,Color("8ba5ad"))
+	draw_run_controls()

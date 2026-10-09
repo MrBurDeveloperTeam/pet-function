@@ -1,13 +1,15 @@
 import { PixelCoinBag } from './CoinIndicator';
 import { MoleLevelBadge } from './MoleGame';
 import { useEffect, useId, useRef, useState } from 'react';
-import { AIRCRAFT, awardRun, levelForXp, normalizeProgress, progressKey, UPGRADE_COSTS, upgradeAircraft, type FlightProgress } from './airStrikeProgress.mjs';
+import { AIRCRAFT, awardRun, flightExperience, levelForXp, normalizeProgress, progressKey, UPGRADE_COSTS, upgradeAircraft, type FlightProgress } from './airStrikeProgress.mjs';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import { normalizeTalents, talentKey, purchaseTalent,reconcileTalentCloud } from './airStrikeTalents.mjs';
 import {unlockedStage,settleCampaign,stageReward} from './airStrikeCampaign.mjs';
 import {createCampaignOutbox} from './airStrikeCampaignOutbox.mjs';
 import {AirStrikeLeaderboard} from './AirStrikeLeaderboard';
 import {AirStrikeTalentTree} from './AirStrikeTalentTree';
+import {HangarLaunchCinematic,startHangarLaunchSound} from './HangarLaunchCinematic';
+import {AirStrikeResults} from './AirStrikeResults';
 import {combatPower,recommendedPower} from './airStrikePower.mjs';
 const ROOT='/games/air-strike';
 function fitHangar(width:number,height:number){const w=Math.min(Math.max(width,height*1672/941),width/.5);return {width:w,height:w*941/1672};}
@@ -33,7 +35,7 @@ function MissionArmorFrame(){
  return <svg className="sky-mission-armor" viewBox="0 0 1180 680" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sky-mission-steel" x2=".8" y2="1"><stop stopColor="#607783"/><stop offset=".2" stopColor="#1d3746"/><stop offset=".5" stopColor="#3b535c"/><stop offset="1" stopColor="#102332"/></linearGradient><linearGradient id="sky-mission-edge"><stop stopColor="#e2ac58"/><stop offset=".4" stopColor="#56dadd"/><stop offset=".7" stopColor="#234e61"/><stop offset="1" stopColor="#e2ac58"/></linearGradient><pattern id="sky-mission-hazard" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="18" height="18" fill="#142737"/><rect width="8" height="18" fill="#b68c50"/></pattern></defs><path d="M36 3H324L340 15H840L856 3H1144L1177 36V178L1165 194V486L1177 502V644L1144 677H856L840 665H340L324 677H36L3 644V502L15 486V194L3 178V36Z" fill="url(#sky-mission-steel)" stroke="url(#sky-mission-edge)" strokeWidth="3"/><path d="M44 23H312L330 35H850L868 23H1136L1157 44V168L1145 188V492L1157 512V636L1136 657H868L850 645H330L312 657H44L23 636V512L35 492V188L23 168V44Z" fill="#071523" stroke="#63838a" strokeWidth="1"/><g fill="#1b3543" stroke="#6d8890"><path d="M39 6H210L222 20H46L23 44V150L7 164V37Z"/><path d="M1141 6H970L958 20H1134L1157 44V150L1173 164V37Z"/><path d="M7 520L23 534V636L46 660H222L210 674H39L7 642Z"/><path d="M1173 520L1157 534V636L1134 660H958L970 674H1141L1173 642Z"/></g><g strokeLinecap="square" fill="none"><path d="M340 24H460M720 24H840M24 220V300M24 380V460M1156 220V300M1156 380V460" stroke="#55dce4" strokeWidth="4"/><path d="M45 14H110M1070 14H1135M45 668H110M1070 668H1135" stroke="#d9a357" strokeWidth="3"/><path d="M54 105H170M1010 105H1126" stroke="#2ca3b4" strokeWidth="2"/></g><path d="M490 16H690L678 31H502Z" fill="url(#sky-mission-hazard)"/><path d="M490 649H690L702 664H478Z" fill="url(#sky-mission-hazard)"/>{[[42,42],[1138,42],[42,638],[1138,638],[18,178],[1162,178],[18,502],[1162,502]].map(([x,y])=><g key={`${x}-${y}`}><circle cx={x} cy={y} r="6" fill="#0a1b27" stroke="#a1a794" strokeWidth="2"/><path d={`M${x-2} ${y+2}l4-4`} stroke="#75888d"/></g>)}</svg>;
 }
 export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|null}) {
- const {stats,spendCoins,addCoins,skyTalentCloud,skyCampaignCloud,skyAircraftCloud,skyFlightCloud}=useGameState();
+ const {stats,spendCoins,addCoins,addXP,skyTalentCloud,skyCampaignCloud,skyAircraftCloud,skyFlightCloud}=useGameState();
  const flightCloud=useRef(skyFlightCloud);flightCloud.current=skyFlightCloud;
  const [flightCloudStatus,setFlightCloudStatus]=useState<'local'|'loading'|'ready'|'error'>(skyFlightCloud?'loading':'local');
  const syncFlight=useRef<()=>Promise<void>>(async()=>{});
@@ -51,7 +53,9 @@ export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|
  const [cloudStatus,setCloudStatus]=useState<'local'|'loading'|'ready'|'legacy'|'error'>(skyTalentCloud?'loading':'local');
  const [,setLegacy]=useState<number[]>([]),[cloudRetry,setCloudRetry]=useState(0),cloudSequence=useRef(0);
  const rewardWallet=useRef(addCoins);rewardWallet.current=addCoins;
+ const rewardExperience=useRef(addXP);rewardExperience.current=addXP;
  const root=useRef<HTMLDivElement>(null);
+ useEffect(()=>{const image=new Image();image.src=ROOT+'/mission-results-frame.png';},[]);
  useEffect(()=>{const bodyOverflow=document.body.style.overflow,htmlOverflow=document.documentElement.style.overflow;document.body.style.overflow='hidden';document.documentElement.style.overflow='hidden';return()=>{document.body.style.overflow=bodyOverflow;document.documentElement.style.overflow=htmlOverflow;};},[]);
  const [refitViewport,setRefitViewport]=useState(()=>({width:typeof window==='undefined'?1180:window.innerWidth,height:typeof window==='undefined'?680:window.innerHeight}));
  const refitScale=Math.min(1,Math.max(.1,(refitViewport.width-32)/1180),Math.max(.1,(refitViewport.height-32)/680));
@@ -64,16 +68,18 @@ export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|
  const [progress,setProgress]=useState(()=>readProgress(userId)),current=useRef(progress);
  const [mission,setMission]=useState(false),[selectedStage,setSelectedStage]=useState(()=>unlockedStage(readProgress(userId))),[mode,setMode]=useState<'campaign'|'endless'>('campaign');
  const [flight,setFlight]=useState({stage:1,mode:'campaign',token:'',owner:userId||'guest'}),checkpoint=useRef(0);
+ const [runSummary,setRunSummary]=useState<{coins:number;xp:number;score:number;title:string}|null>(null);
+ const checkpointCoins=useRef(0);
  const [view,setView]=useState<'hangar'|'flight'>('hangar');
  const [flightTier,setFlightTier]=useState(1),[repair,setRepair]=useState(false),[talents,setTalents]=useState(false);
  const [ready,setReady]=useState(false),[failed,setFailed]=useState(false),[retry,setRetry]=useState(0);
  const [notice,setNotice]=useState(''),[arming,setArming]=useState(false);
- const launchTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const launchBusy=useRef(false),launchSound=useRef<(()=>void)|null>(null);
  const level=levelForXp(progress.xp),tier=progress.aircraftTier,cost=UPGRADE_COSTS[tier-1];
  const power=combatPower(tier,owned);
  const save=(value:FlightProgress)=>{current.current=value;setProgress(value);try{localStorage.setItem(progressKey(userId),JSON.stringify(value));}catch{setNotice('Your browser cannot save progress. Keep this page open.');}};
- useEffect(()=>()=>{if(launchTimer.current)clearTimeout(launchTimer.current);},[]);
- useEffect(()=>{if(launchTimer.current)clearTimeout(launchTimer.current);const next=readProgress(userId);current.current=next;setProgress(next);let items:number[]=[];try{items=normalizeTalents(JSON.parse(localStorage.getItem(talentKey(userId))||'[]'));}catch{}ownedRef.current=items;setOwned(items);setSelectedStage(unlockedStage(next));setMode('campaign');setView('hangar');setArming(false);setRepair(false);setTalents(false);setMission(false);setLeaderboard(false);setNotice('');},[userId]);
+ useEffect(()=>()=>{launchSound.current?.();},[]);
+ useEffect(()=>{launchSound.current?.();launchSound.current=null;launchBusy.current=false;const next=readProgress(userId);current.current=next;setProgress(next);let items:number[]=[];try{items=normalizeTalents(JSON.parse(localStorage.getItem(talentKey(userId))||'[]'));}catch{}ownedRef.current=items;setOwned(items);setSelectedStage(unlockedStage(next));setMode('campaign');setView('hangar');setArming(false);setRepair(false);setTalents(false);setMission(false);setLeaderboard(false);setNotice('');},[userId]);
  useEffect(()=>{
   let stopped=false;
   const service=campaignCloud.current,owner=userId;
@@ -203,13 +209,17 @@ export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|
    if(data.type==='HANGAR'||data.type==='CLOSE')setView('hangar');
    if(data.type==='ENDLESS_CHECKPOINT'&&flight.mode==='endless'&&data.token===flight.token&&Number.isSafeInteger(data.wave)&&data.wave>checkpoint.current&&data.wave<=100000&&data.wave%10===0){
     const reward=(data.wave-checkpoint.current)/10*stageReward(100,false);checkpoint.current=data.wave;
+    checkpointCoins.current+=reward;
     save({...current.current,endlessBest:Math.max(current.current.endlessBest,data.wave)});
     if(campaignCloud.current)queueCampaignResult({token:flight.token,stage:100,mode:'endless',outcome:'checkpoint',wave:data.wave});else rewardWallet.current(reward);
    }
    if(data.type==='RUN_FINISHED'&&Number.isSafeInteger(data.runId)&&data.runId>0&&!completed.current.has(data.runId)){
     if(data.token!==flight.token||!Number.isSafeInteger(data.score)||data.score<0||data.score>1000000||!['victory','defeat'].includes(data.outcome))return;
     completed.current.add(data.runId);
+    const earnedXp=flightExperience(data);
+    if(earnedXp>0)rewardExperience.current(earnedXp);
     const result=settleCampaign(awardRun(current.current,data),{stage:flight.stage,mode:flight.mode,wave:data.wave,outcome:data.outcome});save(result.progress);void syncFlight.current();
+    setRunSummary({coins:checkpointCoins.current+result.coins,xp:earnedXp,score:data.score,title:data.abandoned?'FLIGHT ENDED':data.outcome==='victory'?'MISSION CLEAR':'MISSION FAILED'});
     if(campaignCloud.current){queueCampaignResult({token:flight.token,stage:flight.stage,mode:flight.mode,outcome:data.outcome,wave:flight.mode==='endless'&&Number.isSafeInteger(data.wave)?Math.max(0,Math.min(100000,data.wave)):0});if(result.coins)setSelectedStage(unlockedStage(result.progress));}
     else if(result.coins){rewardWallet.current(result.coins);setNotice(`Stage reward: +${result.coins} coins`);setSelectedStage(unlockedStage(result.progress));}
    }
@@ -217,7 +227,15 @@ export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|
   window.addEventListener('message',receive);
   return()=>{clearTimeout(timer);window.removeEventListener('message',receive);};
  },[view,retry,userId,flight]);
- const launch=()=>{if(arming||purchaseLock.current||(!!flightCloud.current&&flightCloudStatus==='loading')||(!!aircraftCloud.current&&aircraftStatus==='loading')||(!!campaignCloud.current&&campaignStatus==='loading')||(mode==='endless'&&current.current.highestCleared<100))return;setMission(false);setArming(true);launchTimer.current=setTimeout(()=>{setFlight({stage:mode==='endless'?100:Math.max(1,Math.min(100,selectedStage)),mode,token:crypto.randomUUID(),owner:userId||'guest'});checkpoint.current=0;setFlightTier(current.current.aircraftTier);setFlightTalents([...ownedRef.current]);completed.current.clear();setReady(false);setFailed(false);setArming(false);setView('flight');},450);};
+ const launch=()=>{
+  if(launchBusy.current||arming||purchaseLock.current||(!!flightCloud.current&&flightCloudStatus==='loading')||(!!aircraftCloud.current&&aircraftStatus==='loading')||(!!campaignCloud.current&&campaignStatus==='loading')||(mode==='endless'&&current.current.highestCleared<100))return;
+  launchBusy.current=true;setMission(false);setNotice('');setArming(true);
+  setFlight({stage:mode==='endless'?100:Math.max(1,Math.min(100,selectedStage)),mode,token:crypto.randomUUID(),owner:userId||'guest'});
+  checkpoint.current=0;checkpointCoins.current=0;setRunSummary(null);setFlightTier(current.current.aircraftTier);setFlightTalents([...ownedRef.current]);completed.current.clear();setReady(false);setFailed(false);
+  launchSound.current?.();launchSound.current=startHangarLaunchSound();
+ };
+ const completeLaunch=()=>{launchSound.current?.();launchSound.current=null;launchBusy.current=false;setArming(false);setView('flight');};
+ const replay=()=>{setRunSummary(null);completed.current.clear();checkpoint.current=0;checkpointCoins.current=0;setFlight({...flight,token:crypto.randomUUID()});setReady(false);setFailed(false);setRetry(v=>v+1);};
  const buyTalent=async(id:number)=>{if(purchaseLock.current||(cloud.current&&cloudStatus!=='ready'))return;const owner=userId;purchaseLock.current=true;cloudSequence.current++;setBuying(true);try{const result=cloud.current?await cloud.current.purchase(id):await purchaseTalent(ownedRef.current,id,spendCoins);if(activeOwner.current!==owner)return;if(!result.includes(id)){setNotice('Insufficient coins or payment incomplete.');return;}ownedRef.current=result;setOwned(result);try{localStorage.setItem(talentKey(userId),JSON.stringify(result));setNotice(cloud.current?'Talent unlocked. Active on your next flight.':'Talent unlocked. Active on your next flight.');}catch{setNotice('Unlocked, but the browser could not save the cache.');}}catch{if(activeOwner.current===owner){setCloudStatus('error');setNotice('Purchase unconfirmed. Reload your save to check the result; you will not be charged again locally.');}}finally{purchaseLock.current=false;setBuying(false);}};
  const purchase=async()=>{
   if(purchaseLock.current||current.current.aircraftTier===10||(aircraftCloud.current&&aircraftStatus!=='ready'))return;
@@ -231,10 +249,11 @@ export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|
   }catch{if(activeOwner.current===owner){setAircraftStatus('error');setNotice('Upgrade unconfirmed. Reload your save to check the result; you will not be charged again locally.');}}
   finally{purchaseLock.current=false;setBuying(false);}
  };
- return <div ref={root} className="sky-hangar-root">
+ return <div ref={root} className={`sky-hangar-root ${arming?'sky-launching':''}`}>
  <style>{`
  @font-face{font-family:SkyPixel;src:url('${ROOT}/Quadrit.ttf');font-display:swap}
  .sky-mission-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:14px 0}.sky-mission-grid button{padding:10px 0}.sky-mission-grid button.selected{outline:2px solid #f4d493;background:#4a6259}.sky-mission-grid button.cleared{border-color:#72aa96}.sky-hangar-reward{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);padding:5px 14px;background:#10252de0;color:#ffe1a1;font-size:12px;z-index:4;white-space:nowrap}
+ .sky-launching > .sky-hangar-header,.sky-launching > .sky-hangar-flightlevel,.sky-launching > .sky-hangar-hud,.sky-launching > .sky-hangar-reward,.sky-launching > .sky-hangar-world{visibility:hidden}
  .sky-hangar-root{position:fixed;inset:0;z-index:100;overflow:clip;overscroll-behavior:none;background:#0c2027;color:#eae3ce;font-family:system-ui,sans-serif}
  .sky-hangar-scene{position:absolute;inset:0;background:url('${ROOT}/hangar-rankings.png') center/cover;filter:blur(5px) brightness(.4)}
  .sky-hangar-world{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:url('${ROOT}/hangar-rankings.png') center/100% 100%;isolation:isolate}
@@ -385,10 +404,10 @@ export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|
  <div className="sky-hangar-scene"/>
  <header className="sky-hangar-header"><button className="sky-hangar-back" aria-label="Back to games room" onClick={onClose}><svg viewBox="0 0 24 24" width="32" height="32" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 10h3V7h3V4h3v5h11v6H11v5H8v-3H5v-3H2z" /></svg></button><div className="sky-hangar-brand">SKY PATROL</div></header>
  <div className="sky-hangar-flightlevel">FLIGHT LV{level}<span className="sky-permanent-power">COMBAT POWER <b>{power.toLocaleString()}</b></span></div>
- <div className="sky-hangar-hud"><div className="sky-hangar-wallet" aria-label={`${stats.coins || 0} coins`}><PixelCoinBag/><span>{stats.coins || 0}</span></div><MoleLevelBadge stats={{level,xp:level===10?100:100*(progress.xp-100*(level-1)**2)/(100*level**2-100*(level-1)**2)}}/></div>
+ <div className="sky-hangar-hud"><div className="sky-hangar-wallet" aria-label={`${stats.coins || 0} coins`}><PixelCoinBag/><span>{stats.coins || 0}</span></div><MoleLevelBadge stats={stats}/></div>
  {notice&&<div className="sky-hangar-reward" role="status">{notice}</div>}
  <div className="sky-hangar-world" style={scene}>
- <div className="sky-hangar-display"><div className="sky-hangar-platform"/><Aircraft level={tier} className="sky-hangar-plane"/><span className="sky-hangar-clamp left"/><span className="sky-hangar-clamp right"/></div>
+ <div className="sky-hangar-display"><div className="sky-hangar-platform"/><Aircraft level={tier} className="sky-hangar-plane"/></div>
  <button className="sky-hangar-station rankings" aria-label="leaderboard — click or tap to view rankings" title="Click or tap to view rankings" onClick={()=>setLeaderboard(true)}><span className="sky-hangar-station-label">leaderboard<small>CLICK / TAP</small></span></button>
  <button className={`sky-hangar-station launch ${arming?'arming':''}`} aria-label="start — click or tap to select a mission" title="Click or tap to choose a mission" disabled={arming} onClick={()=>setMission(true)}><span className="sky-hangar-station-label">{arming?'starting…':'start'}{!arming&&<small>CLICK / TAP</small>}</span></button>
  <button className="sky-hangar-station repair" aria-label="upgrade — click or tap to upgrade aircraft" title="Click or tap to upgrade" onClick={()=>{setNotice('');setRepair(true);}}><span className="sky-hangar-station-label">upgrade<small>CLICK / TAP</small></span></button>
@@ -400,8 +419,10 @@ export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|
  {mission&&<div className="sky-hangar-dialog-shade" onClick={()=>setMission(false)}><div className="sky-refit-fit" style={{width:1180*refitScale,height:680*refitScale}}><section style={{transform:`scale(${refitScale})`}} className="sky-hangar-dialog sky-refit-dialog sky-stage-terminal" role="dialog" aria-modal="true" aria-label="Mission selection" onClick={e=>e.stopPropagation()}><MissionArmorFrame/><header><h2>STAGE SELECT</h2><button className={`sky-hangar-button sky-stage-endless ${mode==='endless'?'selected':''}`} aria-label={progress.highestCleared<100?'Endless mode, locked':'Select endless mode'} disabled={progress.highestCleared<100} onClick={()=>setMode('endless')}>∞ ENDLESS {progress.highestCleared<100&&'▣'}</button><div className="sky-stage-power" title="Readiness estimate based on permanent upgrades."><span aria-label={`Your combat power: ${power}`}><PowerIcon/><b>{power.toLocaleString()}</b></span></div><button className="sky-hangar-button" aria-label="Close mission selection" onClick={()=>setMission(false)}>×</button></header><div className="sky-stage-grid">{Array.from({length:100},(_,i)=>i+1).map(stage=><button key={stage} className={`sky-hangar-button ${stage<=progress.highestCleared?'cleared':''} ${mode==='campaign'&&stage===selectedStage?'selected':''}`} onClick={()=>{setSelectedStage(stage);setMode('campaign');}} title={`Recommended power: ${recommendedPower(stage).toLocaleString()} (guideline)`} aria-label={`Stage ${stage}, recommended power ${recommendedPower(stage)}, available`}><strong>{String(stage).padStart(3,'0')}</strong><small className={power<recommendedPower(stage)?'challenging':''}><PowerIcon/>{recommendedPower(stage).toLocaleString()}</small></button>)}</div><div className="sky-stage-bottom">{(campaignStatus==='error'||flightCloudStatus==='error')&&<button className="sky-hangar-button" aria-label="Retry loading missions" onClick={()=>setCampaignRetry(v=>v+1)}>↻</button>}<button className="sky-hangar-button buy" disabled={arming||(!!skyFlightCloud&&flightCloudStatus==='loading')||(!!skyAircraftCloud&&aircraftStatus==='loading')||(!!skyCampaignCloud&&campaignStatus==='loading')||(mode==='endless'&&progress.highestCleared<100)} onClick={launch}>START FLIGHT →</button></div></section></div></div>}
  </>:<>
  <iframe key={retry} ref={iframe} title="Sky Patrol — Airplane arcade game" src={`${ROOT}/index.html?embedded=1&launch=1&tier=${flightTier}&talents=${flightTalents.join(',')}&stage=${flight.stage}&mode=${flight.mode}&token=${encodeURIComponent(flight.token)}`} allow="autoplay; fullscreen" style={{width:'100%',height:'100%',border:0,display:'block'}}/>
- {!ready&&<div role="status" style={{position:'absolute',inset:0,display:'grid',placeContent:'center',background:'#0c2230',textAlign:'center',gap:16}}><p>{failed?'Unable to load. Please retry.':'Preparing for flight…'}</p>{failed&&<button className="sky-hangar-button" onClick={()=>{completed.current.clear();setReady(false);setFailed(false);setRetry(v=>v+1);}}>Retry</button>}<button className="sky-hangar-button" onClick={()=>setView('hangar')}>Return to hangar</button></div>}
+ {runSummary&&<AirStrikeResults result={runSummary} viewport={refitViewport} stage={flight.stage} mode={flight.mode} pendingMessage={skyCampaignCloud&&campaignStatus!=='ready'?(campaignStatus==='error'?'Rewards pending. Reconnect to confirm.':'Confirming rewards…'):undefined} onReturn={()=>{setRunSummary(null);setView('hangar');}} onReplay={replay}/>}
+ {!ready&&<div aria-label="Preparing for flight" role="status" style={{position:'absolute',inset:0,display:'grid',placeContent:'center',background:'#000',textAlign:'center',gap:16}}>{failed&&<p>Unable to load. Please retry.</p>}{failed&&<button className="sky-hangar-button" onClick={()=>{completed.current.clear();setReady(false);setFailed(false);setRetry(v=>v+1);}}>Retry</button>}{failed&&<button className="sky-hangar-button" onClick={()=>setView('hangar')}>Return to hangar</button>}</div>}
  </>}
+ {arming&&view==='hangar'&&<HangarLaunchCinematic scene={scene} aircraft={<Aircraft level={flightTier} className="sky-hangar-plane"/>} onComplete={completeLaunch}/>}
  </div>;
 }
 

@@ -118,9 +118,10 @@ const ROOM_MAP_ROUTES = [
 const INDOOR_ROOM_ITEMS = [
   { room: RoomType.KITCHEN, label: 'Kitchen', colors: 'border-orange-700 bg-orange-100 text-orange-800' },
   { room: RoomType.BATHROOM, label: 'Bathroom', colors: 'border-cyan-700 bg-cyan-100 text-cyan-800' },
-  { room: RoomType.PLAYROOM, label: 'Outside', colors: 'border-lime-700 bg-lime-100 text-lime-800' },
+  { room: RoomType.PLAYROOM, label: 'Garden', colors: 'border-lime-700 bg-lime-100 text-lime-800' },
   { room: RoomType.BEDROOM, label: 'Bedroom', colors: 'border-indigo-700 bg-indigo-100 text-indigo-800' },
   { room: RoomType.GAMES, label: 'Games', colors: 'border-violet-700 bg-violet-100 text-violet-800' },
+  { room: RoomType.TOWN_HOME, label: 'Outside', colors: 'border-amber-700 bg-amber-100 text-amber-800' },
 ] as const;
 
 interface VirtualPetContentProps {

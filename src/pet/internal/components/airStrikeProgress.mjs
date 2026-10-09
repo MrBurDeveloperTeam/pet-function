@@ -16,10 +16,14 @@ export function normalizeProgress(value) {
  return {version:3,xp:integer(value?.xp,8100),best:integer(value?.best,1000000),runs:integer(value?.runs,1000000),aircraftTier:Math.max(1,integer(value?.aircraftTier,10)),highestCleared:integer(value?.highestCleared,100),endlessBest:integer(value?.endlessBest,100000)};
 }
 export function progressKey(userId) { return `sky-patrol:flight-progress:v1:${userId || 'guest'}`; }
+export function flightExperience(result) {
+ if(!Number.isSafeInteger(result?.score)||result.score<0||result.score>1000000||!['victory','defeat'].includes(result.outcome))return 0;
+ return Math.floor(result.score/100)+(result.outcome==='victory'?100:0);
+}
 export function awardRun(progress,result) {
  if(!Number.isSafeInteger(result?.score)||result.score<0||result.score>1000000||!['victory','defeat'].includes(result.outcome)) return progress;
  const old=normalizeProgress(progress);
- return normalizeProgress({...old,xp:Math.min(8100,old.xp+Math.floor(result.score/100)+(result.outcome==='victory'?100:0)),best:Math.max(old.best,result.score),runs:old.runs+1});
+ return normalizeProgress({...old,xp:Math.min(8100,old.xp+flightExperience(result)),best:Math.max(old.best,result.score),runs:old.runs+1});
 }
 export const UPGRADE_COSTS=[100,200,350,550,800,1100,1500,2000,2600];
 export async function upgradeAircraft(progress,spend) {

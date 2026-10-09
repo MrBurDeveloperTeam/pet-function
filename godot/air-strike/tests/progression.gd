@@ -22,6 +22,13 @@ func run():
 	game.spawn_enemy("bomber",Vector2(400,200))
 	p.update(5.1)
 	check(game.shots.filter(func(b): return b.missile).size() == 3,"player plus two drone missiles every five seconds")
+	var rocket = game.shots.filter(func(b): return b.missile and b.source == "player")[0]
+	check(absf(rocket.pos.x-game.player.x) == 36 and absf(rocket.vel.x) > 200 and rocket.vel.y < 0,"missile launches outward from aircraft wing")
+	var launch_velocity: Vector2 = rocket.vel
+	game.update_shots(0.1)
+	check(rocket.vel == launch_velocity,"wing launch has a visible outward segment before homing")
+	game.update_shots(0.1)
+	check(rocket.vel != launch_velocity and rocket.trail.size() > 1,"missile curves toward target and records luminous trail")
 	check(game.shots.filter(func(b): return b.source == "drone" and not b.missile).size() == 2,"two drones shoot, not three")
 	game.hp = 1
 	game.invincible = 0
@@ -32,7 +39,7 @@ func run():
 	check(game.hp == 1 and p.revive_used,"revive separately saves next fatal hit")
 	game.invincible = 0
 	game.hit_player()
-	check(game.state == "defeat","per-level saves cannot loop forever")
+	check(game.state == "ending_defeat","per-level saves cannot loop forever")
 	game.reset_run()
 	check(not p.revive_used and not p.unyielding_used and p.kills == 0,"restart resets per-level talent charges")
 	p.kills = 29
@@ -88,19 +95,37 @@ func run():
 	game.allow_skill_choices = true
 	p.offer(true)
 	check(game.state == "skill_choice" and p.choices.size() == 3 and p.choices.all(func(s): return s[3] == 1),"opening gives three initial skills")
+	check(p.choice_age == 0,"new skill offer resets its entrance animation")
+	game._physics_process(0.1)
+	check(is_equal_approx(p.choice_age,0.1),"skill card animation progresses while combat is paused")
 	var time = game.elapsed
 	game._physics_process(1)
 	check(game.elapsed == time,"choice pauses battle")
 	p.choose(0)
-	p.collect_energy(6)
-	check(game.state == "skill_choice" and p.skill_level == 1 and p.energy_required() == 9,"energy threshold grows on level up")
+	p.collect_energy(8)
+	check(game.state == "playing" and p.skill_level == 0,"energy below new threshold does not level up")
+	p.collect_energy(1)
+	check(game.state == "skill_choice" and p.skill_level == 1 and p.energy_required() == 14,"1.5x energy threshold grows and rounds up on level up")
 	p.choose(0)
+	check(p.choice_age == 0,"energy upgrade restarts the card animation")
+	p.skills = ["ring_laser","supercrit","double_counter"]
+	p.offer()
+	check(game.state == "skill_choice" and not p.choices.is_empty(),"three completed routes still allow skills")
+	p.skills.append("vamp_drone")
+	p.choices.clear()
+	game.state = "playing"
+	p.energy = 0
+	p.skill_level = 0
+	p.collect_energy(58)
+	check(game.state == "playing" and p.choices.is_empty() and p.skill_level == 3 and p.energy == 17,"four ultimate routes stop cards but continue energy leveling")
+	p.offer()
+	check(game.state == "playing" and p.choices.is_empty(),"direct offers cannot bypass completed routes")
 	game.allow_skill_choices = false
 	game.reset_run()
 	game.wave = game.campaign.wave_limit()
 	game.campaign.waiting = 0
 	game._physics_process(0.01)
-	check(game.boss_spawned and p.routes(true).is_empty(),"fixed wave boss appears without any ultimate skills")
+	check(not game.boss_spawned and not game.enemies.is_empty() and p.routes(true).is_empty(),"ordinary waves continue until an ultimate skill is owned")
 	# Piercing hits each enemy once and stops after its allowed extra target.
 	game.reset_run()
 	p.talents = [6]

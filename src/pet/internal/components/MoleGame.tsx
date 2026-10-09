@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { PixelCoinBag } from './CoinIndicator';
 import type { PetStats } from '../types';
 
-const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v10';
+const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v12';
 const MOLE_GAME_SOURCE = 'pet-function:mole-game';
 const MOLE_TUTORIAL_STORAGE_KEY = 'pet-function:mole-tutorial-complete-v1';
 const MOLE_TUTORIAL_STEPS = [
@@ -20,7 +20,8 @@ type TutorialTargetViewportBounds = TutorialTargetBounds & { viewportWidth: numb
 
 type MoleGameMessage = {
   source: typeof MOLE_GAME_SOURCE;
-  type: 'game-error' | 'game-ready' | 'game-started' | 'game-complete' | 'close' | 'tutorial-progress' | 'tutorial-target-bounds';
+  type: 'game-error' | 'game-progress' | 'game-ready' | 'game-started' | 'game-complete' | 'close' | 'tutorial-progress' | 'tutorial-target-bounds';
+  progress?: number;
   error?: string;
   score?: number;
   coins?: number;
@@ -37,7 +38,7 @@ type MoleGameMessage = {
 const isMoleGameMessage = (value: unknown): value is MoleGameMessage => {
   if (!value || typeof value !== 'object') return false;
   const message = value as Partial<MoleGameMessage>;
-  return message.source === MOLE_GAME_SOURCE && (message.type === 'game-error' || message.type === 'game-ready' || message.type === 'game-started' || message.type === 'game-complete' || message.type === 'close' || message.type === 'tutorial-progress' || message.type === 'tutorial-target-bounds');
+  return message.source === MOLE_GAME_SOURCE && (message.type === 'game-error' || message.type === 'game-progress' || message.type === 'game-ready' || message.type === 'game-started' || message.type === 'game-complete' || message.type === 'close' || message.type === 'tutorial-progress' || message.type === 'tutorial-target-bounds');
 };
 
 export const PixelMoleMound = ({ onOpen }: { onOpen: () => void }) => (
@@ -106,6 +107,7 @@ export const MoleGame = ({ onClose, onReward, stats }: MoleGameProps) => {
   const tutorialTargetViewportBoundsRef = useRef<TutorialTargetViewportBounds | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadProgress, setLoadProgress] = useState<number | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [tutorialTargetBounds, setTutorialTargetBounds] = useState<TutorialTargetBounds | null>(null);
   const [tutorialStep, setTutorialStep] = useState<number | null>(() => {
@@ -162,6 +164,11 @@ export const MoleGame = ({ onClose, onReward, stats }: MoleGameProps) => {
   useEffect(() => {
     const receiveMessage = (event: MessageEvent<unknown>) => {
       if (event.origin !== window.location.origin || event.source !== frameRef.current?.contentWindow || !isMoleGameMessage(event.data)) return;
+      if (event.data.type === 'game-progress') {
+        const progress = event.data.progress;
+        if (typeof progress === 'number' && Number.isFinite(progress)) setLoadProgress(current => Math.max(current ?? 0, Math.min(99, Math.max(0, progress))));
+        return;
+      }
       if (event.data.type === 'game-error') { setLoadError(event.data.error || 'Unable to start the game.'); return; }
       if (event.data.type === 'close') {
         onClose();
@@ -219,11 +226,21 @@ export const MoleGame = ({ onClose, onReward, stats }: MoleGameProps) => {
       data-pet-movement-block
     >
       {!loaded && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-[#f4dec0]" style={{ background: '#100a07' }} role="status" aria-live="polite">
-          <span className="h-12 w-12 animate-spin border-4 border-[#8b6a46] border-t-[#f4dec0]" />
-          <span className="mt-5 text-sm font-black uppercase tracking-[0.25em]">{loadError ? 'Unable to enter the mine' : 'Entering the mine...'}</span>
-          {loadError && <p style={{ color: '#f4dec0', maxWidth: '32rem', padding: '1rem' }}>{loadError}</p>}
-          <button type="button" onClick={() => { setLoadError(null); setLoadAttempt(value => value + 1); }} style={{ marginTop: '1rem', color: '#f4dec0', border: '2px solid #8b6a46', padding: '.5rem 1rem' }}>Retry loading</button>
+        <div className="absolute inset-0 z-10" style={{ background: "#211610 url('/games/mole-game/loading-mine.png?v=keyart-2') center / cover no-repeat", color: '#fff1d0', fontFamily: 'MoleLoadingPixel, monospace' }}>
+          <style>{`@font-face{font-family:MoleLoadingPixel;src:url('/games/mole-game/Quadrit.ttf')}@keyframes moleLoadingSweep{from{left:-35%}to{left:105%}}`}</style>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(20,12,8,.05) 30%,rgba(20,12,8,.88) 100%)' }} />
+          <div style={{ position: 'absolute', left: '8%', bottom: '10%', width: 'min(620px,84%)' }}>
+            <div style={{ fontSize: 11, letterSpacing: 3, color: '#dbc9a6' }}>GULU MINING CLUB</div>
+            <h1 style={{ fontSize: 'clamp(30px,4vw,48px)', margin: '14px 0 28px', lineHeight: 1.2, textShadow: '3px 3px #39271d' }}>MOLE HUNT</h1>
+            {!loadError && <>
+              <div role="progressbar" aria-label="Loading Mole Hunt" aria-valuemin={0} aria-valuemax={100} aria-valuenow={loadProgress ?? undefined} style={{ position: 'relative', height: 20, border: '2px solid #d6b87c', padding: 3, background: '#211610', overflow: 'hidden', boxSizing: 'border-box' }}>
+                <div style={{ height: '100%', width: `${loadProgress ?? 0}%`, background: 'repeating-linear-gradient(90deg,#e8bf63 0 23px,#bb8c3e 23px 25px)', transition: 'width .15s linear' }} />
+                <span aria-hidden="true" style={{ position: 'absolute', top: 3, bottom: 3, width: '30%', background: 'linear-gradient(90deg,transparent,rgba(255,237,179,.8),transparent)', animation: 'moleLoadingSweep 1.2s linear infinite' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, fontSize: 11 }}><span>{loadProgress !== null && loadProgress >= 99 ? 'GETTING READY TO PLAY' : 'PREPARING THE MINE'}</span><span>{loadProgress === null ? '...' : `${Math.floor(loadProgress)}%`}</span></div>
+            </>}
+            {loadError && <><p role="alert" style={{ lineHeight: 1.8 }}>{loadError}</p><button type="button" onClick={() => { setLoadError(null); setLoadProgress(null); setLoadAttempt(value => value + 1); }} style={{ marginTop: '1rem', color: '#fff1d0', background: '#473428', border: '2px solid #d6b87c', padding: '.75rem 1.25rem' }}>TRY AGAIN</button></>}
+          </div>
         </div>
       )}
       <iframe

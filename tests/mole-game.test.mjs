@@ -35,13 +35,15 @@ test('mole game embeds the shared Godot export and persists validated rewards', 
 test('mole game launcher declares the current exported pack size', () => {
   const exportedPage = readFileSync(new URL('../public/games/mole-game/index.html', import.meta.url), 'utf8');
   const packSize = statSync(new URL('../public/games/mole-game/index.pck', import.meta.url)).size;
-  assert.match(exportedPage, new RegExp(`"index\\.pck\\?v=godot-v10":${packSize}`));
-  assert.match(exportedPage, /"mainPack":"index\.pck\?v=godot-v10"/);
+  assert.match(exportedPage, new RegExp(`"index\\.pck\\?v=godot-v11":${packSize}`));
+  assert.match(exportedPage, /"mainPack":"index\.pck\?v=godot-v11"/);
 });
 
 test('mole game provides a full-screen scene and loading state without a popup dialog', () => {
   assert.match(gameSource, /Underground mole game scene/);
-  assert.match(gameSource, /Entering the mine/);
+  assert.match(gameSource, /loading-mine\.png/);
+  assert.match(gameSource, /aria-label="Loading Mole Hunt"/);
+  assert.match(gameSource, /event.data.type === 'game-progress'/);
   assert.match(gameSource, /position: 'fixed', inset: 0, zIndex: 2000/);
   assert.match(gameSource, /width: '100vw', height: '100dvh'/);
   assert.match(gameSource, /display: 'block', width: '100%', height: '100%'/);
@@ -182,8 +184,8 @@ test('mole HUD anchors its scene return arrow to the upper-left viewport corner'
   assert.match(script, /scene_exit_rect\(\)\.has_point\(to_local\(event\.position\)\)/);
   assert.doesNotMatch(script, /Rect2\(18,\s*331,\s*64,\s*64\)/);
   assert.doesNotMatch(script, /"<  OUTSIDE"/);
-  assert.match(gameSource, /godot-v10/);
-  assert.match(gameSource, /background: '#100a07'/);
+  assert.match(gameSource, /godot-v12/);
+  assert.doesNotMatch(gameSource, /Entering the mine|animate-spin/);
   assert.match(roomSource, /stats=\{stats\}/);
 });
 

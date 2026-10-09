@@ -6,6 +6,7 @@
  * and layout is otherwise unchanged.
  */
 import React, { useState, useEffect, useRef } from 'react';
+import { ArcadePortalTransition } from './components/ArcadePortalTransition';
 import { RoomType, FoodItem, Bubble, ToolType, ExtraGame } from './types';
 import { ROOM_THEMES, TOY_ITEMS } from './constants';
 import Pet, { PetPose } from './components/Pet';
@@ -39,6 +40,7 @@ interface RoomExit {
 
 const ROOM_EXITS: Partial<Record<RoomType, RoomExit[]>> = {
   [RoomType.GAMES]: [
+    { direction: 'left', destination: RoomType.TOWN_HOME, label: 'Go outside to town home' },
     { direction: 'right', destination: RoomType.BEDROOM, label: 'Go to bedroom' },
     { direction: 'right', destination: RoomType.KITCHEN, label: 'Go to kitchen' },
   ],
@@ -293,6 +295,15 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const [activeShop, setActiveShop] = useState<'food' | 'furniture' | null>(null);
   const showShopModal = activeShop !== null;
   const [showGamesMenu, setShowGamesMenu] = useState(false);
+  const [arcadePortal,setArcadePortal] = useState<HTMLDivElement|null>(null);
+  const arcadePortalBusy = useRef(false);
+  const enterAirStrike = () => {
+    if(arcadePortalBusy.current || !petRef.current) return;
+    arcadePortalBusy.current = true;
+    setShowGamesMenu(false);
+    setIndoorPetPose('idle');
+    setArcadePortal(petRef.current);
+  };
   const [showMoleGame, setShowMoleGame] = useState(false);
   const [bedroomSceneScale, setBedroomSceneScale] = useState(1);
 
@@ -713,7 +724,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, [bedroomSceneScale, currentRoom]);
 
   useEffect(() => {
-    if (OUTDOOR_ROOMS.has(currentRoom) || showShopModal || showGamesMenu || showBathroomMenu || showFoodMenu || isSleeping) {
+    if (OUTDOOR_ROOMS.has(currentRoom) || arcadePortal || showShopModal || showGamesMenu || showBathroomMenu || showFoodMenu || isSleeping) {
       indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
       indoorPetTargetXRef.current = null;
       indoorPetTargetYOffsetRef.current = null;
@@ -827,7 +838,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       cancelAnimationFrame(indoorPetRaf.current);
       indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
     };
-  }, [bedroomSceneScale, currentRoom, isReturningFromBedroomBed, isSleeping, isWalkingToBedroomBed, roomTransition, setIsSleeping, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
+  }, [arcadePortal, bedroomSceneScale, currentRoom, isReturningFromBedroomBed, isSleeping, isWalkingToBedroomBed, roomTransition, setIsSleeping, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
 
   useEffect(() => {
     const doorExit = ROOM_DOOR_EXITS[currentRoom];
@@ -1005,17 +1016,19 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       if (!area) return;
       const rect = area.getBoundingClientRect();
       const petXRatio = indoorPetXRef.current / Math.max(rect.width, 1);
-      const isNearGameStation = petXRatio >= 0.28 && petXRatio <= 0.66;
-      if (!isNearGameStation) return;
+      const isNearArcade = petXRatio >= 0.33 && petXRatio <= 0.49;
+      const isNearTelevision = petXRatio >= 0.54 && petXRatio <= 0.66;
+      if (!isNearArcade && !isNearTelevision) return;
 
       event.preventDefault();
-      setShowGamesMenu(true);
+      if (isNearArcade) enterAirStrike();
+      else setShowGamesMenu(true);
       setIndoorPetPose('idle');
     };
 
     window.addEventListener('keydown', handleGamesInteraction);
     return () => window.removeEventListener('keydown', handleGamesInteraction);
-  }, [currentRoom, isSleeping, roomTransition, showGamesMenu, showShopModal]);
+  }, [currentRoom, isSleeping, roomTransition, showGamesMenu, showShopModal, onNavigateToGame]);
 
   useEffect(() => {
     if (!showFoodMenu && !showBathroomMenu && !showGamesMenu) return;
@@ -1816,7 +1829,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
       <RoomInteractionOutlines
         room={currentRoom}
-        hidden={!!roomTransition || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu}
+        hidden={!!arcadePortal || !!roomTransition || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu}
         onKeyboardActivate={currentRoom === RoomType.KART_TRACK ? () => activateKartFromEntrance() : undefined}
         onActivate={(action) => {
           if (action === 'karting') onNavigateToGame(KART_GAME_ID);
@@ -1828,7 +1841,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           if (action === 'food') setShowFoodMenu(true);
           if (action === 'bath') setShowBathroomMenu(true);
           if (action === 'games') setShowGamesMenu(true);
-          if (action === 'air-strike') onNavigateToGame('air-strike');
+          if (action === 'air-strike') enterAirStrike();
           if (action === 'food-shop') setActiveShop('food');
           if (action === 'furniture-shop') setActiveShop('furniture');
           if (action === 'fishing') startRoomTransition(TOWN_HOME_FISHING_EXIT);
@@ -2166,6 +2179,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           extraGames={extraGames}
         />
       )}
+      {arcadePortal&&<ArcadePortalTransition pet={arcadePortal} onComplete={()=>{arcadePortalBusy.current=false;setArcadePortal(null);onNavigateToGame('air-strike');}}/>}
 
       {currentRoom === RoomType.PLAYROOM && showMoleGame && (
         <MoleGame
