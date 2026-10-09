@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { PetId } from '../petOptions';
 
 type FishingBand = 'white' | 'green' | 'orange' | 'red';
@@ -264,7 +265,7 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
     {displayPhase === 'waiting' && <Notice title="Waiting for a fish..." detail="Watch the bobber and wait for the !" />}
     {displayPhase === 'power' && <PowerMeter pointer={tutorialStep === 1 ? 50 : pointer} onSelect={tutorialStep === null ? selectPower : () => {}} />}
     {displayPhase === 'reeling' && <ReelMeter distance={tutorialStep === 2 || tutorialStep === 3 || tutorialStep === 4 ? 45 : distance} pointer={tutorialStep === 3 ? rouletteSliceCenter(rouletteSlices, 'orange') : tutorialStep === 4 ? rouletteSliceCenter(rouletteSlices, 'green') : reelPointer} rouletteSlices={rouletteSlices} struggleState={displayStruggleState} feedback={tutorialStep === 4 ? { id: 0, correct: true, text: 'MATCH!  -15m' } : tutorialStep === null ? reelFeedback : null} onJudge={tutorialStep === null ? judgeReel : () => {}} />}
-    {displayPhase === 'result' && (tutorialStep === 5 || result) && <ResultCard result={tutorialStep === 5 ? tutorialResult : result!} onAgain={tutorialStep === null ? prepareCast : () => {}} />}
+    {displayPhase === 'result' && (tutorialStep === 5 || result) && <ResultCard result={tutorialStep === 5 ? tutorialResult : result!} onAgain={tutorialStep === null ? prepareCast : () => {}} preview={tutorialStep === 5} />}
     <button type="button" onClick={() => setTutorialStep(0)} className="absolute right-3 top-32 z-[65] flex h-10 w-10 items-center justify-center border-4 border-[#5a3a22] bg-[#fff3bd] text-lg font-black text-[#51341f] shadow-[3px_3px_0_#5a3a22]" aria-label="Open fishing tutorial">?</button>
     {tutorialStep !== null && (
       <FishingTutorial
@@ -328,4 +329,36 @@ const ReelMeter = ({ distance, pointer, rouletteSlices, struggleState, feedback,
     <div key={feedback?.id ?? 'ready'} className={`mt-1 min-h-5 text-center text-xs font-black uppercase ${feedback ? (feedback.correct ? 'text-[#26873e]' : 'text-[#c72f2a]') : 'text-[#8a5c35]'}`}>{feedback?.text ?? 'Click meter or press Space'}</div>
   </section>;
 };
-const ResultCard = ({ result, onAgain }: { result: FishingResult; onAgain: () => void }) => <section className="absolute z-40 flex items-center justify-between gap-3 border-4 border-[#5a3a22] bg-[#fff3bd]/95 p-3 text-[#51341f] shadow-[6px_6px_0_rgba(49,32,20,0.55)]" style={result.caught ? { left: '50%', top: '10%', width: 'min(440px, calc(100% - 2rem))', transform: 'translateX(-50%)' } : { right: '2%', left: 'auto', top: '50%', width: 'min(270px, calc(100% - 2rem))', transform: 'translateY(-50%)' }} role="status" aria-live="polite"><div className="flex items-center gap-3">{result.caught && result.fish ? <img src={result.fish.image} alt={result.fish.label} className="h-14 w-14 object-contain [image-rendering:pixelated]"/> : <span className="text-4xl">💧</span>}<div><div className="text-sm font-black">{result.caught && result.fish ? `Caught a ${result.fish.label}! +${result.coins} coins · +${result.xp} XP` : 'The fish got away!'}</div><div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#8a5c35]">{result.caught ? 'Fish added to Food inventory' : 'Keep the distance below 100m'}</div></div></div><button type="button" onClick={onAgain} className="shrink-0 border-2 border-[#5a3a22] bg-[#f6a83b] px-3 py-2 text-[10px] font-black uppercase shadow-[3px_3px_0_#5a3a22]">Fish again</button></section>;
+const CaughtFishReveal = ({ fish, onDismiss, preview }: { fish: FishingSpecies; onDismiss: () => void; preview: boolean }) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (preview) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    buttonRef.current?.focus({ preventScroll: true });
+    return () => { if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true }); };
+  }, [preview]);
+  const reveal = <button
+    ref={buttonRef}
+    type="button"
+    className="fishing-catch-reveal"
+    style={{ position: preview ? 'absolute' : 'fixed', inset: 0, zIndex: preview ? 60 : 2147483647, width: '100%', height: '100%', padding: 0, border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'rgba(3, 12, 18, .86)', cursor: 'pointer', touchAction: 'manipulation' }}
+    aria-label={`Caught a ${fish.label}. Click anywhere or press Space to close.`}
+    onClick={event => { event.stopPropagation(); onDismiss(); }}
+  >
+    <style>{`
+      @keyframes fishingCatchReveal { from { opacity: 0; transform: scale(.08) } to { opacity: 1; transform: scale(1) } }
+      .fishing-catch-reveal img { animation: fishingCatchReveal 1100ms cubic-bezier(.16,.65,.25,1) both; }
+      @media (prefers-reduced-motion: reduce) { .fishing-catch-reveal img { animation: none; } }
+    `}</style>
+    <img src={fish.image} alt={fish.label} draggable={false} style={{ width: '96%', height: '94%', objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', userSelect: 'none', filter: 'drop-shadow(0 12px 28px rgba(0,0,0,.65))' }} />
+  </button>;
+  return preview ? reveal : createPortal(reveal, document.body);
+};
+
+const ResultCard = ({ result, onAgain, preview = false }: { result: FishingResult; onAgain: () => void; preview?: boolean }) => {
+  if (result.caught && result.fish) return <CaughtFishReveal fish={result.fish} onDismiss={onAgain} preview={preview} />;
+  return <section className="absolute z-40 flex items-center justify-between gap-3 border-4 border-[#5a3a22] bg-[#fff3bd]/95 p-3 text-[#51341f] shadow-[6px_6px_0_rgba(49,32,20,0.55)]" style={{ right: '2%', top: '50%', width: 'min(270px, calc(100% - 2rem))', transform: 'translateY(-50%)' }} role="status" aria-live="polite">
+    <div className="flex items-center gap-3"><span className="text-4xl">💧</span><div><div className="text-sm font-black">The fish got away!</div><div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#8a5c35]">Keep the distance below 100m</div></div></div>
+    <button type="button" onClick={onAgain} className="shrink-0 border-2 border-[#5a3a22] bg-[#f6a83b] px-3 py-2 text-[10px] font-black uppercase shadow-[3px_3px_0_#5a3a22]">Fish again</button>
+  </section>;
+};

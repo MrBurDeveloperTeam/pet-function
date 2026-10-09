@@ -52,6 +52,7 @@ var feedback := ""
 var feedback_pos := Vector2.ZERO
 var feedback_age := 0.0
 var rng := RandomNumberGenerator.new()
+var target_hit_images: Dictionary = {}
 var font: Font
 var reward_sent := false
 var energy := 0.0
@@ -198,6 +199,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			post_to_host("close")
 		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			var tutorial_position := to_local(event.position)
+			if target_contains_point(tutorial_position):
+				hit_tutorial_target(target_hole)
+				return
 			for i in range(HOLES.size()):
 				var tutorial_hole: Dictionary = HOLES[i]
 				var tutorial_radius := Vector2(125.0, 64.0) * float(tutorial_hole.s)
@@ -217,6 +221,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not playing:
 			reset_game()
 			return
+		if target_contains_point(scene_position):
+			hit_hole(target_hole)
+			return
 		for i in range(HOLES.size()):
 			var hole: Dictionary = HOLES[i]
 			var hitbox_boost := (1.40 if target_kind == "boss" else 1.25) if i == target_hole else 1.0
@@ -225,6 +232,28 @@ func _unhandled_input(event: InputEvent) -> void:
 			if local_position.length_squared() <= 1.0:
 				hit_hole(i)
 				return
+
+func target_sprite_rect(p: Vector2, hole_scale: float, kind: String, variant: String, rise: float) -> Rect2:
+	var texture := get_target_texture(kind,variant)
+	var width := get_target_base_width(kind)*hole_scale*lerpf(0.46,1.0,rise)
+	var height := width*float(texture.get_height())/float(texture.get_width())
+	return Rect2(Vector2(-width*0.5,p.y+48.0*hole_scale-height),Vector2(width,height))
+
+func target_contains_point(scene_point: Vector2) -> bool:
+	if target_hole < 0: return false
+	var hole: Dictionary = HOLES[target_hole]
+	var hole_scale := float(hole.s)
+	var rise := clampf(target_age/0.16,0.0,1.0)
+	var bob := sin(target_age*16.0)*3.0
+	var rect := target_sprite_rect(Vector2(0,16*hole_scale+bob),hole_scale,target_kind,target_variant,rise)
+	var local_point := (scene_point-Vector2(hole.p)).rotated(-float(hole.r))
+	if not rect.has_point(local_point): return false
+	var texture := get_target_texture(target_kind,target_variant)
+	if not target_hit_images.has(texture): target_hit_images[texture]=texture.get_image()
+	var image: Image = target_hit_images[texture]
+	var uv := (local_point-rect.position)/rect.size
+	var pixel := Vector2i(int(uv.x*image.get_width()),int(uv.y*image.get_height()))
+	return image.get_pixel(pixel.x,pixel.y).a>0.1
 
 func hit_hole(index: int) -> void:
 	feedback_pos = Vector2(HOLES[index].p) - Vector2(0, 65)
@@ -571,14 +600,8 @@ func draw_pixel_ellipse(center: Vector2, radius: Vector2, color: Color) -> void:
 
 func draw_target_sprite(p: Vector2, s: float, kind: String, variant: String, rise: float) -> void:
 	var texture := get_target_texture(kind, variant)
-	var width := get_target_base_width(kind)
-	var tint := Color.WHITE
-	var emerge_scale := lerpf(0.46, 1.0, rise)
-	var sprite_width := width * s * emerge_scale
-	var sprite_height := sprite_width * float(texture.get_height()) / float(texture.get_width())
-	var bottom := p.y + 48.0 * s
-	var rect := Rect2(Vector2(-sprite_width * 0.5, bottom - sprite_height), Vector2(sprite_width, sprite_height))
-	draw_texture_rect(texture, rect, false, tint)
+	var rect := target_sprite_rect(p,s,kind,variant,rise)
+	draw_texture_rect(texture,rect,false,Color.WHITE)
 
 func is_blackout_active() -> bool:
 	return blackout_time > 0.0

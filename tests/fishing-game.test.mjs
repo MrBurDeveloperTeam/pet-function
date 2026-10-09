@@ -122,7 +122,6 @@ test('a successful catch grants coins and the selected feedable fish species', (
   }
   assert.match(fishingSource, /FISH_POOLS/);
   assert.match(fishingSource, /onCatch\(next\.fish\.id, next\.coins, next\.xp\)/);
-  assert.match(fishingSource, /\+\$\{result\.xp\} XP/);
 });
 
 test('fishing scene renders a rear-facing cat and fishing rod on the lower dock', () => {
@@ -132,8 +131,6 @@ test('fishing scene renders a rear-facing cat and fishing rod on the lower dock'
   assert.match(fishingSource, /scaleX\(\$\{Math\.max\(0, Math\.min\(100, distance\)\) \/ 100\}\)/);
   assert.match(fishingSource, /right: '2%', left: 'auto', top: '50%'/);
   assert.match(fishingSource, /width: 'min\(270px, calc\(100% - 2rem\)\)'/);
-  assert.match(fishingSource, /style=\{result\.caught \? \{ left: '50%', top: '10%'/);
-  assert.match(fishingSource, /: \{ right: '2%', left: 'auto', top: '50%'/);
   assert.match(fishingSource, /conic-gradient\(from 0deg/);
   assert.match(fishingSource, /rotate\(\$\{pointer \* 3\.6\}deg\)/);
   assert.doesNotMatch(fishingSource, /fishing-ripple-core/);

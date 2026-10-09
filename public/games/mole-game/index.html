@@ -89,7 +89,14 @@ body {
 	text-align: center;
 	z-index: 1;
 }
-		</style>
+		@font-face{font-family:Pixel;src:url('Quadrit.ttf')}
+#status{position:fixed;inset:0;background:#211610 url('loading-mine.png') center/cover no-repeat;display:block;color:#fff1d0;font-family:Pixel,monospace;isolation:isolate;z-index:10}
+#status:before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(20,12,8,.05) 30%,rgba(20,12,8,.88) 100%)}
+#status-splash{display:none}.loading-scene{position:absolute;left:8%;bottom:10%;width:min(620px,84%)}.eyebrow{font-size:11px;letter-spacing:3px;color:#dbc9a6}h1{font-size:clamp(30px,4vw,48px);margin:14px 0 28px;line-height:1.2;text-shadow:3px 3px #39271d}
+#status-progress{position:static;display:block;width:100%;height:20px;box-sizing:border-box;border:2px solid #d6b87c;padding:3px;background:#211610;position:relative;overflow:hidden}
+#status-fill{display:block;height:100%;width:0;background:repeating-linear-gradient(90deg,#e8bf63 0 23px,#bb8c3e 23px 25px);transition:width .15s linear}#status-progress:after{content:"";position:absolute;inset:3px auto 3px -35%;width:30%;background:linear-gradient(90deg,transparent,rgba(255,237,179,.8),transparent);animation:loadingSweep 1.2s linear infinite;pointer-events:none}@keyframes loadingSweep{to{left:105%}}
+.loading-labels{display:flex;justify-content:space-between;margin-top:14px;font-size:11px}#status-notice{position:static;text-align:left;padding:14px 0;line-height:1.7}#retry{font:inherit;background:#473428;color:#fff1d0;border:2px solid #d6b87c;padding:12px 20px;cursor:pointer}@media(max-height:450px){.loading-scene{bottom:8%}h1{margin:10px 0 18px}}
+</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 
@@ -105,13 +112,12 @@ body {
 
 		<div id="status">
 			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
-			<progress id="status-progress"></progress>
-			<div id="status-notice"></div>
+			<div class="loading-scene"><div class="eyebrow">GULU MINING CLUB</div><h1>MOLE HUNT</h1><div id="status-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Loading Mole Hunt"><span id="status-fill"></span></div><div class="loading-labels"><span id="loading-phase">PREPARING THE MINE</span><span id="loading-percent">0%</span></div><div id="status-notice" role="alert"></div><button id="retry" hidden onclick="location.reload()">TRY AGAIN</button></div>
 		</div>
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"mainPack":"index.pck?v=godot-v10","fileSizes":{"index.pck?v=godot-v10":14418368,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"mainPack":"index.pck?v=godot-v11","fileSizes":{"index.pck?v=godot-v11":14421996,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 let gameReady = false;
@@ -124,6 +130,8 @@ window.addEventListener('message', (event) => {
 	const statusOverlay = document.getElementById('status');
 	const statusProgress = document.getElementById('status-progress');
 	const statusNotice = document.getElementById('status-notice');
+	const statusFill = document.getElementById('status-fill');
+	let downloadPercent = 0;
 
 	let initializing = true;
 	let statusMode = '';
@@ -140,6 +148,8 @@ window.addEventListener('message', (event) => {
 		statusOverlay.style.visibility = 'visible';
 		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
 		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		document.getElementById('retry').hidden = mode !== 'notice';
+		document.querySelector('.loading-labels').hidden = mode === 'notice';
 		statusMode = mode;
 	}
 
@@ -208,11 +218,14 @@ window.addEventListener('message', (event) => {
 		engine.startGame({
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
+					downloadPercent = Math.max(downloadPercent, Math.min(99, Math.floor(current / total * 100)));
+					statusFill.style.width = downloadPercent + '%';
+					statusProgress.setAttribute('aria-valuenow', String(downloadPercent));
+					document.getElementById('loading-percent').textContent = downloadPercent+'%';
+					if(current>=total) document.getElementById('loading-phase').textContent='GETTING READY TO PLAY';
 				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
+					statusProgress.removeAttribute('aria-valuenow');
+					document.getElementById('loading-percent').textContent = '...';
 				}
 			},
 		}).then(() => {
