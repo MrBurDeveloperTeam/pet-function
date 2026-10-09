@@ -15,3 +15,6 @@ games/air-strike/hangar-talents.png
 games/meowdoku/cover &image/
 games/meowdoku/cat-149-source.png
 games/meowdoku/paw-life-source.png
+# Football uses loading-football-v2.png; the pitch is embedded in index.pck.
+games/stadium-football/loading-stadium.png
+games/stadium-football/stadium-pixel.png
