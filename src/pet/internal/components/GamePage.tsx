@@ -372,7 +372,11 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
                         <RunnerRivalNotice target={rivalTarget} teeth={runnerTeeth} victory={rivalVictory} playing={runnerPlaying} />
                         <RunnerPowerupTimers status={powerups} visible={!rankingsOpen} />
                         <button type="button" disabled={!runnerReady} onClick={() => sendRunnerAction('RUNNER_RANKINGS_OPEN')} aria-label="Cat Dash rankings" title="Rankings" style={runnerButton}>
-                            <svg viewBox="0 0 24 24" width="26" height="26" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 4h18v3H3zM3 10h14v3H3zM3 16h10v3H3z" /></svg>
+                            <svg viewBox="0 0 32 32" width="34" height="34" shapeRendering="crispEdges" aria-hidden="true">
+                                <path fill="#224269" d="M2 22h8v8H2zM12 14h8v16h-8zM22 19h8v11h-8z" />
+                                <path fill="#d3a64d" d="M2 22h8v2H2zM12 14h8v2h-8zM22 19h8v2h-8z" />
+                                <path fill="#b17b28" d="m6 13 1 3h3l-2 2 1 3-3-2-3 2 1-3-2-2h3zm10-12 2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4zm10 8 1 3h3l-2 2 1 3-3-2-3 2 1-3-2-2h3z" />
+                            </svg>
                         </button>
                         <button type="button" disabled={!runnerReady} onClick={() => sendRunnerAction('RUNNER_TUTORIAL_START')} aria-label="Start Cat Dash tutorial" title="Tutorial" style={runnerButton}>
                             <svg viewBox="0 0 24 24" width="24" height="24" shapeRendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M4 2h16v20H4z" /><path fill="#fff0ba" d="M6 4h12v16H6z" /><path fill="currentColor" d="M8 6h8v2H8zM8 10h8v2H8zM8 14h6v2H8z" /></svg>

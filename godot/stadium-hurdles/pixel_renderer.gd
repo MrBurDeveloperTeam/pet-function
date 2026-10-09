@@ -184,6 +184,7 @@ func draw_powerup(entity: Dictionary, ground: Vector3, floor_height: float) -> v
 	var bob: float=sin(game.animation_time*4+entity.lane)*0.12
 	var p := project(entity.node.position.x,entity.node.position.y,floor_height+entity.height+bob)
 	var width := 102*ground.z if entity.kind=="magnet" else 92*ground.z
+	if not entity.get("air",false): width *= 1.5
 	var height := width*texture.get_height()/texture.get_width()
 	draw_shadow(Vector2(ground.x,ground.y),width*0.6,0.16)
 	# Gold glints identify pickups independently of the obstacle silhouettes.

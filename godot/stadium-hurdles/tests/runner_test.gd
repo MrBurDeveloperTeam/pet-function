@@ -318,6 +318,32 @@ func verify() -> void:
 	assert(game.world.position==Vector2.ZERO,"Replay must reset the camera offset")
 	game.finish_run("quit")
 	assert(game.state=="over" and game.results.visible,"Voluntary exit must not play an injury")
+	game.start_run(false)
+	for entity in game.entities: game.recycle_entity(entity.node)
+	game.entities.clear()
+	game.teeth=4000
+	game.elapsed=100
+	game.spawn_time=0
+	assert(is_equal_approx(game.ground_row_interval()*game.run_speed(),32.0),"Fast ground rows remain at most 32 world units apart")
+	assert(is_equal_approx(game.npc_spawn_chance()/game.ground_row_interval(),0.08*0.7/1.05),"NPC encounter frequency per second is reduced by 30 percent even with faster spawning")
+	game._process(0.9)
+	var obstacle_rows: Array[float]=[]
+	for entity in game.entities:
+		if entity.kind in ["closed","open","cone","bench","equipment"] and not obstacle_rows.has(entity.node.position.y): obstacle_rows.append(entity.node.position.y)
+	assert(obstacle_rows.size()>=3,"High-speed play keeps multiple upcoming obstacle rows instead of waiting for a single obstacle")
+	assert(game.tooth_contact(Vector2.ZERO,Vector2.ZERO,0,-3,3,3.2),"Upper-body contact collects a tooth even when the feet do not touch it")
+	assert(game.tooth_contact(Vector2.ZERO,Vector2.ZERO,1.25,-2,2,0.45),"Exact edge contact is a pickup rather than a pass-through")
+	assert(not game.tooth_contact(Vector2.ZERO,Vector2.ZERO,1.4,-2,2,0.45),"A tooth outside the body width is not collected")
+	assert(not game.tooth_contact(Vector2(0,6.8),Vector2(0,6.8),0,-3,3,0.45),"Jumping above ground teeth still requires real height contact")
+	assert(game.tooth_contact(Vector2(-3,0),Vector2(3,0),0,-8,8,2.4),"Fast lane changes collect teeth at the shared crossing instant")
+	assert(game.tooth_contact(Vector2.ZERO,Vector2.ZERO,0,-3,3,2.3,true),"Rolling body contact covers the complete tuck-and-roll silhouette")
+	game.start_run(false,false)
+	game.spawn_time=1000
+	game.make_obstacle("tooth",1,-0.1,3.2)
+	game._process(0.02)
+	assert(game.teeth==1,"Real gameplay collects a head-height tooth and credits it once")
+	game._process(0.02)
+	assert(game.teeth==1,"Continuous contact cannot collect the same tooth twice")
 	print("PASS: six guided lessons, wrong-key freeze, tutorial reward exclusion, height-aware teeth, safe dense rows, pause, 60 Hz / 1 Hz travel equivalence and replay")
 	game.queue_free()
 	await process_frame

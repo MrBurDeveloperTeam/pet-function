@@ -266,6 +266,17 @@ func verify() -> void:
 	game.start_tutorial()
 	assert(game.magnet_time==0 and game.flight_time==0 and game.jetpack_pickups==0 and not game.opening_choice_available,"Tutorial and replay clear powerups, bonuses and priced offers")
 	assert(game.camera_height==0,"A fresh tutorial starts with the ground camera")
+	game.flight_time=10
+	game.flight_height=game.FLIGHT_HEIGHT
+	for collected in [2000,3000,4000,10000]:
+		game.teeth=collected
+		assert(is_equal_approx(game.run_speed(),64.0),"Jetpack cannot exceed the ground speed at 3000 teeth")
+	game.flight_time=0
+	game.flight_height=0
+	game.teeth=3000
+	assert(is_equal_approx(game.run_speed(),64.0),"Flight cap equals the actual ground speed at 3000 teeth")
+	game.teeth=4000
+	assert(is_equal_approx(game.run_speed(),80.0),"Ground progression is not capped by the jetpack limit")
 	print("PASS: powerups, aerial visibility and camera consistency, lateral-only flight, safe cloud/bird rows, connecting teeth, airborne crash feedback, temporary 50% flight speed and smooth landing")
 	game.queue_free()
 	await process_frame

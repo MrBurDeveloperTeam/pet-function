@@ -8,11 +8,14 @@ const ROLL_DURATION := 0.25
 const DIVE_ROLL_DURATION := 0.15
 const ROLL_WINDOW_DURATION := 0.75
 const BASE_SPEED := 16.0
+const MAX_GROUND_ROW_GAP := 32.0
+const NPC_FREQUENCY_MULTIPLIER := 0.7
 const POWERUP_DURATION := 10.0
 const POWERUP_COST := 30
 const FLIGHT_HEIGHT := 6.0
 const FLIGHT_LANDING_DURATION := 1.25
 const FLIGHT_SPEED_MULTIPLIER := 1.5
+const FLIGHT_SPEED_CAP := BASE_SPEED*(1.0+15*0.2) # Ground speed at 3000 teeth.
 const AIR_HAZARDS := ["cloud","bird"]
 const JUMP_BUFFER_DURATION := 0.14
 const PICKUP_CLEARANCE := 7.0
@@ -194,7 +197,7 @@ func spawn_row() -> void:
 			make_obstacle(kinds[rng.randi_range(0,kinds.size()-1)],other,-92)
 		for i in range(10): make_obstacle("tooth",safe,-68-i*4.2)
 		spawn_arc(blocked,-92)
-		if elapsed>8 and rng.randf()<0.08: spawn_npc(0 if rng.randf()<0.5 else 2,-92)
+		if elapsed>8 and rng.randf()<npc_spawn_chance(): spawn_npc(0 if rng.randf()<0.5 else 2,-92)
 	if not tutorial and powerup_spawn_time<=0 and flight_height<=FLIGHT_HEIGHT+0.1:
 		spawn_powerup("magnet" if rng.randf()<0.5 else "jetpack",rng.randi_range(0,2),-64,air)
 		powerup_spawn_time=rng.randf_range(13,20)
@@ -265,7 +268,7 @@ func activate_powerup(kind: String) -> void:
 			# The opening segment begins closer than subsequent segments.
 			spawn_time=8.0/run_speed()
 	speed=run_speed()
-	toast.text="MAGNET!" if kind=="magnet" else "JETPACK!  SPEED +50%"
+	toast.text="MAGNET!" if kind=="magnet" else "JETPACK!  FLIGHT MODE"
 	toast_time=1.1
 	beep(660,0.09)
 	report_powerups()
@@ -360,7 +363,19 @@ func run_speed() -> float:
 	var ground_speed := BASE_SPEED*(1.0+floori(teeth/200.0)*0.2)
 	# Flight is a temporary boost over the current ground speed, including
 	# its tooth milestones. Remove it on touchdown, never leave a pickup bonus.
-	return ground_speed*(FLIGHT_SPEED_MULTIPLIER if is_flying() else 1.0)
+	return minf(ground_speed*FLIGHT_SPEED_MULTIPLIER,FLIGHT_SPEED_CAP) if is_flying() else ground_speed
+
+func ground_row_interval() -> float:
+	# Travel between rows is bounded even as tooth milestones increase speed.
+	return minf(maxf(1.05,1.65-elapsed*0.006),MAX_GROUND_ROW_GAP/run_speed())
+
+func row_spawn_interval() -> float:
+	return 48.0/run_speed() if flight_time>0 else ground_row_interval()
+
+func npc_spawn_chance() -> float:
+	# More obstacle rows must not accidentally increase NPC encounters per second.
+	var previous_interval := maxf(1.05,1.65-elapsed*0.006)
+	return 0.08*NPC_FREQUENCY_MULTIPLIER*ground_row_interval()/previous_interval
 
 func is_flying() -> bool:
 	return flight_time>0 or flight_height>0
@@ -458,16 +473,20 @@ func _process(delta: float) -> void:
 func tooth_contact(before: Vector2, after: Vector2, tooth_x: float, before_z: float, after_z: float, height: float, rolling: bool = false) -> bool:
 	# Intersect the contact intervals on all axes at the same instant, including touchdown.
 	# The tuck-and-roll silhouette reaches low arc teeth around the cat's head.
-	var center_height := 1.25 if rolling else 0.45
+	# Tooth art is anchored at its bottom, while the cat extends above its feet.
+	# Sweep the complete body against the tooth volume, not just the foot point.
+	var body_height := 2.5 if rolling else 3.4
+	var tooth_half_height := 0.6
+	var center_height := body_height*0.5-tooth_half_height
 	var start := Vector3(before.x-tooth_x,before.y+center_height-height,before_z)
 	var finish := Vector3(after.x-tooth_x,after.y+center_height-height,after_z)
-	var bounds := Vector3(1.25,1.25 if rolling else 1.0,1.8)
+	var bounds := Vector3(1.25,body_height*0.5+tooth_half_height,1.8)
 	var enter := 0.0
 	var leave := 1.0
 	for axis in range(3):
 		var change: float=finish[axis]-start[axis]
 		if absf(change)<0.000001:
-			if absf(start[axis])>=bounds[axis]: return false
+			if absf(start[axis])>bounds[axis]+0.000001: return false
 			continue
 		var first: float=(-bounds[axis]-start[axis])/change
 		var last: float=(bounds[axis]-start[axis])/change
@@ -521,7 +540,7 @@ func simulate(dt: float) -> void:
 		spawn_time -= dt
 		if spawn_time<=0 and not tutorial:
 			spawn_row()
-			spawn_time = 48.0/speed if flight_time>0 else maxf(1.05,1.65-elapsed*0.006)
+			spawn_time += row_spawn_interval()
 		var tutorial_action_time := ROLL_WINDOW_DURATION*0.5 if tutorial and LESSONS[tutorial_step][0]==KEY_DOWN else JUMP_DURATION*0.5
 		for entity in entities:
 			var node: Node2D = entity.node
@@ -1002,7 +1021,15 @@ func build_ui() -> void:
 	ranking_button.focus_mode=Control.FOCUS_NONE
 	ranking_button.pressed.connect(open_rankings)
 	ranking_button.draw.connect(func():
-		for i in range(3): ranking_button.draw_rect(Rect2(13,13+i*9,22-i*4,4),Color("224269")))
+		for podium_bar in [Rect2(7,30,10,12),Rect2(19,20,10,22),Rect2(31,26,10,16)]:
+			ranking_button.draw_rect(podium_bar,Color("224269"))
+			ranking_button.draw_rect(Rect2(podium_bar.position,Vector2(podium_bar.size.x,3)),Color("d3a64d"))
+		for center in [Vector2(12,23),Vector2(24,12),Vector2(36,19)]:
+			var star := PackedVector2Array()
+			for point in range(10):
+				var angle := -PI/2+point*PI/5
+				star.append(center+Vector2(cos(angle),sin(angle))*(5.5 if point%2==0 else 2.5))
+			ranking_button.draw_colored_polygon(star,Color("b17b28")))
 	root.add_child(ranking_button)
 	ranking_button.visible=not OS.has_feature("web")
 
