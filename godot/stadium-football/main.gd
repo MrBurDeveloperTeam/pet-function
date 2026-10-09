@@ -178,7 +178,7 @@ func build_world() -> void:
 	add_child(ball_node)
 	# The screen-space ball stays above overlapping cats, at its true projected position.
 	ball_node.visible = false
-	ball_shadow = sphere(self,0.28,0.015,Vector3.ZERO,Color("537333"))
+	ball_shadow = sphere(self,0.42,0.015,Vector3.ZERO,Color("537333"))
 	sphere(ball_node,0.30,0.60,Vector3.ZERO,CREAM)
 	for p in [Vector3(0,0.28,0),Vector3(0,0,0.28),Vector3(0,0,-0.28),Vector3(0.28,0,0),Vector3(-0.28,0,0)]:
 		var patch := box(ball_node,Vector3(0.16,0.16,0.06),p,Color("252d2b"))
@@ -900,7 +900,8 @@ func update_visuals(delta: float) -> void:
 		var cat: Dictionary = game.cats[i]
 		cat_nodes[i].position = pitch_position(cat.pos)
 		var moving: bool = started and game.state == "playing" and cat.velocity.length() > 0.2
-		var row := 1 if cat.heading.x >= 0 else 2
+		var facing_x: float = (1.0 if cat.team == 0 else -1.0) if cat.keeper else cat.heading.x
+		var row := 1 if facing_x >= 0 else 2
 		if moving: cat_animation_phase[i]+=delta*clampf(cat.velocity.length()*1.4,3.0,12.0)
 		var frame := int(cat_animation_phase[i]) % 8 if moving else 0
 		# These are the original eight-frame left/right cycles, with real paw motion.
@@ -915,9 +916,9 @@ func update_visuals(delta: float) -> void:
 	var ring_index := possession_team if possession_team>=0 else 2
 	ball_marker.texture = ball_textures[ring_index]
 	ball_ring_color = [Color("ffdf54"),Color("ff4d4d"),Color("e9e8d5")][ring_index]
-	ball_marker.size = Vector2.ONE * (38 if feedback_time>0.9 and possession_team==0 else 32)
+	ball_marker.size = Vector2.ONE * (57 if feedback_time>0.9 and possession_team==0 else 48)
 	ball_marker.position = ball_screen - ball_marker.size * 0.5
-	ball_tag.position = ball_screen - Vector2(30,36)
+	ball_tag.position = ball_screen - Vector2(30,46)
 	ball_marker.visible = started and game.state!="finished"
 	ball_tag.visible = started and game.state!="finished"
 	selection_arrow.position = cat_nodes[game.controlled].position + Vector3(0,3.8+sin(anim_time*3)*0.08,0)

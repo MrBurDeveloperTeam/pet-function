@@ -13,6 +13,11 @@ const PASS_SPEED := 10.0
 const KEEPER_PASS_MAX_SPEED := 26.0
 const AI_TACKLE_SUCCESS := 0.5
 const AWAY_DIFFICULTY := 0.8
+const AWAY_KEEPER_MULTIPLIER := 1.1
+
+func ai_difficulty(i: int) -> float:
+	return AWAY_DIFFICULTY * (AWAY_KEEPER_MULTIPLIER if cats[i].keeper else 1.0) if cats[i].team == 1 else 1.0
+
 const KEEPER_HOLD_SECONDS := 2.5
 const KEEPER_KEEP_OUT := 2.4
 const REGULATION := 180.0
@@ -74,7 +79,7 @@ func reset_positions(team: int) -> void:
 		cats[i].sprint_exhausted = false
 		cats[i].cooldown = 0.0
 		cats[i].stun = 0.0
-		cats[i].think = 0.25 / AWAY_DIFFICULTY if cats[i].team == 1 else 0.0
+		cats[i].think = 0.25 / ai_difficulty(i) if cats[i].team == 1 else 0.0
 		cats[i].heading = Vector2(-sign_x, 0)
 	owner = team * 3
 	cats[owner].pos = Vector2(-0.8 if team == 0 else 0.8, 0)
@@ -136,10 +141,10 @@ func step(delta: float, movement := Vector2.ZERO, sprint := false) -> void:
 		cat.stamina = clampf(cat.stamina + (-32 if boosting else 19) * delta, 0, 100)
 		var speed := 8.2 if boosting else 5.6
 		if cat.keeper: speed = 6.2
-		if cat.team == 1: speed *= AWAY_DIFFICULTY
+		speed *= ai_difficulty(i)
 		if i == owner: speed *= 0.92
 		if cat.stun > 0: direction = Vector2.ZERO
-		cat.velocity = cat.velocity.move_toward(direction * speed, 28 * delta * (AWAY_DIFFICULTY if cat.team == 1 else 1.0))
+		cat.velocity = cat.velocity.move_toward(direction * speed, 28 * delta * ai_difficulty(i))
 		cat.pos += cat.velocity * delta
 		cat.pos.x = clampf(cat.pos.x, -21.1, 21.1)
 		cat.pos.y = clampf(cat.pos.y, -12.1, 12.1)
@@ -284,7 +289,7 @@ func keeper_pass_risk(keeper: int, recipient: int) -> float:
 	# Compare interception windows along the full pass, including near the receiver.
 	for opponent in cats:
 		if opponent.team==cats[keeper].team or opponent.stun>0: continue
-		var mobility := (6.2 if opponent.keeper else 8.2)*(AWAY_DIFFICULTY if opponent.team==1 else 1.0)
+		var mobility := (6.2 if opponent.keeper else 8.2)*(AWAY_DIFFICULTY*(AWAY_KEEPER_MULTIPLIER if opponent.keeper else 1.0) if opponent.team==1 else 1.0)
 		for sample in range(1,13):
 			var fraction := sample/12.0
 			var point := start.lerp(finish,fraction)
@@ -303,7 +308,7 @@ func safest_keeper_recipient(keeper: int) -> int:
 	return first if risk_a<risk_b else first+1
 
 func ai_interval(i: int, seconds: float) -> float:
-	return seconds / (AWAY_DIFFICULTY if cats[i].team == 1 else 1.0)
+	return seconds / ai_difficulty(i)
 
 func shoot_ai(i: int) -> void:
 	var attack := 1.0 if cats[i].team == 0 else -1.0
@@ -370,7 +375,7 @@ func receive_ball(from: Vector3, to: Vector3, limit := 1.0) -> bool:
 	for i in range(cats.size()):
 		if cats[i].stun > 0 or (i == last_kicker and pickup_lock > 0): continue
 		if i==last_kicker and pass_target>=0 and Vector2(ball_velocity.x,ball_velocity.z).length()>3.0: continue
-		var receive_radius := (1.15 * (AWAY_DIFFICULTY if cats[i].team == 1 and cats[i].keeper else 1.0)) if flight_is_shot else RECEIVE_RADIUS
+		var receive_radius := (1.15 * (ai_difficulty(i) if cats[i].team == 1 and cats[i].keeper else 1.0)) if flight_is_shot else RECEIVE_RADIUS
 		var offset: Vector2 = start - cats[i].pos
 		var entry := 0.0
 		var leave := limit

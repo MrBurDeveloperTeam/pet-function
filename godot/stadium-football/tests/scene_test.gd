@@ -11,6 +11,12 @@ func verify() -> void:
 	var scene = load("res://main.gd").new()
 	root.add_child(scene)
 	scene.set_process(false)
+	scene.game.cats[2].heading = Vector2.LEFT
+	scene.game.cats[5].heading = Vector2.RIGHT
+	scene._process(0.0)
+	check(scene.cat_atlases[2].region.position.y == 208 and scene.cat_atlases[5].region.position.y == 416,"Both keepers face into the pitch even after moving toward their own goals")
+	check(scene.ball_marker.size == Vector2(48,48),"Normal ball diameter is increased by 50 percent")
+	check(is_equal_approx(scene.game.ai_difficulty(5),0.88) and is_equal_approx(scene.game.ai_difficulty(3),0.8),"Only the away keeper difficulty is raised by 10 percent")
 	check(scene.cat_nodes.size()==6 and scene.cat_sprites.size()==6,"Scene has six original pixel cat sprites on a 3D stage")
 	for i in range(6):
 		check(scene.cat_atlases[i].atlas==scene.TEAM_SHEETS[0 if i<3 else 1],"Each team shares exactly one original cat appearance")

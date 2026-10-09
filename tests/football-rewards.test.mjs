@@ -32,3 +32,21 @@ test('settlement requires the active match, real elapsed time, and credits exact
   settlement.start('match-2', 200000);
   assert.ok(settlement.complete({ ...result, matchId: 'match-2', elapsedSeconds: 210 }, 410000));
 });
+
+test('confirmed coin rewards use the database balance and do not grant optimistic coins on failure', async () => {
+  const runtime = readFileSync(new URL('../src/pet/runtime/SharedPetRuntime.tsx', import.meta.url), 'utf8');
+  const start = runtime.indexOf('    const earnCoinsConfirmed =');
+  const end = runtime.indexOf('    const spendCoins =', start);
+  const context = { userId: 'player', isHydrated: { current: true }, mounted: { current: true }, owner: { current: 'player' }, currentStats: { current: { coins: 100 } }, repository: { mutateCoins: async (id, amount) => { assert.equal(id, 'player'); assert.equal(amount, 90); return 215; } }, setStats: update => { context.display = update({ coins: 100 }); } };
+  vm.runInNewContext(ts.transpileModule(runtime.slice(start, end) + 'globalThis.reward = earnCoinsConfirmed;', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText, context);
+  await context.reward(90);
+  assert.equal(context.currentStats.current.coins, 215);
+  assert.equal(context.display.coins, 215);
+  context.repository.mutateCoins = async () => { throw new Error('offline'); };
+  await assert.rejects(context.reward(90), /offline/);
+  assert.equal(context.currentStats.current.coins, 215);
+  context.owner.current = 'another-player';
+  context.repository.mutateCoins = async () => 999;
+  await context.reward(90);
+  assert.equal(context.currentStats.current.coins, 215);
+});

@@ -5,7 +5,8 @@ import { FOOTBALL_SOURCE, FootballSettlement } from '../footballRewards';
 export function FootballGame({ onClose, userId }: { onClose: () => void; userId: string | null }) {
   const iframe = useRef<HTMLIFrameElement>(null);
   const settlement = useRef(new FootballSettlement());
-  const { addCoins, addXP } = useGameState();
+  const { earnCoinsConfirmed, addXP } = useGameState();
+  const [rewardStatus, setRewardStatus] = useState('');
   const [error, setError] = useState(false);
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -25,7 +26,13 @@ export function FootballGame({ onClose, userId }: { onClose: () => void; userId:
       if (message.type === 'FOOTBALL_STARTED') settlement.current.start(message.matchId, performance.now());
       if (message.type === 'FOOTBALL_COMPLETE') {
         const reward = settlement.current.complete(message, performance.now());
-        if (reward) { addCoins(reward.coins); addXP(reward.xp); }
+        if (reward) {
+          setRewardStatus('Saving match reward…');
+          void earnCoinsConfirmed(reward.coins).then(() => {
+            addXP(reward.xp);
+            setRewardStatus('');
+          }).catch(() => setRewardStatus('Could not confirm your coin reward. Please check your connection and wallet.'));
+        }
       }
       if (message.type === 'FOOTBALL_CLOSE') onClose();
     };
@@ -38,11 +45,12 @@ export function FootballGame({ onClose, userId }: { onClose: () => void; userId:
       window.removeEventListener('message', handleMessage);
       document.removeEventListener('visibilitychange', pause);
     };
-  }, [addCoins, addXP, onClose, userId]);
+  }, [earnCoinsConfirmed, addXP, onClose, userId]);
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#182a23' }}>
       <iframe ref={iframe} src="/games/stadium-football/index.html?embedded=1" title="Paw League — 3D cat football"
         allow="autoplay; fullscreen" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
+      {rewardStatus && <div role="status" style={{ position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)', padding: '12px 18px', background: '#182a23', color: '#fff1cb' }}>{rewardStatus}</div>}
       {error && <button type="button" onClick={onClose} style={{ position: 'absolute', left: 20, top: 18,
         padding: '12px 20px', background: '#fff1cb', color: '#243e37', border: '2px solid #b8a477' }}>返回体育场</button>}
     </div>

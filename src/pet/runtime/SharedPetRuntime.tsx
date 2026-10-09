@@ -148,6 +148,7 @@ interface GameStateContextType {
      *  `buyItem` for anything that also grants/consumes an inventory
      *  item, since that commits coins + the item as one transaction. */
     addCoins: (delta: number) => void;
+    earnCoinsConfirmed: (amount: number) => Promise<void>;
     /** Confirm a coin-only purchase against the wallet before granting its effect. */
     spendCoins: (amount: number) => Promise<boolean>;
     skyTalentCloud?: {
@@ -889,6 +890,16 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
         void persistCoinsDelta(delta, nextStats);
     };
 
+    const earnCoinsConfirmed = async (amount: number): Promise<void> => {
+        if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("Invalid reward");
+        const rewardOwner = userId;
+        if (rewardOwner && (!isHydrated.current || !repository.mutateCoins)) throw new Error("Wallet not ready");
+        const coins = rewardOwner ? await repository.mutateCoins!(rewardOwner, amount) : currentStats.current.coins + amount;
+        if (!mounted.current || owner.current !== rewardOwner) return;
+        currentStats.current = { ...currentStats.current, coins };
+        setStats(prev => ({ ...prev, coins }));
+    };
+
     const spendCoins = async (amount: number): Promise<boolean> => {
         if (!Number.isSafeInteger(amount) || amount <= 0 || coinSpendInFlight.current || currentStats.current.coins < amount) return false;
         // Older adapters cannot confirm an atomic spend; never grant an effect
@@ -1125,6 +1136,7 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             grantItem,
             addXP,
             addCoins,
+            earnCoinsConfirmed,
             spendCoins,
             skyTalentCloud,
             skyAircraftCloud,
