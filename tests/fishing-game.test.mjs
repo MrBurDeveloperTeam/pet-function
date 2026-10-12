@@ -65,7 +65,7 @@ test('reeling uses three fixed struggle states and a fast moving colour-match po
   assert.match(fishingSource, /const \[reelPointer, setReelPointer\] = useState\(0\)/);
   assert.match(fishingSource, /elapsed \* 0\.08568/);
   assert.match(fishingSource, /const advanceStruggle = useCallback/);
-  assert.match(fishingSource, /setTimeout\(advanceStruggle, 3070\)/);
+  assert.match(fishingSource, /useFishingTimeout\(phase === 'reeling', orientationPaused, struggleCycle, \(\) => 3070, advanceStruggle\)/);
   assert.match(fishingSource, /3070/);
   assert.match(fishingSource, /landedBand === struggleState/);
   assert.match(fishingSource, /createRouletteSlices/);

@@ -1,6 +1,25 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { PetId } from '../petOptions';
+import { MobileLandscapeGate, useMobileLandscapePaused } from './MobileLandscapeGate';
+import { fishingTapAction, type FishingTouchPoint } from '../fishingTouch.mjs';
+
+function useFishingTimeout(active: boolean, paused: boolean, cycle: number, delay: () => number, onElapsed: () => void) {
+  const budget = useRef<{ cycle: number; remaining: number } | null>(null);
+  const callback = useRef(onElapsed);
+  callback.current = onElapsed;
+  useEffect(() => {
+    if (!active) { budget.current = null; return; }
+    if (!budget.current || budget.current.cycle !== cycle) budget.current = { cycle, remaining: delay() };
+    if (paused) return;
+    const started = performance.now();
+    const timer = window.setTimeout(() => callback.current(), budget.current.remaining);
+    return () => {
+      window.clearTimeout(timer);
+      if (budget.current) budget.current.remaining = Math.max(0, budget.current.remaining - (performance.now() - started));
+    };
+  }, [active, paused, cycle]);
+}
 
 type FishingBand = 'white' | 'green' | 'orange' | 'red';
 type FishStruggleState = 'green' | 'orange' | 'red';
@@ -18,7 +37,7 @@ const FISHING_TUTORIAL_STEPS = [
 export type FishingRodId = 'beginner_rod' | 'forest_rod' | 'carbon_rod' | 'crystal_rod' | 'legendary_rod';
 interface FishingSpecies { id: string; label: string; image: string; rarity: number }
 interface FishingResult { caught: boolean; coins: number; xp: number; band: FishingBand; fish: FishingSpecies | null }
-interface FishingGameProps { petId: PetId; equippedRodId?: FishingRodId; onCatch: (fishId: string, coins: number, xp: number) => void }
+interface FishingGameProps { petId: PetId; equippedRodId?: FishingRodId; onCatch: (fishId: string, coins: number, xp: number) => void; onClose: () => void }
 
 export const FISHING_RODS: Record<FishingRodId, { id: FishingRodId; label: string; image: string; rarityBoost: number }> = {
   beginner_rod: { id: 'beginner_rod', label: 'Beginner Rod', image: '/pet-function/fishing/beginner-fishing-rod.png', rarityBoost: 0 },
@@ -118,7 +137,13 @@ const FishingCatBack = ({ petId, rodId, sway, landing }: { petId: PetId; rodId: 
   <img src={FISHING_CAT_BACK_IMAGES[petId]} alt="" draggable={false} className="absolute inset-0 z-20 h-full w-full select-none object-contain [image-rendering:pixelated]" />
 </div>;
 
-export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId = 'beginner_rod', onCatch }) => {
+export const FishingGame: React.FC<FishingGameProps> = props => <MobileLandscapeGate game="fishing" title="Fishing" onClose={props.onClose}><FishingGameContent {...props}/></MobileLandscapeGate>;
+
+const FishingGameContent: React.FC<FishingGameProps> = ({ petId, equippedRodId = 'beginner_rod', onCatch }) => {
+  const orientationPaused = useMobileLandscapePaused();
+  const touchStart = useRef<FishingTouchPoint | null>(null);
+  const [touchMode, setTouchMode] = useState(() => typeof window !== 'undefined' && (window.matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
+  useEffect(() => { if (orientationPaused) touchStart.current = null; }, [orientationPaused]);
   const [phase, setPhase] = useState<FishingPhase>('ready');
   const [pointer, setPointer] = useState(0);
   const [reelPointer, setReelPointer] = useState(0);
@@ -147,22 +172,22 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
   const resetReel = useCallback(() => { const nextStruggle = randomStruggleState(); struggleStateRef.current = nextStruggle; setReelPointer(0); setStruggleState(nextStruggle); setRouletteSlices(createRouletteSlices(nextStruggle)); setReelFeedback(null); reelDirectionRef.current = 1; reelPreviousTimeRef.current = null; }, []);
   const prepareCast = useCallback(() => { setPhase('ready'); setResult(null); setPointer(0); setDistance(70); resetReel(); previousTimeRef.current = null; }, [resetReel]);
   const castLine = useCallback(() => { setPhase('waiting'); setResult(null); setPointer(0); setDistance(70); resetReel(); previousTimeRef.current = null; }, [resetReel]);
-  useEffect(() => { if (phase !== 'waiting') return; const timer = window.setTimeout(() => setPhase('power'), randomInt(2000, 10000)); return () => clearTimeout(timer); }, [phase]);
+  useFishingTimeout(phase === 'waiting', orientationPaused, 0, () => randomInt(2000, 10000), () => setPhase('power'));
   useEffect(() => {
-    if (phase !== 'power') return; let frame = 0;
+    if (phase !== 'power' || orientationPaused) { previousTimeRef.current = null; return; } let frame = 0;
     const animate = (time: number) => { const previous = previousTimeRef.current ?? time; const elapsed = Math.min(32, time - previous); previousTimeRef.current = time;
       setPointer(current => { let next = current + directionRef.current * elapsed * 0.075; if (next >= 100) { next = 100; directionRef.current = -1; } if (next <= 0) { next = 0; directionRef.current = 1; } return next; }); frame = requestAnimationFrame(animate); };
     frame = requestAnimationFrame(animate); return () => cancelAnimationFrame(frame);
-  }, [phase]);
-  useEffect(() => { let frame = 0; const animate = (time: number) => { setMotionTime(time); frame = requestAnimationFrame(animate); }; frame = requestAnimationFrame(animate); return () => cancelAnimationFrame(frame); }, []);
+  }, [phase, orientationPaused]);
+  useEffect(() => { if (orientationPaused) return; let frame = 0; const animate = (time: number) => { setMotionTime(time); frame = requestAnimationFrame(animate); }; frame = requestAnimationFrame(animate); return () => cancelAnimationFrame(frame); }, [orientationPaused]);
 
   const finishCatch = useCallback((band: FishingBand) => { const next = rollResult(band, equippedRodId); setResult(next); setPhase('result'); if (next.caught && next.fish) onCatch(next.fish.id, next.coins, next.xp); }, [equippedRodId, onCatch]);
   useEffect(() => {
-    if (phase !== 'reeling') return; let frame = 0;
+    if (phase !== 'reeling' || orientationPaused) { reelPreviousTimeRef.current = null; return; } let frame = 0;
     const animate = (time: number) => { const previous = reelPreviousTimeRef.current ?? time; const elapsed = Math.min(32, time - previous); reelPreviousTimeRef.current = time;
       setReelPointer(current => { const next = current + reelDirectionRef.current * elapsed * 0.08568; return next >= 100 ? next - 100 : next; }); frame = requestAnimationFrame(animate); };
     frame = requestAnimationFrame(animate); return () => cancelAnimationFrame(frame);
-  }, [phase]);
+  }, [phase, orientationPaused]);
   const advanceStruggle = useCallback(() => {
     const next = randomStruggleState(struggleStateRef.current);
     struggleStateRef.current = next;
@@ -170,7 +195,7 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
     setRouletteSlices(slices => createRouletteSlices(next, slices));
     setStruggleCycle(current => current + 1);
   }, []);
-  useEffect(() => { if (phase !== 'reeling') return; const timer = window.setTimeout(advanceStruggle, 3070); return () => clearTimeout(timer); }, [advanceStruggle, phase, struggleCycle]);
+  useFishingTimeout(phase === 'reeling', orientationPaused, struggleCycle, () => 3070, advanceStruggle);
 
   const selectPower = useCallback(() => { if (phase !== 'power') return; const band = resolveBand(pointer); setSelectedBand(band); setDistance(Math.round((60 + Math.abs(pointer - 50) * 0.4) / 5) * 5); resetReel(); previousTimeRef.current = null; setPhase('reeling'); }, [phase, pointer, resetReel]);
   const judgeReel = useCallback(() => {
@@ -198,9 +223,9 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
   }, [advanceStruggle, finishCatch, reelPointer, rouletteSlices, selectedBand, struggleState]);
   useEffect(() => {
     const editable = (event: KeyboardEvent) => Boolean((event.target instanceof HTMLElement ? event.target : null)?.closest('input,textarea,select,[contenteditable="true"]'));
-    const down = (event: KeyboardEvent) => { if (event.code !== 'Space' || editable(event)) return; if (tutorialStep !== null) { event.preventDefault(); event.stopImmediatePropagation(); return; } event.preventDefault(); event.stopImmediatePropagation(); if (event.repeat) return; if (phaseRef.current === 'ready') castLine(); else if (phaseRef.current === 'power') selectPower(); else if (phaseRef.current === 'reeling') judgeReel(); else if (phaseRef.current === 'result') prepareCast(); };
+    const down = (event: KeyboardEvent) => { if (event.code !== 'Space' || editable(event)) return; if (orientationPaused || tutorialStep !== null) { event.preventDefault(); event.stopImmediatePropagation(); return; } event.preventDefault(); event.stopImmediatePropagation(); if (event.repeat) return; if (phaseRef.current === 'ready') castLine(); else if (phaseRef.current === 'power') selectPower(); else if (phaseRef.current === 'reeling') judgeReel(); else if (phaseRef.current === 'result') prepareCast(); };
     window.addEventListener('keydown', down, true); return () => window.removeEventListener('keydown', down, true);
-  }, [castLine, judgeReel, prepareCast, selectPower, tutorialStep]);
+  }, [castLine, judgeReel, prepareCast, selectPower, tutorialStep, orientationPaused]);
 
   const movementStruggle = Math.sin(motionTime / 217) * 0.52 + Math.sin(motionTime / 83) * 0.31 + Math.sin(motionTime / 47) * 0.17;
   const tutorialPreviewPhase: FishingPhase | null = tutorialStep === null
@@ -228,7 +253,27 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
   const bobberVisualTop = bobberTop + idleBob + hookedBob + reelBob;
   const rodTipLeft = 57 + sway * 1.8;
   const rodTipTop = 66 - Math.abs(sway) * 0.7;
-  return <div ref={gameRef} className="absolute inset-0 z-20 overflow-hidden" data-pet-movement-block>
+  return <div ref={gameRef} className="absolute inset-0 z-20 overflow-hidden" data-pet-movement-block
+    style={touchMode ? { touchAction: 'manipulation' } : undefined}
+    onPointerDown={event => {
+      if (event.pointerType !== 'touch' || touchStart.current || orientationPaused || tutorialStep !== null) return;
+      if (event.target instanceof Element && event.target.closest('button,a,input,select,textarea,[role="dialog"]')) return;
+      setTouchMode(true);
+      touchStart.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: performance.now(), phase: phaseRef.current };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }}
+    onPointerCancel={event => { if (event.pointerId === touchStart.current?.id) touchStart.current = null; }}
+    onLostPointerCapture={event => { if (event.pointerId === touchStart.current?.id) touchStart.current = null; }}
+    onPointerUp={event => {
+      if (event.pointerType !== 'touch' || event.pointerId !== touchStart.current?.id) return;
+      const start = touchStart.current;
+      touchStart.current = null;
+      const action = fishingTapAction(start, { id: event.pointerId, x: event.clientX, y: event.clientY, time: performance.now() }, { phase: phaseRef.current, paused: orientationPaused, tutorial: tutorialStep !== null });
+      if (action === 'cast') castLine();
+      else if (action === 'power') selectPower();
+      else if (action === 'reel') judgeReel();
+      else if (action === 'again') prepareCast();
+    }}>
     <style>{`
       @keyframes fishingRippleLocal { 0% { opacity:.95; transform:scale(.34) } 72% { opacity:.14 } 100% { opacity:0; transform:scale(1) } }
       @keyframes fishingBaitLocal { 0%,100% { transform:translateX(-50%) rotate(-9deg) } 50% { transform:translateX(-50%) rotate(11deg) } }
@@ -261,14 +306,15 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
       style={{ width: 'clamp(210px, 29dvh, 300px)', height: 'clamp(248px, 35dvh, 355px)', bottom: '5%' }}
       aria-hidden="true"
     >{displayPhase === 'power' && <div className="absolute -left-7 -top-8 z-40 animate-bounce text-5xl font-black text-[#fff6c9] [filter:drop-shadow(3px_3px_0_#5a2f1b)]">!</div>}<FishingCatBack petId={petId} rodId={equippedRodId} sway={sway} landing={landing} /></div>
-    {displayPhase === 'ready' && <Notice title="Ready to cast" detail="Press Space to cast the line" />}
+    {displayPhase === 'ready' && <Notice title="Ready to cast" detail={touchMode ? 'Tap the screen to cast the line' : 'Press Space to cast the line'} />}
     {displayPhase === 'waiting' && <Notice title="Waiting for a fish..." detail="Watch the bobber and wait for the !" />}
-    {displayPhase === 'power' && <PowerMeter pointer={tutorialStep === 1 ? 50 : pointer} onSelect={tutorialStep === null ? selectPower : () => {}} />}
-    {displayPhase === 'reeling' && <ReelMeter distance={tutorialStep === 2 || tutorialStep === 3 || tutorialStep === 4 ? 45 : distance} pointer={tutorialStep === 3 ? rouletteSliceCenter(rouletteSlices, 'orange') : tutorialStep === 4 ? rouletteSliceCenter(rouletteSlices, 'green') : reelPointer} rouletteSlices={rouletteSlices} struggleState={displayStruggleState} feedback={tutorialStep === 4 ? { id: 0, correct: true, text: 'MATCH!  -15m' } : tutorialStep === null ? reelFeedback : null} onJudge={tutorialStep === null ? judgeReel : () => {}} />}
+    {displayPhase === 'power' && <PowerMeter touchMode={touchMode} pointer={tutorialStep === 1 ? 50 : pointer} onSelect={tutorialStep === null ? selectPower : () => {}} />}
+    {displayPhase === 'reeling' && <ReelMeter touchMode={touchMode} distance={tutorialStep === 2 || tutorialStep === 3 || tutorialStep === 4 ? 45 : distance} pointer={tutorialStep === 3 ? rouletteSliceCenter(rouletteSlices, 'orange') : tutorialStep === 4 ? rouletteSliceCenter(rouletteSlices, 'green') : reelPointer} rouletteSlices={rouletteSlices} struggleState={displayStruggleState} feedback={tutorialStep === 4 ? { id: 0, correct: true, text: 'MATCH!  -15m' } : tutorialStep === null ? reelFeedback : null} onJudge={tutorialStep === null ? judgeReel : () => {}} />}
     {displayPhase === 'result' && (tutorialStep === 5 || result) && <ResultCard result={tutorialStep === 5 ? tutorialResult : result!} onAgain={tutorialStep === null ? prepareCast : () => {}} preview={tutorialStep === 5} />}
     <button type="button" onClick={() => setTutorialStep(0)} className="absolute right-3 top-32 z-[65] flex h-10 w-10 items-center justify-center border-4 border-[#5a3a22] bg-[#fff3bd] text-lg font-black text-[#51341f] shadow-[3px_3px_0_#5a3a22]" aria-label="Open fishing tutorial">?</button>
     {tutorialStep !== null && (
       <FishingTutorial
+        touchMode={touchMode}
         step={tutorialStep}
         onBack={() => setTutorialStep(current => current === null ? 0 : Math.max(0, current - 1))}
         onNext={() => tutorialStep === FISHING_TUTORIAL_STEPS.length - 1 ? closeTutorial() : setTutorialStep(tutorialStep + 1)}
@@ -278,7 +324,7 @@ export const FishingGame: React.FC<FishingGameProps> = ({ petId, equippedRodId =
   </div>;
 };
 
-const FishingTutorial = ({ step, onBack, onNext, onSkip }: { step: number; onBack: () => void; onNext: () => void; onSkip: () => void }) => {
+const FishingTutorial = ({ step, onBack, onNext, onSkip, touchMode = false }: { step: number; onBack: () => void; onNext: () => void; onSkip: () => void; touchMode?: boolean }) => {
   const item = FISHING_TUTORIAL_STEPS[step];
   const highlightClass = item.target === 'cast'
     ? 'bottom-[4%] left-1/2 h-[42%] w-[34%] -translate-x-1/2'
@@ -293,7 +339,7 @@ const FishingTutorial = ({ step, onBack, onNext, onSkip }: { step: number; onBac
         <span className="border-2 border-[#5a3a22] bg-[#f6a83b] px-2 py-1 text-[10px] font-black">{step + 1} / {FISHING_TUTORIAL_STEPS.length}</span>
       </div>
       <h2 className="text-lg font-black uppercase">{item.title}</h2>
-      <p className="mt-2 text-sm font-bold leading-6">{item.detail}</p>
+      <p className="mt-2 text-sm font-bold leading-6">{touchMode ? item.detail.replace(/Press Space or click/g, 'Tap the screen') : item.detail}</p>
       <div className="mt-4 flex items-center justify-between gap-2">
         <button type="button" onClick={onSkip} className="px-2 py-2 text-[10px] font-black uppercase underline">Skip tutorial</button>
         <div className="flex gap-2">
@@ -306,8 +352,8 @@ const FishingTutorial = ({ step, onBack, onNext, onSkip }: { step: number; onBac
 };
 
 const Notice = ({ title, detail }: { title: string; detail: string }) => <div className="absolute z-30 border-4 border-[#5a3a22] bg-[#fff3bd]/95 px-5 py-3 text-center text-[#51341f] shadow-[5px_5px_0_rgba(49,32,20,0.5)]" style={{ right: '2%', left: 'auto', top: '50%', width: 'min(270px, calc(100% - 2rem))', transform: 'translateY(-50%)' }} role="status"><div className="text-sm font-black uppercase tracking-[0.12em]">{title}</div><div className="text-[10px] font-bold">{detail}</div></div>;
-const PowerMeter = ({ pointer, onSelect }: { pointer: number; onSelect: () => void }) => <section className="absolute z-40 text-center" style={{ right: '2%', left: 'auto', top: '50%', width: 'min(270px, calc(100% - 2rem))', transform: 'translateY(-50%)' }} aria-label="Fishing power selector"><div className="mb-1 text-sm font-black uppercase tracking-[0.14em] text-[#fff8d0] [text-shadow:2px_2px_0_#4a2d1b]">Choose power</div><button type="button" onClick={onSelect} className="relative h-[112px] w-full focus-visible:outline focus-visible:outline-4 focus-visible:outline-[#fff4bd]" aria-label="Stop fishing power pointer"><svg viewBox="0 0 260 118" className="h-full w-full overflow-visible drop-shadow-[4px_5px_0_rgba(55,31,18,0.55)]" aria-hidden="true"><defs><linearGradient id="fishing-power-gradient"><stop offset="0%" stopColor="#f8f4e8"/><stop offset="20%" stopColor="#f8f4e8"/><stop offset="20%" stopColor="#63c76a"/><stop offset="34%" stopColor="#63c76a"/><stop offset="34%" stopColor="#f5a33b"/><stop offset="44%" stopColor="#f5a33b"/><stop offset="44%" stopColor="#e94a3f"/><stop offset="56%" stopColor="#e94a3f"/><stop offset="56%" stopColor="#f5a33b"/><stop offset="66%" stopColor="#f5a33b"/><stop offset="66%" stopColor="#63c76a"/><stop offset="80%" stopColor="#63c76a"/><stop offset="80%" stopColor="#f8f4e8"/><stop offset="100%" stopColor="#f8f4e8"/></linearGradient></defs><path d="M20 105 A110 78 0 0 1 240 105" pathLength="100" fill="none" stroke="#56371f" strokeWidth="28"/><path d="M20 105 A110 78 0 0 1 240 105" pathLength="100" fill="none" stroke="url(#fishing-power-gradient)" strokeWidth="20"/><g style={{ transform: `rotate(${pointer * 1.8 - 90}deg)`, transformOrigin: '130px 105px' }}><path d="M130 105 L130 28" stroke="#392419" strokeWidth="5" strokeLinecap="round"/><circle cx="130" cy="105" r="9" fill="#fff3bd" stroke="#392419" strokeWidth="4"/></g></svg></button><div className="-mt-1 border-2 border-[#5a3a22] bg-[#fff3bd]/95 px-3 py-2 text-[10px] font-black text-[#51341f] shadow-[3px_3px_0_#5a3a22]">CLICK OR PRESS SPACE</div></section>;
-const ReelMeter = ({ distance, pointer, rouletteSlices, struggleState, feedback, onJudge }: { distance: number; pointer: number; rouletteSlices: RouletteSlice[]; struggleState: FishStruggleState; feedback: { id: number; correct: boolean; text: string } | null; onJudge: () => void }) => {
+const PowerMeter = ({ pointer, onSelect, touchMode = false }: { pointer: number; onSelect: () => void; touchMode?: boolean }) => <section className="absolute z-40 text-center" style={{ right: '2%', left: 'auto', top: '50%', width: 'min(270px, calc(100% - 2rem))', transform: 'translateY(-50%)' }} aria-label="Fishing power selector"><div className="mb-1 text-sm font-black uppercase tracking-[0.14em] text-[#fff8d0] [text-shadow:2px_2px_0_#4a2d1b]">Choose power</div><button type="button" onClick={onSelect} className="relative h-[112px] w-full focus-visible:outline focus-visible:outline-4 focus-visible:outline-[#fff4bd]" aria-label="Stop fishing power pointer"><svg viewBox="0 0 260 118" className="h-full w-full overflow-visible drop-shadow-[4px_5px_0_rgba(55,31,18,0.55)]" aria-hidden="true"><defs><linearGradient id="fishing-power-gradient"><stop offset="0%" stopColor="#f8f4e8"/><stop offset="20%" stopColor="#f8f4e8"/><stop offset="20%" stopColor="#63c76a"/><stop offset="34%" stopColor="#63c76a"/><stop offset="34%" stopColor="#f5a33b"/><stop offset="44%" stopColor="#f5a33b"/><stop offset="44%" stopColor="#e94a3f"/><stop offset="56%" stopColor="#e94a3f"/><stop offset="56%" stopColor="#f5a33b"/><stop offset="66%" stopColor="#f5a33b"/><stop offset="66%" stopColor="#63c76a"/><stop offset="80%" stopColor="#63c76a"/><stop offset="80%" stopColor="#f8f4e8"/><stop offset="100%" stopColor="#f8f4e8"/></linearGradient></defs><path d="M20 105 A110 78 0 0 1 240 105" pathLength="100" fill="none" stroke="#56371f" strokeWidth="28"/><path d="M20 105 A110 78 0 0 1 240 105" pathLength="100" fill="none" stroke="url(#fishing-power-gradient)" strokeWidth="20"/><g style={{ transform: `rotate(${pointer * 1.8 - 90}deg)`, transformOrigin: '130px 105px' }}><path d="M130 105 L130 28" stroke="#392419" strokeWidth="5" strokeLinecap="round"/><circle cx="130" cy="105" r="9" fill="#fff3bd" stroke="#392419" strokeWidth="4"/></g></svg></button><div className="-mt-1 border-2 border-[#5a3a22] bg-[#fff3bd]/95 px-3 py-2 text-[10px] font-black text-[#51341f] shadow-[3px_3px_0_#5a3a22]">{touchMode ? 'TAP THE SCREEN' : 'CLICK OR PRESS SPACE'}</div></section>;
+const ReelMeter = ({ distance, pointer, rouletteSlices, struggleState, feedback, onJudge, touchMode = false }: { touchMode?: boolean; distance: number; pointer: number; rouletteSlices: RouletteSlice[]; struggleState: FishStruggleState; feedback: { id: number; correct: boolean; text: string } | null; onJudge: () => void }) => {
   const struggleLabel = struggleState === 'red' ? 'Very strong' : struggleState === 'orange' ? 'Strong' : 'Weak';
   return <section className="absolute z-40 border-4 border-[#5a3a22] bg-[#fff3bd]/95 p-3 text-[#51341f] shadow-[6px_6px_0_rgba(49,32,20,0.55)]" style={{ right: '2%', left: 'auto', top: '50%', width: 'min(290px, calc(100% - 2rem))', transform: 'translateY(-50%)' }} aria-label="Fishing colour match control">
     <div className="mb-2 flex items-end justify-between gap-3"><div><div className="text-sm font-black uppercase tracking-[0.12em]">Match the struggle colour</div><div className="text-[10px] font-black">Match = -15m · miss = +5m</div></div><strong className="text-lg">{Math.ceil(distance)}m</strong></div>
@@ -326,7 +372,7 @@ const ReelMeter = ({ distance, pointer, rouletteSlices, struggleState, feedback,
       </button>
       {Array.from({ length: 8 }, (_, index) => <span key={index} className="pointer-events-none absolute left-1/2 top-1/2 h-[7px] w-[7px] rounded-sm border border-[#5a2d19] bg-[#ffe28a] shadow-[1px_1px_0_#8a451f]" style={{ transform: `translate(-50%, -50%) rotate(${index * 45}deg) translateY(-103px)` }} aria-hidden="true" />)}
     </div>
-    <div key={feedback?.id ?? 'ready'} className={`mt-1 min-h-5 text-center text-xs font-black uppercase ${feedback ? (feedback.correct ? 'text-[#26873e]' : 'text-[#c72f2a]') : 'text-[#8a5c35]'}`}>{feedback?.text ?? 'Click meter or press Space'}</div>
+    <div key={feedback?.id ?? 'ready'} className={`mt-1 min-h-5 text-center text-xs font-black uppercase ${feedback ? (feedback.correct ? 'text-[#26873e]' : 'text-[#c72f2a]') : 'text-[#8a5c35]'}`}>{feedback?.text ?? (touchMode ? 'Tap the screen' : 'Click meter or press Space')}</div>
   </section>;
 };
 const CaughtFishReveal = ({ fish, onDismiss, preview }: { fish: FishingSpecies; onDismiss: () => void; preview: boolean }) => {

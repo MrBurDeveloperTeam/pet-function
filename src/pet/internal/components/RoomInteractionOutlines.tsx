@@ -1,6 +1,5 @@
 import { RoomType } from '../types';
 import { KART_CIRCUIT_OUTLINE } from '../kartInteraction';
-
 // Traced in the rooms-wide artwork coordinate system; slice matches object-fit: cover.
 type RoomInteractionAction = 'food' | 'bath' | 'games' | 'air-strike' | 'door' | 'food-shop' | 'furniture-shop' | 'fishing' | 'karting';
 
@@ -59,6 +58,7 @@ export function RoomInteractionOutlines({ room, hidden, onActivate, onKeyboardAc
     <svg viewBox="0 0 1862 845" preserveAspectRatio="xMidYMid slice"
       className="pet-interaction-outlines" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 15, pointerEvents: 'none' }}>
       {outlines[room]!.map(({ action, label, d, interactive = true }) => interactive ? (
+
         <path key={label} d={d} className="pet-interaction-outline" role="button"
           tabIndex={0} aria-label={label} data-pet-interaction-action={action} data-pet-movement-block
           vectorEffect="non-scaling-stroke"

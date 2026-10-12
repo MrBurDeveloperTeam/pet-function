@@ -98,10 +98,11 @@ func run():
 	check(not attack_boss.warning,"next attack waits until prior boss shots leave")
 	game.reset_run()
 	game.allow_skill_choices = true
-	p.energy = 12
+	var below_threshold = p.energy_required()-1
+	p.energy = below_threshold
 	c.active = true
 	c.update(0.01)
-	check(game.state == "playing" and p.choices.is_empty() and p.energy == 12,"wave clear cannot offer skills below energy threshold")
+	check(game.state == "playing" and p.choices.is_empty() and p.energy == below_threshold,"wave clear cannot offer skills below energy threshold")
 	game.infinite_mode = true
 	c.infinite_wave = 50
 	c.boss_defeated()
@@ -110,7 +111,7 @@ func run():
 	game.stage_level = 99
 	c.bosses_defeated = 0
 	c.boss_defeated()
-	check(game.state == "playing" and p.choices.is_empty(),"boss rush cannot offer skills below energy threshold")
+	check(game.state == "boss_alert" and p.choices.is_empty() and p.energy == below_threshold,"boss rush warning cannot offer skills below energy threshold")
 	game.allow_skill_choices = false
 	for stage in range(1,101):
 		game.stage_level = stage
@@ -123,10 +124,20 @@ func run():
 			game.enemies.clear()
 			c.update(0.01)
 		c.update(2)
-		check(game.boss_spawned and game.enemies[0].kind == "boss","boss doesn't require ultimate skills")
+		check(not game.boss_spawned and not game.enemies.is_empty(),"without an ultimate, stage %d continues ordinary waves" % stage)
+		game.enemies.clear()
+		c.active = false
+		c.waiting = 0
+		p.skills = ["laser","ring_laser"]
+		c.update(0.01)
+		check(game.state == "boss_alert" and not game.boss_spawned,"stage %d warns before spawning an unlocked boss" % stage)
+		c.update_alert(2.99)
+		check(not game.boss_spawned,"stage %d keeps the boss hidden throughout its warning" % stage)
+		c.update_alert(0.02)
+		check(game.boss_spawned and game.enemies.size() == 1 and game.enemies[0].kind == "boss","stage %d spawns the boss after the warning" % stage)
 	game.stage_level = 100
 	var scale = c.scaling()
-	check(is_equal_approx(scale.hp,3.2) and is_equal_approx(scale.damage,2.2) and is_equal_approx(scale.count,2.6),"bounded stage 100 scaling")
+	check(c.recommended_power() == 12100 and scale.hp > 8 and scale.hp < 9 and scale.damage > 1.9 and scale.damage < 2.1 and scale.count < 2.1,"stage 100 scaling matches its recommendation without excessive damage or density")
 	p.talents = range(1,16)
 	check(c.scaling() == scale,"permanent upgrades are not canceled by enemy scaling")
 	game.reset_run()
@@ -150,7 +161,17 @@ func run():
 	boss.pos = Vector2(game.arena_size.x/2,game.boss_entry_y())
 	boss.hp = boss.max_hp*0.74
 	c.update_boss(boss,0.01)
-	check(boss.stage_phase == 2 and game.enemies.size() == 4,"final phase two creates attack, shield and healing drones")
+	check(boss.stage_phase == 2 and game.enemies.size() == 1,"final phase two does not bypass the timed summon")
+	c.update_boss(boss,4.98)
+	check(game.enemies.size() == 1,"boss cannot summon before five seconds")
+	c.update_boss(boss,0.02)
+	check(game.enemies.size() == 4 and game.enemies.slice(1).all(func(e): return e.kind == "fighter"),"boss summons three fighters at five seconds")
+	game.enemies = [boss]
+	c.update_boss(boss,5.0)
+	check(game.enemies.size() == 4,"boss repeats its three-fighter summon every five seconds")
+	game.drops.clear()
+	game.kill_enemy(1)
+	check(game.drops.any(func(d): return d.kind == "energy"),"defeated summoned fighters drop collectible energy")
 	boss.hp = boss.max_hp*0.49
 	c.update_boss(boss,0.01)
 	check(boss.stage_phase == 3 and c.hazard_timer == 0,"phase three arms field attack")
@@ -162,7 +183,10 @@ func run():
 	c.boss_phase = true
 	for i in range(3):
 		c.boss_defeated()
-		check(game.state == ("ending_victory" if i == 2 else "playing"),"boss rush clears only after three bosses")
+		check(game.state == ("ending_victory" if i == 2 else "boss_alert"),"boss rush warns between bosses and clears only after three defeats")
+		if i < 2:
+			c.update_alert(3.01)
+			check(game.state == "playing" and game.enemies.size() == 1,"next boss starts after the intermission warning")
 	game.stage_level = 1
 	game.reset_run()
 	game.allow_skill_choices = true
@@ -199,9 +223,12 @@ func run():
 	c.infinite_wave = 501
 	check(is_equal_approx(hp101,3) and is_equal_approx(hp301,5) and is_equal_approx(c.scaling().hp,6),"endless health follows piecewise linear growth")
 	game.wave = 49
+	p.skills = ["laser","ring_laser"]
 	c.waiting = 0
 	c.update(0.1)
-	check(c.infinite_wave == 50 and game.enemies[0].mutations.size() >= 2,"wave 50 super boss has mutations")
+	check(c.infinite_wave == 50 and game.state == "boss_alert" and game.enemies.is_empty(),"wave 50 super boss requires an ultimate and warns before entry")
+	c.update_alert(3.01)
+	check(game.boss_spawned and game.enemies.size() == 1 and game.enemies[0].get("mutations",[]).size() >= 2,"wave 50 super boss has mutations after the warning")
 	c.boss_defeated()
 	check(not c.boss_phase and c.waiting == 2,"endless continues after boss")
 	p.skills = ["ring_laser","supercrit","double_counter","vamp_drone"]
@@ -214,7 +241,8 @@ func run():
 		game.resize_arena(viewport)
 		p.skills.clear()
 		p.offer(true)
-		for i in range(p.choices.size()): check(game.combat_rect.encloses(game.skill_card_rect(i)),"four-choice cards fit every viewport")
+		check(p.choices.size() == 3,"opening selection shows exactly three cards")
+		for i in range(p.choices.size()): check(game.combat_rect.encloses(game.skill_card_rect(i)),"three-choice cards fit every viewport")
 	print("AIR_STRIKE_CAMPAIGN: ","PASS" if failures == 0 else "FAIL"," (",failures," failures)")
 	game.queue_free()
 	await process_frame

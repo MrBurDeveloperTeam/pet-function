@@ -70,9 +70,23 @@ func run():
 	game.wave = game.campaign.wave_limit()
 	game.campaign.waiting = 0
 	game._physics_process(0.01)
-	check(game.boss_spawned and game.enemies[0].kind == "boss", "boss appears at end of stage")
-	game.enemies[0].hp = 1
-	game.kill_enemy(0)
+	check(not game.boss_spawned and game.state == "playing" and not game.enemies.is_empty(), "without an ultimate, ordinary waves continue beyond the stage wave limit")
+	game.enemies.clear()
+	game.campaign.active = false
+	game.campaign.waiting = 0
+	game.progression.skills = ["laser","ring_laser"]
+	game._physics_process(0.01)
+	check(game.state == "boss_alert" and not game.boss_spawned, "an ultimate unlocks the boss warning rather than an immediate spawn")
+	game._physics_process(2.99)
+	check(game.state == "boss_alert" and not game.boss_spawned, "boss stays offscreen until the three-second warning ends")
+	game._physics_process(0.02)
+	check(game.boss_spawned and game.enemies.size() == 1 and game.enemies[0].kind == "boss", "boss appears after the warning finishes")
+	if game.boss_spawned and not game.enemies.is_empty():
+		var final_boss = game.enemies[0]
+		final_boss.pos.y = game.boss_entry_y()
+		final_boss.hp = 1
+		game.campaign.damage_enemy(final_boss,1)
+		if final_boss.hp <= 0: game.kill_enemy(0)
 	check(game.state == "ending_victory", "boss defeat clears mission")
 	game.reset_run()
 	check(game.score == 0 and game.enemies.is_empty() and game.shots.is_empty() and game.drops.is_empty() and not game.boss_spawned, "restart clears previous run")
@@ -82,19 +96,21 @@ func run():
 	check(game.hp == 2, "invulnerability prevents repeated hits")
 	check(game.effects.is_empty() and game.hit_flash == 0, "blocked hits do not show damage feedback")
 	game.reset_run()
-	game.dragging = true
+	game.joystick_active = true
+	game.joystick_origin = Vector2(200,200)
 	game.pointer_id = 0
 	var touch = InputEventScreenTouch.new()
 	touch.index = 1
 	touch.pressed = true
 	touch.position = Vector2(100,100)
 	game._unhandled_input(touch)
-	check(game.dragging and game.pointer_id == 0, "second finger is ignored while first finger steers")
+	check(game.joystick_active and game.joystick_origin == Vector2(200,200) and game.pointer_id == 0, "second finger cannot relocate the movement joystick")
 	game.reset_run()
+	game.progression.skills = ["laser","ring_laser"]
 	for frame in range(4501):
 		game.invincible = 999
 		game._physics_process(1.0 / 60.0)
-	check(game.boss_spawned and game.wave == 5, "complete stage reaches boss after five fixed waves")
+	check(game.boss_spawned and game.wave == game.campaign.wave_limit(), "a full stage with an ultimate reaches the boss after its waves and warning")
 	check(game.enemies.size() < 30 and game.enemy_shots.size() < 200 and game.shots.size() < 100, "full-stage entity counts remain bounded")
 	game.reset_run()
 	for size in [Vector2(960,540),Vector2(1440,540),Vector2(960,720),Vector2(960,1440),Vector2(1920,540)]:
@@ -120,7 +136,11 @@ func run():
 	check(game.enemies.is_empty(), "collision still works after repeated resizes")
 	game.reset_run()
 	game.explode(Vector2(400,200),82,true)
-	check(game.effects.size() == 8 and game.effects[1].life > game.effects[1].duration, "boss explosion schedules staggered fireballs")
+	check(game.effects.size() == 14 and game.effects.filter(func(e): return e.kind == "explosion").size() == 13 and game.effects.filter(func(e): return e.kind == "shockwave").size() == 1, "boss explosion contains the main blast, shockwave and twelve secondary fireballs")
+	var fireballs = game.effects.slice(2)
+	check(fireballs.all(func(e): return e.life > e.duration), "all secondary fireballs have delayed starts")
+	for i in range(1,fireballs.size()):
+		check(fireballs[i].life-fireballs[i].duration > fireballs[i-1].life-fireballs[i-1].duration, "secondary fireballs are staggered rather than simultaneous")
 	game.toggle_pause()
 	var effect_life = game.effects[0].life
 	game._physics_process(0.2)
@@ -152,7 +172,7 @@ func run():
 	var gap = boss.gap_x
 	game.update_boss_attack(boss,1.2)
 	check(boss.attack == 2 and game.enemy_shots.size() < 16,"easy row followed by homing")
-	check(game.enemy_shots.all(func(b): return absf(b.pos.x-gap) >= 95),"row reserves a 190-unit safe corridor")
+	check(game.enemy_shots.all(func(b): return absf(b.pos.x-gap) >= 60),"row reserves the current 120-unit safe corridor")
 	game.enemy_shots.clear()
 	game.update_boss_attack(boss,2)
 	game.update_boss_attack(boss,1.2)
@@ -170,7 +190,12 @@ func run():
 		boss.attack = 1
 		game.enemy_shots.clear()
 		game.fire_boss_pattern(boss)
-		check(game.enemy_shots.size() <= 16 and game.enemy_shots.all(func(b): return absf(b.pos.x-boss.gap_x) >= 95),"row density and escape corridor hold after resize")
+		# A wide row has at most sixteen formation bullets plus two lane borders.
+		check(not game.enemy_shots.is_empty() and game.enemy_shots.size() <= 18 and game.enemy_shots.all(func(b): return absf(b.pos.x-boss.gap_x) >= 60),"row density and the 120-unit escape corridor hold after resize")
+		check(game.enemy_shots.any(func(b): return is_equal_approx(b.pos.x,boss.gap_x-60)) and game.enemy_shots.any(func(b): return is_equal_approx(b.pos.x,boss.gap_x+60)),"both boundaries of the narrowed safe corridor are populated")
+		for shot in game.enemy_shots:
+			var landing_x = shot.pos.x+shot.vel.x*(viewport_size.y-shot.pos.y)/shot.vel.y
+			check(absf(landing_x-boss.gap_x) >= 60,"row bullets preserve the escape corridor throughout their flight")
 	print("AIR_STRIKE_TESTS: ", "PASS" if failures == 0 else "FAIL", " (",failures," failures)")
 	game.queue_free()
 	await process_frame

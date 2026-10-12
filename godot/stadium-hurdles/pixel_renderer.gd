@@ -24,9 +24,17 @@ var npc_regions: Array[Rect2] = []
 var powerup_textures: Dictionary = {}
 var exhaust_textures: Array[ImageTexture] = []
 var air_hazard_textures: Dictionary = {}
+var mobile_sky: Sprite2D
+
+func update_mobile_sky() -> void:
+	if not game.mobile_portrait or not mobile_sky: return
+	var sky_top: float = -game.mobile_world_offset.y/game.MOBILE_WORLD_SCALE
+	var sky_scale: float = maxf(1280.0/760.0,(VIEW.HORIZON+2-sky_top)/120.0)
+	mobile_sky.scale = Vector2.ONE*sky_scale
+	mobile_sky.position = Vector2((1280-760*sky_scale)/2,sky_top)
 
 func _ready() -> void:
-	powerup_textures={"magnet":POWERUP_ART.magnet(),"jetpack":POWERUP_ART.jetpack()}
+	powerup_textures={"magnet":POWERUP_ART.magnet(),"jetpack":POWERUP_ART.jetpack(),"phase":POWERUP_ART.phase()}
 	exhaust_textures=POWERUP_ART.exhaust_frames()
 	air_hazard_textures=POWERUP_ART.air_hazards()
 	texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
@@ -56,6 +64,8 @@ func _ready() -> void:
 	sky.texture=sky_texture
 	sky.centered=false
 	sky.scale=Vector2(1280.0/760.0,(VIEW.HORIZON+2)/120.0)
+	mobile_sky = sky
+	update_mobile_sky()
 	sky.z_index=-4
 	add_child(sky)
 	var backdrop := BACKDROP.get_image()
@@ -87,7 +97,13 @@ func trim(image: Image, cell: Rect2i) -> Rect2:
 	return Rect2(minimum,maximum-minimum+Vector2i.ONE)
 
 func project(world_x: float, z: float, height: float = 0.0) -> Vector3:
-	return VIEW.project(world_x,z,height,game.camera_height)
+	return VIEW.project(world_x,z,height,game.camera_height,game.view_depth_span())
+
+func visible_world_rect() -> Rect2:
+	if not game.mobile_portrait: return Rect2(-32,-32,1344,784)
+	# Convert the actual portrait viewport back into the same world space as sprites.
+	# The old 720-high desktop rectangle hid approaching objects before contact.
+	return (global_transform.affine_inverse()*get_viewport_rect()).grow(32)
 
 func _draw() -> void:
 	if not game or not road_texture: return
@@ -129,7 +145,7 @@ func draw_entity(entity: Dictionary) -> void:
 	if entity.kind in game.AIR_HAZARDS:
 		draw_air_hazard(entity)
 		return
-	if entity.kind in ["magnet","jetpack"]:
+	if entity.kind in ["magnet","jetpack","phase"]:
 		draw_powerup(entity,ground,floor_height)
 		return
 	if entity.kind=="npc":
@@ -152,7 +168,7 @@ func draw_entity(entity: Dictionary) -> void:
 	var p := project(node.position.x,node.position.y,floor_height+(entity.height if entity.kind=="tooth" else 0.0))
 	var rect := Rect2(p.x-width*0.5,p.y-height,width,height)
 	# Cull the complete sprite rectangle, never its ground point or its lane.
-	if not rect.intersects(Rect2(-32,-32,1344,784)): return
+	if not rect.intersects(visible_world_rect()): return
 	if entity.kind=="tooth": draw_rect(Rect2(ground.x-width*0.25,ground.y-1,width*0.5,maxf(1,3*ground.z)),Color(0.25,0.13,0.13,0.12))
 	else:
 		if entity.kind in ["bench","equipment"]:
@@ -176,7 +192,7 @@ func draw_air_hazard(entity: Dictionary) -> void:
 	var width := (262.5 if entity.kind=="bird" else 367.5)*p.z
 	var height := width*texture.get_height()/texture.get_width()
 	var rect := Rect2(p.x-width*0.5,p.y-height,width,height)
-	if not rect.intersects(Rect2(-32,-32,1344,784)): return
+	if not rect.intersects(visible_world_rect()): return
 	draw_texture_rect(texture,rect,false)
 
 func draw_powerup(entity: Dictionary, ground: Vector3, floor_height: float) -> void:
@@ -207,6 +223,12 @@ func draw_powerup(entity: Dictionary, ground: Vector3, floor_height: float) -> v
 func draw_cat() -> void:
 	var ground := project(game.runner.position.x,0)
 	var p := project(game.runner.position.x,0,game.runner.position.y)
+	if game.phase_time>0:
+		var aura := Vector2(p.x,p.y-65)
+		var pulse: float = 0.65+sin(game.animation_time*7)*0.15
+		if game.phase_time<2: pulse *= 0.6+sin(game.animation_time*14)*0.4
+		draw_circle(aura,83,Color(0.3,0.8,1,0.10*pulse))
+		draw_arc(aura,83,game.animation_time,game.animation_time+TAU*0.85,48,Color(0.5,0.9,1,0.65*pulse),3,true)
 	draw_shadow(Vector2(ground.x,ground.y),110-game.runner.position.y*9,0.28)
 	if game.state=="crashed":
 		draw_hurt_cat(Vector2(p.x,p.y))
@@ -237,7 +259,7 @@ func draw_cat() -> void:
 	var cell_origin := Vector2(int(frame%4)*cell.x,int(frame/4)*cell.y)
 	var baseline := cat_baseline if frame<4 else region.end.y-cell_origin.y
 	var rect := Rect2(Vector2(p.x-96,p.y-baseline*sprite_scale+bob)+(region.position-cell_origin)*sprite_scale,region.size*sprite_scale)
-	draw_texture_rect_region(CAT,rect,region)
+	draw_texture_rect_region(CAT,rect,region,Color(0.65,0.92,1,0.65) if game.phase_time>0 else Color.WHITE)
 	if flying: draw_flight_gear(Vector2(p.x,p.y))
 	if game.flight_time<=0 and game.flight_height<=0: draw_motion_dust(Vector2(ground.x,ground.y))
 

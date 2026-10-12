@@ -39,6 +39,7 @@ test('insufficient balance, rejected wallet and stale/invalid messages never gra
 });
 
 test('timer messages are finite and limited to the ten-second effect window', () => {
-    assert.deepEqual(runnerPowerupStatus({ magnet: 12, jetpack: -1, landing: true }), { magnet: 10, jetpack: 0, landing: true });
+    assert.deepEqual(runnerPowerupStatus({ magnet: 12, jetpack: -1, landing: true }), { magnet: 10, jetpack: 0, phase: 0, landing: true });
+    assert.equal(runnerPowerupStatus({magnet: 0, jetpack: 0, phase: 12}).phase, 10);
     for (const invalid of [null, {}, { magnet: Infinity, jetpack: 3 }, { magnet: 3, jetpack: '10' }]) assert.equal(runnerPowerupStatus(invalid), null);
 });

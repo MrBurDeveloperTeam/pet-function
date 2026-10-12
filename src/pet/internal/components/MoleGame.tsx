@@ -1,10 +1,11 @@
 import {requiredPetXP} from '../petExperience.mjs';
+import { MobileLandscapeGate } from './MobileLandscapeGate';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PixelCoinBag } from './CoinIndicator';
 import type { PetStats } from '../types';
 
-const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v12';
+const MOLE_GAME_URL = '/games/mole-game/index.html?v=godot-v14';
 const MOLE_GAME_SOURCE = 'pet-function:mole-game';
 const MOLE_TUTORIAL_STORAGE_KEY = 'pet-function:mole-tutorial-complete-v1';
 const MOLE_TUTORIAL_STEPS = [
@@ -21,7 +22,11 @@ type TutorialTargetViewportBounds = TutorialTargetBounds & { viewportWidth: numb
 
 type MoleGameMessage = {
   source: typeof MOLE_GAME_SOURCE;
-  type: 'game-error' | 'game-progress' | 'game-ready' | 'game-started' | 'game-complete' | 'close' | 'tutorial-progress' | 'tutorial-target-bounds';
+  type: 'game-error' | 'game-progress' | 'game-ready' | 'game-started' | 'game-complete' | 'close' | 'tutorial-progress' | 'tutorial-target-bounds' | 'skill-status';
+  energy?: number;
+  active?: boolean;
+  playing?: boolean;
+  paused?: boolean;
   progress?: number;
   error?: string;
   score?: number;
@@ -39,7 +44,7 @@ type MoleGameMessage = {
 const isMoleGameMessage = (value: unknown): value is MoleGameMessage => {
   if (!value || typeof value !== 'object') return false;
   const message = value as Partial<MoleGameMessage>;
-  return message.source === MOLE_GAME_SOURCE && (message.type === 'game-error' || message.type === 'game-progress' || message.type === 'game-ready' || message.type === 'game-started' || message.type === 'game-complete' || message.type === 'close' || message.type === 'tutorial-progress' || message.type === 'tutorial-target-bounds');
+  return message.source === MOLE_GAME_SOURCE && (message.type === 'game-error' || message.type === 'game-progress' || message.type === 'game-ready' || message.type === 'game-started' || message.type === 'game-complete' || message.type === 'close' || message.type === 'tutorial-progress' || message.type === 'tutorial-target-bounds' || message.type === 'skill-status');
 };
 
 export const PixelMoleMound = ({ onOpen }: { onOpen: () => void }) => (
@@ -103,11 +108,26 @@ export const MoleLevelBadge = ({ stats }: { stats: Pick<PetStats, 'level' | 'xp'
   );
 };
 
-export const MoleGame = ({ onClose, onReward, stats }: MoleGameProps) => {
+export const MoleGame = (props: MoleGameProps) => <MobileLandscapeGate game="mole" title="Whack-a-Mole" onClose={props.onClose}><MoleGameContent {...props} /></MobileLandscapeGate>;
+
+const MoleGameContent = ({ onClose, onReward, stats }: MoleGameProps) => {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const rewardedRef = useRef(false);
   const tutorialTargetViewportBoundsRef = useRef<TutorialTargetViewportBounds | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [mobile, setMobile] = useState(false);
+  const [skill, setSkill] = useState({ energy: 0, active: false, playing: true, paused: true });
+  useEffect(() => {
+    const query = window.matchMedia('(pointer: coarse) and (max-width: 1400px)');
+    const update = () => setMobile(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  useEffect(() => {
+    if (!loaded) return;
+    frameRef.current?.contentWindow?.postMessage({ source: MOLE_GAME_SOURCE, type: 'mobile-controls', enabled: mobile }, window.location.origin);
+  }, [loaded, mobile]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadProgress, setLoadProgress] = useState<number | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -169,6 +189,10 @@ export const MoleGame = ({ onClose, onReward, stats }: MoleGameProps) => {
       if (event.data.type === 'game-progress') {
         const progress = event.data.progress;
         if (typeof progress === 'number' && Number.isFinite(progress)) setLoadProgress(current => Math.max(current ?? 0, Math.min(99, Math.max(0, progress))));
+        return;
+      }
+      if (event.data.type === 'skill-status') {
+        setSkill({ energy: Math.max(0, Math.min(100, Number(event.data.energy) || 0)), active: event.data.active === true, playing: event.data.playing === true, paused: event.data.paused === true });
         return;
       }
       if (event.data.type === 'game-error') { setLoadError(event.data.error || 'Unable to start the game.'); return; }
@@ -246,6 +270,7 @@ export const MoleGame = ({ onClose, onReward, stats }: MoleGameProps) => {
         </div>
       )}
       <iframe
+        data-landscape-game="mole"
         ref={frameRef}
         key={loadAttempt}
         src={`${MOLE_GAME_URL}&attempt=${loadAttempt}`}
@@ -306,14 +331,26 @@ export const MoleGame = ({ onClose, onReward, stats }: MoleGameProps) => {
           onBack={() => setTutorialStep(current => current === null ? 0 : Math.max(0, current - 1))}
           onNext={() => tutorialStep === MOLE_TUTORIAL_STEPS.length - 1 ? closeTutorial() : setTutorialStep(tutorialStep + 1)}
           onSkip={closeTutorial}
+          mobile={mobile}
         />
       )}
+      {loaded && mobile && tutorialStep === null && skill.playing && <button
+        type="button"
+        aria-label={`Activate Time Fracture, energy ${skill.energy}%`}
+        disabled={skill.energy < 100 || skill.active || skill.paused}
+        onClick={() => frameRef.current?.contentWindow?.postMessage({ source: MOLE_GAME_SOURCE, type: 'activate-skill' }, window.location.origin)}
+        style={{ position: 'absolute', right: 'max(16px, env(safe-area-inset-right))', bottom: 'max(16px, env(safe-area-inset-bottom))', zIndex: 60, minWidth: 120, minHeight: 64, padding: '8px 12px', border: `3px solid ${skill.energy >= 100 ? '#fff06a' : '#9b744c'}`, borderRadius: 8, background: skill.energy >= 100 ? '#18434b' : '#241b15', color: '#fff1b8', boxShadow: skill.energy >= 100 ? '0 0 20px #35d9e680, 3px 3px 0 #17100c' : '3px 3px 0 #17100c', touchAction: 'manipulation', fontWeight: 900 }}
+      >
+        <span style={{ display: 'block', fontSize: 22 }} aria-hidden="true">❄</span>
+        <span style={{ display: 'block', fontSize: 12 }}>{skill.active ? 'TIME FREEZE' : skill.energy >= 100 ? 'TAP TO FREEZE' : `CHARGING ${skill.energy}%`}</span>
+        <span style={{ display: 'block', height: 5, marginTop: 6, background: '#49372a', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${skill.energy}%`, background: '#35d9e6' }} /></span>
+      </button>}
     </section>,
     document.body,
   );
 };
 
-const MoleGameTutorial = ({ step, targetBounds, onBack, onNext, onSkip }: { step: number; targetBounds: TutorialTargetBounds | null; onBack: () => void; onNext: () => void; onSkip: () => void }) => {
+const MoleGameTutorial = ({ step, targetBounds, onBack, onNext, onSkip, mobile = false }: { step: number; targetBounds: TutorialTargetBounds | null; onBack: () => void; onNext: () => void; onSkip: () => void; mobile?: boolean }) => {
   const item = MOLE_TUTORIAL_STEPS[step];
   const cardStyle = { right: '2.5%', top: '13%' };
   const pixelButtonStyle = {
@@ -374,25 +411,26 @@ const MoleGameTutorial = ({ step, targetBounds, onBack, onNext, onSkip }: { step
         className="absolute"
         style={{
           ...cardStyle,
+          ...(mobile ? { top: '8px', right: 'auto', left: '50%', transform: 'translateX(-50%)' } : {}),
           position: 'absolute',
-          width: 'min(350px, calc(100% - 2rem))',
+          width: mobile ? 'min(280px, calc(100% - 2rem))' : 'min(350px, calc(100% - 2rem))',
           border: '6px solid #5a351d',
           outline: '3px solid #f5b642',
           background: '#fff1b8',
           color: '#402719',
-          padding: '1rem',
+          padding: mobile ? '.45rem' : '1rem',
           boxShadow: '10px 10px 0 rgba(31,18,10,.88), inset 0 0 0 4px #d99639',
           opacity: 1,
           pointerEvents: 'auto',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem', marginBottom: '.8rem', paddingBottom: '.55rem', borderBottom: '4px dashed #b66e2d' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem', marginBottom: mobile ? '.2rem' : '.8rem', paddingBottom: mobile ? '.15rem' : '.55rem', borderBottom: '4px dashed #b66e2d' }}>
           <strong style={{ color: '#402719', fontSize: '.78rem', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.13em' }}>Nine Burrows Training</strong>
           <span style={{ border: '3px solid #5a351d', background: '#f6a83b', color: '#402719', padding: '.3rem .55rem', fontSize: '.72rem', fontWeight: 1000 }}>{step + 1} / {MOLE_TUTORIAL_STEPS.length}</span>
         </div>
-        <h2 style={{ margin: 0, color: '#2f1b10', fontSize: '1.25rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', textTransform: 'uppercase' }}>{item.title}</h2>
-        <p style={{ margin: '.65rem 0 0', color: item.interactive ? '#a33b1f' : '#cf342b', fontSize: '1.15rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', letterSpacing: '.08em' }}>{item.detail}</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.5rem', marginTop: '1rem' }}>
+        <h2 style={{ margin: 0, color: '#2f1b10', fontSize: mobile ? '.9rem' : '1.25rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', textTransform: 'uppercase' }}>{item.title}</h2>
+        <p style={{ margin: '.65rem 0 0', color: item.interactive ? '#a33b1f' : '#cf342b', fontSize: mobile ? '.9rem' : '1.15rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', letterSpacing: '.08em' }}>{mobile ? item.detail.replace(/CLICK/g, 'TAP') : item.detail}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.5rem', marginTop: mobile ? '.2rem' : '1rem', minHeight: mobile ? 44 : undefined }}>
           <button type="button" onClick={onSkip} style={{ ...pixelButtonStyle, border: 0, background: 'transparent', padding: '.55rem', fontSize: '.68rem', textDecoration: 'underline' }}>Skip tutorial</button>
           <div style={{ display: 'flex', gap: '.55rem' }}>
             <button type="button" onClick={onBack} disabled={step === 0} style={{ ...pixelButtonStyle, background: '#fff8dc', padding: '.55rem .8rem', fontSize: '.7rem', opacity: step === 0 ? .4 : 1 }}>Back</button>

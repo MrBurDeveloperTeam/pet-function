@@ -48,6 +48,33 @@ func verify() -> void:
 	var old_score: int=game.score
 	game._unhandled_input(event)
 	check(game.score>old_score,"Clicking the head goes through gameplay hit and scoring")
+	game.set_mobile_controls(true)
+	check(not Input.emulate_mouse_from_touch,"Touch cannot create a duplicate mouse hit")
+	game.target_hole=4
+	game.target_kind="mole"
+	game.target_variant="armored"
+	game.target_hits_left=2
+	game.target_age=0.22
+	var touch:=InputEventScreenTouch.new()
+	touch.pressed=true
+	touch.position=game.position+Vector2(hole.p)
+	old_score=game.score
+	game._unhandled_input(touch)
+	check(game.target_hits_left==1 and game.score==old_score,"One tap only breaks armor once")
+	touch.pressed=false
+	game._unhandled_input(touch)
+	check(game.target_hole==4 and game.score==old_score,"Touch release cannot hit again")
+	touch.pressed=true
+	game._unhandled_input(touch)
+	check(game.score>old_score,"Second tap defeats the armored target")
+	game.energy=99.0
+	game.activate_skill()
+	check(game.skill_time==0.0,"Uncharged skill cannot activate")
+	game.energy=100.0
+	game.activate_skill()
+	check(game.skill_time==3.0 and game.energy==0.0,"Charged skill activates and consumes energy")
+	game.set_mobile_controls(false)
+	check(Input.emulate_mouse_from_touch,"Desktop input setting is restored")
 	game.queue_free()
 	print("Mole target hit tests: failures=",failures)
 	quit(1 if failures else 0)

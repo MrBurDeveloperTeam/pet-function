@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
+import {mobileRoomSize} from '../src/pet/internal/mobileRoomCamera.mjs';
 
 const petRoomSource = readFileSync(new URL('../src/pet/internal/PetRoom.tsx', import.meta.url), 'utf8');
 const typesSource = readFileSync(new URL('../src/pet/internal/types.ts', import.meta.url), 'utf8');
@@ -108,7 +109,7 @@ test('karting pedestrians cannot enter the removed lower-left spur', () => {
 });
 
 test('the cleared karting plaza supports crossing where the tree planter used to stand', () => {
-  for (const [width, height] of [[1862, 845], [1280, 720]]) {
+  for (const [width, height] of [[1862, 845], [1280, 720], ...[[390,844],[844,390]].map(([w,h])=>{const world=mobileRoomSize(w,h);return [world.width,world.height];})]) {
     for (const y of [0.33, 0.38, 0.43]) {
       let current = { x: 0.18 * width, y: y * height };
       for (let x = 0.18; x <= 0.35; x += 0.005) {
@@ -133,7 +134,7 @@ test('clicked exits follow continuous walkable paths around road bends', () => {
     [RoomType.KART_TRACK, { x: 0.414, y: 0.14 }, { x: 0.04, y: 0.49 }],
     [RoomType.KART_TRACK, { x: 0.13, y: 0.49 }, { x: 0.414, y: 0.06 }],
   ];
-  for (const [width, height] of [[1862, 845], [1280, 720]]) {
+  for (const [width, height] of [[1862, 845], [1280, 720], ...[[390,844],[844,390]].map(([w,h])=>{const world=mobileRoomSize(w,h);return [world.width,world.height];})]) {
     for (const [room, start, end] of routes) {
       let current = { x: start.x * width, y: start.y * height };
       const target = { x: end.x * width, y: end.y * height };

@@ -40,6 +40,11 @@ func _process(delta: float) -> void:
 	if not visible: return
 	age=minf(1,age+delta*5)
 	scale=Vector2.ONE*(0.94+0.06*(1-pow(1-age,3)))
+	if game.mobile_portrait:
+		var viewport := get_viewport_rect().size
+		var fit := minf((viewport.x-32)/size.x,(viewport.y-64)/size.y)
+		scale *= fit
+		position = (viewport-size)*0.5
 	modulate.a=age
 	queue_redraw()
 

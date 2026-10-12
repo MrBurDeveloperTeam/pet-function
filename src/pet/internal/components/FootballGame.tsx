@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import { FOOTBALL_SOURCE, FootballSettlement } from '../footballRewards';
+import { MobileLandscapeGate } from './MobileLandscapeGate';
 
 export function FootballGame({ onClose, userId }: { onClose: () => void; userId: string | null }) {
+  return <MobileLandscapeGate game="football" title="Football" onClose={onClose}><FootballGameContent onClose={onClose} userId={userId} /></MobileLandscapeGate>;
+}
+
+function FootballGameContent({ onClose, userId }: { onClose: () => void; userId: string | null }) {
   const iframe = useRef<HTMLIFrameElement>(null);
   const settlement = useRef(new FootballSettlement());
   const { earnCoinsConfirmed, addXP } = useGameState();
@@ -48,7 +53,7 @@ export function FootballGame({ onClose, userId }: { onClose: () => void; userId:
   }, [earnCoinsConfirmed, addXP, onClose, userId]);
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#182a23' }}>
-      <iframe ref={iframe} src="/games/stadium-football/index.html?embedded=1" title="Paw League — 3D cat football"
+      <iframe ref={iframe} data-landscape-game="football" src="/games/stadium-football/index.html?embedded=1" title="Paw League — 3D cat football"
         allow="autoplay; fullscreen" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
       {rewardStatus && <div role="status" style={{ position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)', padding: '12px 18px', background: '#182a23', color: '#fff1cb' }}>{rewardStatus}</div>}
       {error && <button type="button" onClick={onClose} style={{ position: 'absolute', left: 20, top: 18,

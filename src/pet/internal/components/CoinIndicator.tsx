@@ -14,7 +14,7 @@ export const PixelCoinBag = () => (
 );
 
 const CoinIndicator: React.FC<CoinIndicatorProps> = ({ amount }) => (
-  <div className="absolute right-16 top-3 z-40 flex cursor-default select-none items-center gap-1 border-[3px] border-[#6b4423] bg-[#fff0ad] px-2 py-1 text-[#3f321f] shadow-[4px_4px_0_rgba(53,35,20,0.45)] sm:right-32 sm:top-8 sm:gap-2 sm:px-4 sm:py-2">
+  <div className="pet-coin-indicator absolute right-16 top-3 z-40 flex cursor-default select-none items-center gap-1 border-[3px] border-[#6b4423] bg-[#fff0ad] px-2 py-1 text-[#3f321f] shadow-[4px_4px_0_rgba(53,35,20,0.45)] sm:right-32 sm:top-8 sm:gap-2 sm:px-4 sm:py-2">
     <PixelCoinBag />
     <span className="text-sm font-black tracking-wider sm:text-xl">{amount}</span>
   </div>

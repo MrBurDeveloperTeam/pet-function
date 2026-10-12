@@ -2,6 +2,7 @@ extends RefCounted
 ## Generated pixel sprites are trimmed and cached once by the renderer.
 const MAGNET = preload("res://art/powerup-magnet.png")
 const JETPACK = preload("res://art/powerup-jetpack.png")
+const PHASE = preload("res://art/powerup-phase.png")
 const EXHAUST = preload("res://art/jet-exhaust.png")
 const AIR_HAZARDS = preload("res://art/air-hazards.png")
 
@@ -14,6 +15,9 @@ static func magnet() -> ImageTexture:
 
 static func jetpack() -> ImageTexture:
 	return sprite(JETPACK)
+
+static func phase() -> ImageTexture:
+	return sprite(PHASE)
 
 static func exhaust_frames() -> Array[ImageTexture]:
 	var frames: Array[ImageTexture] = []

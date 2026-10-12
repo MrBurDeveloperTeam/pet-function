@@ -40,7 +40,7 @@ test('town home prompt follows the stone arch instead of a wall-sized rectangle'
 
 test('sports stadium entrances use fitted clickable contours', () => {
   assert.match(outlinesSource, /label: 'Enter the sports stadium'/);
-  assert.match(outlinesSource, /M846 283 V203 C846 160 882 136 931 136 C980 136 1016 160 1016 203 V283 Z/);
+  assert.match(outlinesSource, /M846 345 V274 C846 231 882 207 931 207 C980 207 1016 231 1016 274 V345 Z/);
   assert.match(outlinesSource, /label: 'Leave the sports stadium'/);
   assert.match(outlinesSource, /M647 845 V752 C720 697 810 676 931 676 C1052 676 1142 697 1215 752 V845 Z/);
 });
@@ -50,5 +50,5 @@ test('Space activates a door only while the cat is beside it', () => {
   assert.match(roomSource, /event\.code !== 'Space'/);
   assert.match(roomSource, /petXRatio < doorProximity\.min \|\| petXRatio > doorProximity\.max/);
   assert.match(roomSource, /startRoomTransition\(doorExit\)/);
-  assert.match(roomSource, /\[RoomType\.SPORTS_GROUND\]: \{ min: 0\.46, max: 0\.54, minY: 0, maxY: 0\.14 \}/);
+  assert.match(roomSource, /\[RoomType\.SPORTS_GROUND\]: \{ min: 0\.46, max: 0\.54, minY: 0\.11, maxY: 0\.25 \}/);
 });

@@ -78,6 +78,9 @@ func update_direction(dt: float, q: float) -> void:
 	wrong_way_time=clampf(wrong_way_time+(dt if against else -dt*3),0,1)
 	wrong_way=wrong_way_time>=.35
 
+func clear_mobile_movement() -> void:
+	for control in touch: touch[control] = false
+
 func set_graphics(low: bool) -> void:
 	low_graphics=low
 	get_viewport().scaling_3d_scale=.5 if low else .6
@@ -221,6 +224,7 @@ func nearest_q(pos: Vector3) -> float:
 	return answer
 
 func _ready() -> void:
+	add_child(preload("res://orientation_guard.gd").new())
 	track.balance()
 	for route in 2:
 		var points: Array[Vector3] = []

@@ -68,9 +68,12 @@ func _process(_delta: float) -> void:
 	last_camera_height=game.camera_height
 	surface.set_shader_parameter("scroll_distance",game.distance)
 	# Invert the same elevated projection used by the cat, teeth and fence.
-	surface.set_shader_parameter("depth_span",VIEW.DEPTH_SPAN+game.camera_height*VIEW.HEIGHT_SCALE)
+	refresh_projection()
+
+func refresh_projection() -> void:
+	if surface: surface.set_shader_parameter("depth_span",game.view_depth_span()+game.camera_height*VIEW.HEIGHT_SCALE)
 
 func _draw() -> void:
-	draw_rect(Rect2(0,VIEW.HORIZON,1280,720-VIEW.HORIZON),Color.WHITE)
+	draw_rect(Rect2(0,VIEW.HORIZON,1280,game.mobile_ground_height()-VIEW.HORIZON),Color.WHITE)
 
 

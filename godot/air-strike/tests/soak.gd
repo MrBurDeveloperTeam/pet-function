@@ -11,6 +11,9 @@ func run():
 		game.progression.talents = [] if stage == 1 else range(1,16)
 		game.rng.seed = 1945+stage
 		game.reset_run()
+		# This stress test drives waves and bosses, not random skill acquisition.
+		# A stationary bot may never collect enough drops to unlock an ultimate.
+		game.progression.skills = ["laser","ring_laser"]
 		for frame in range(36000):
 			if game.state == "skill_choice": game.progression.choose(0)
 			game.invincible = 999
@@ -22,10 +25,11 @@ func run():
 			if game.state == "victory": break
 		if not game.boss_spawned:
 			failures += 1
-			push_error("campaign scheduler stalled before boss")
+			push_error("campaign scheduler stalled despite an unlocked ultimate")
 		print("SOAK stage ",stage," time ",snappedf(game.elapsed,0.1)," state ",game.state," enemies ",game.enemies.size()," bullets ",game.enemy_shots.size())
 	game.infinite_mode = true
 	game.reset_run()
+	game.progression.skills = ["laser","ring_laser"]
 	for frame in range(18000):
 		if game.state == "skill_choice": game.progression.choose(0)
 		game.invincible = 999
@@ -35,6 +39,9 @@ func run():
 			push_error("endless entity cap exceeded")
 			break
 	print("SOAK endless wave ",game.wave," bosses ",game.campaign.bosses_defeated)
+	if not game.boss_spawned:
+		failures += 1
+		push_error("endless stress run never reached an unlocked boss")
 	print("AIR_STRIKE_SOAK: ","PASS" if failures == 0 else "FAIL")
 	game.queue_free()
 	await process_frame

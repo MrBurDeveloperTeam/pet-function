@@ -32,7 +32,7 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 func project(world_x: float, z: float, height: float = 0.0) -> Vector3:
-	return VIEW.project(world_x,z,height,game.camera_height)
+	return VIEW.project(world_x,z,height,game.camera_height,game.view_depth_span())
 
 func face(corners: Array, color: Color) -> void:
 	var points := PackedVector2Array()

@@ -5,7 +5,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { RoomType } from '../types';
 
-export const useBallPhysics = (currentRoom: RoomType) => {
+export const useBallPhysics = (currentRoom: RoomType, worldBounds?: {current:{width:number;height:number}|null}) => {
     const [ballPos, setBallPos] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     const [isDraggingBall, setIsDraggingBall] = useState(false);
     const [isBallMoving, setIsBallMoving] = useState(false);
@@ -25,8 +25,8 @@ export const useBallPhysics = (currentRoom: RoomType) => {
                         let { x, y } = prev;
                         let { vx, vy } = ballVel.current;
                         const radius = 60; // 120px Outside ball radius
-                        const floor = window.innerHeight;
-                        const walls = window.innerWidth;
+                        const floor = worldBounds?.current?.height ?? window.innerHeight;
+                        const walls = worldBounds?.current?.width ?? window.innerWidth;
 
                         // Air resistance / rolling friction. Lower values make the ball stop sooner.
                         vx *= 0.990;

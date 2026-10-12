@@ -140,6 +140,9 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
   const [showRotateNotice, setShowRotateNotice] = useState(false);
   const [showRoomMap, setShowRoomMap] = useState(false);
+  const mapViewportRef = useRef<HTMLDivElement>(null);
+  const mapPanelRef = useRef<HTMLDivElement>(null);
+  const [outdoorMapFit, setOutdoorMapFit] = useState<{scale: number; left: number; top: number} | null>(null);
   const [isRoomLoading, setIsRoomLoading] = useState(false);
   const handleRoomLoadingChange = useCallback((loading: boolean) => {
     setIsRoomLoading(loading);
@@ -276,8 +279,31 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
     };
   }, [view, activeGameId]);
 
+  useEffect(() => {
+    if (!showRoomMap || !showOutdoorTravelMap) { setOutdoorMapFit(null); return; }
+    const query = window.matchMedia('(pointer: coarse) and (max-width: 1400px)');
+    const fit = () => {
+      const viewport = mapViewportRef.current;
+      const panel = mapPanelRef.current;
+      if (!query.matches || !viewport || !panel) { setOutdoorMapFit(null); return; }
+      // Measure the unscaled original map, then apply one scale to the entire panel.
+      const width = panel.offsetWidth;
+      const height = panel.offsetHeight;
+      if (!width || !height || viewport.clientWidth <= 32 || viewport.clientHeight <= 32) return;
+      const scale = Math.min((viewport.clientWidth-32)/(width+8), (viewport.clientHeight-32)/(height+8));
+      setOutdoorMapFit({scale, left: (viewport.clientWidth-width*scale)/2, top: (viewport.clientHeight-height*scale)/2});
+    };
+    const observer = new ResizeObserver(fit);
+    if (mapViewportRef.current) observer.observe(mapViewportRef.current);
+    if (mapPanelRef.current) observer.observe(mapPanelRef.current);
+    query.addEventListener('change', fit);
+    window.addEventListener('resize', fit);
+    fit();
+    return () => { observer.disconnect(); query.removeEventListener('change', fit); window.removeEventListener('resize', fit); };
+  }, [showRoomMap, showOutdoorTravelMap]);
+
   return (
-    <div className="relative w-full h-full overflow-hidden pet-interface">
+    <div ref={mapViewportRef} className="relative w-full h-full overflow-hidden pet-interface">
       {/* Back button for the pet room only */}
       {view === 'ROOM' && currentRoom !== RoomType.FISHING_POND && (
         <>
@@ -306,13 +332,15 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
           {showRoomMap && !isRoomLoading && !roomNavigationRequest && (
             <>
               <button type="button" className="fixed inset-0 z-[64] cursor-default" onClick={() => setShowRoomMap(false)} aria-label="Close map" />
-              <div className={`absolute left-3 top-[4.25rem] z-[70] border-4 border-[#6b4423] bg-[#fff3bd] p-2 shadow-[6px_6px_0_rgba(51,35,20,0.55)] sm:left-6 sm:top-[6.25rem] sm:p-3 ${showOutdoorTravelMap ? 'w-[min(42rem,calc(100vw-1.5rem))]' : 'w-[min(19rem,calc(100vw-1.5rem))] sm:w-80'}`}>
-                <div className="mb-2 flex items-center gap-2 border-b-4 border-dashed border-[#b77935] px-1 pb-2 text-[#5c3a1e]">
+              <div ref={mapPanelRef} style={showOutdoorTravelMap && outdoorMapFit ? { transform: `scale(${outdoorMapFit.scale})`, transformOrigin: 'top left', left: outdoorMapFit.left, top: outdoorMapFit.top, visibility: 'visible' } : undefined} data-pet-movement-block onPointerDown={event => event.stopPropagation()} role="dialog" aria-label={showOutdoorTravelMap ? 'Travel map' : 'Choose a place'} className={`pet-room-map ${showOutdoorTravelMap ? 'pet-room-map-travel' : ''} absolute left-3 top-[4.25rem] z-[70] border-4 border-[#6b4423] bg-[#fff3bd] p-2 shadow-[6px_6px_0_rgba(51,35,20,0.55)] sm:left-6 sm:top-[6.25rem] sm:p-3 ${showOutdoorTravelMap ? 'w-[min(42rem,calc(100vw-1.5rem))]' : 'w-[min(19rem,calc(100vw-1.5rem))] sm:w-80'}`}>
+                <div className="pet-room-map-heading mb-2 flex items-center gap-2 border-b-4 border-dashed border-[#b77935] px-1 pb-2 text-[#5c3a1e]">
                   <PixelMapIcon className="h-6 w-6" />
                   <span className="text-sm font-black uppercase tracking-[0.12em]">{showOutdoorTravelMap ? 'Travel map' : 'Choose a place'}</span>
+                  <button type="button" className="pet-room-map-close" onClick={() => setShowRoomMap(false)} aria-label="Close room map">×</button>
                 </div>
+                <div className="pet-room-map-content">
                 {!showOutdoorTravelMap ? (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="pet-room-map-grid grid grid-cols-2 gap-2">
                     {INDOOR_ROOM_ITEMS.map(({ room, label, colors }) => {
                       const isActive = currentRoom === room;
                       return (
@@ -332,7 +360,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
                     })}
                   </div>
                 ) : (
-                <div className="relative aspect-[16/10] min-h-[18rem] overflow-hidden border-[3px] border-[#8b5a2b] bg-[#9fd064] shadow-inner [image-rendering:pixelated] sm:min-h-[25rem]">
+                <div className="pet-room-map-outdoor relative aspect-[16/10] min-h-[18rem] overflow-hidden border-[3px] border-[#8b5a2b] bg-[#9fd064] shadow-inner [image-rendering:pixelated] sm:min-h-[25rem]">
                   <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(90deg,#406b2d_1px,transparent_1px),linear-gradient(#406b2d_1px,transparent_1px)] [background-size:12px_12px]" />
                   <div className="absolute inset-0 grid grid-cols-2 grid-rows-2" aria-hidden="true">
                     {ROOM_MAP_ITEMS.map(({ room }) => (
@@ -378,6 +406,7 @@ const VirtualPetContent: React.FC<VirtualPetContentProps> = ({ onClose, extraGam
                   </div>
                 </div>
                 )}
+                </div>
               </div>
             </>
           )}
@@ -480,6 +509,13 @@ export interface SharedVirtualPetProps {
  * requiring a host to introduce a provider it doesn't otherwise need.
  */
 export function SharedVirtualPet({ isOpen, onClose, repository, userId, currencyCode, assetUrls, extraGames, gameProgressClient }: SharedVirtualPetProps) {
+  const [showOrientationTip, setShowOrientationTip] = useState(false);
+  useEffect(() => {
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+      || window.matchMedia('(pointer: coarse)').matches;
+    setShowOrientationTip(isOpen && mobile);
+  }, [isOpen]);
   useEffect(() => {
     if (!isOpen) return;
 
@@ -521,6 +557,16 @@ export function SharedVirtualPet({ isOpen, onClose, repository, userId, currency
         <SharedPetProvider key={userId ?? 'guest'} repository={repository} userId={userId} currencyCode={currencyCode} assetUrls={assetUrls}>
           <VirtualPetContent onClose={onClose} extraGames={extraGames} gameProgressClient={gameProgressClient} userId={userId} />
         </SharedPetProvider>
+        {showOrientationTip && <div className="pet-orientation-tip-backdrop" data-pet-movement-block
+          onPointerDown={event => event.stopPropagation()}>
+          <div className="pet-orientation-tip" role="dialog" aria-modal="true" aria-labelledby="pet-orientation-tip-title">
+            <div aria-hidden="true" className="pet-orientation-tip-icon">📱 ↻</div>
+            <h2 id="pet-orientation-tip-title">Better in landscape</h2>
+            <p>We recommend landscape mode for easier cat controls and a better view when playing games.</p>
+            <p>You can still explore in portrait mode. Only some games require landscape; Hurdles requires portrait. Each game will let you know before it starts.</p>
+            <button type="button" autoFocus onClick={() => setShowOrientationTip(false)}>Got it — continue</button>
+          </div>
+        </div>}
       </div>
     </div>
     </div>

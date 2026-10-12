@@ -1,3 +1,5 @@
+import {mobileRoomSize,clampRoomCamera} from './mobileRoomCamera.mjs';
+import {RoomJoystick} from './components/RoomJoystick';
 /**
  * Ported verbatim from Content Studio's `src/VirtualPet/PetRoom.tsx`, with:
  *   - `useGameState` now imported from this package's shared pet runtime
@@ -270,13 +272,14 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     foodItems, isFoodLoading, currencyRate, assetUrls
   } = useGameState();
   const activePet = getPetOption(petName, assetUrls?.spriteSheets);
+  const mobileBallBounds = useRef<{width:number;height:number}|null>(null);
 
   const {
     ballPos, setBallPos,
     isDraggingBall, setIsDraggingBall,
     isBallMoving,
     ballVel, lastDragPos
-  } = useBallPhysics(currentRoom);
+  } = useBallPhysics(currentRoom,mobileBallBounds);
 
   useEffect(() => {
     if (currentRoom === RoomType.PLAYROOM) {
@@ -336,6 +339,39 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
   const playAreaRef = useRef<HTMLDivElement>(null);
   const roomRootRef = useRef<HTMLDivElement>(null);
+  const [mobileViewport,setMobileViewport]=useState({active:false,width:0,height:0});
+  const [roomCamera,setRoomCamera]=useState({x:0,y:0});
+  const mobileCamera=mobileViewport.active&&(OUTDOOR_ROOMS.has(currentRoom)||[RoomType.KITCHEN,RoomType.BATHROOM,RoomType.BEDROOM,RoomType.GAMES,RoomType.GARDEN].includes(currentRoom));
+  const mobileWorld=mobileRoomSize(mobileViewport.width,mobileViewport.height);
+  mobileBallBounds.current=mobileCamera&&currentRoom===RoomType.PLAYROOM?mobileWorld:null;
+  const boundedCamera=clampRoomCamera(roomCamera.x,roomCamera.y,mobileWorld,mobileViewport);
+  const cameraWorldStyle:React.CSSProperties|undefined=mobileCamera?{position:'absolute',width:mobileWorld.width,height:mobileWorld.height,left:-boundedCamera.x,top:-boundedCamera.y,flex:'none'}:undefined;
+  useEffect(()=>{
+    const root=roomRootRef.current;if(!root)return;
+    const media=window.matchMedia('(pointer: coarse) and (max-width: 1400px)');
+    const update=()=>{const rect=root.getBoundingClientRect();setMobileViewport({active:media.matches,width:rect.width,height:rect.height});};
+    update();const observer=new ResizeObserver(update);observer.observe(root);media.addEventListener('change',update);
+    return()=>{observer.disconnect();media.removeEventListener('change',update);};
+  },[]);
+  useEffect(()=>{
+    if(!mobileCamera){setRoomCamera({x:0,y:0});return;}
+    if(OUTDOOR_ROOMS.has(currentRoom)){
+      setRoomCamera(clampRoomCamera(outsidePetPos.x-mobileViewport.width/2,outsidePetPos.y-mobileViewport.height*.66,mobileWorld,mobileViewport));
+      return;
+    }
+    const pet=petRef.current?.getBoundingClientRect(),root=roomRootRef.current?.getBoundingClientRect();
+    if(!pet||!root)return;
+    const depth=INDOOR_FLOOR_DEPTH[currentRoom]||(currentRoom===RoomType.GARDEN?{min:-0.22,max:0.34}:undefined);
+    const y=depth&&!OUTDOOR_ROOMS.has(currentRoom)?((indoorPetYOffset/mobileWorld.height-depth.min)/(depth.max-depth.min))*(mobileWorld.height-mobileViewport.height):roomCamera.y+pet.top+pet.height/2-root.top-mobileViewport.height*.66;
+    setRoomCamera(previous=>clampRoomCamera(previous.x+pet.left+pet.width/2-root.left-mobileViewport.width/2,y,mobileWorld,mobileViewport));
+  },[mobileCamera,mobileViewport.width,mobileViewport.height,indoorPetX,indoorPetYOffset,outsidePetPos.x,outsidePetPos.y,currentRoom,bedroomSceneScale]);
+  useEffect(()=>{
+    if(mobileCamera&&currentRoom===RoomType.PLAYROOM){
+      setBallPos({x:mobileWorld.width/2,y:mobileWorld.height*.8});
+      ballVel.current={vx:0,vy:0};
+    }
+  },[mobileCamera,mobileViewport.width,mobileViewport.height,currentRoom]);
+
   const petRef = useRef<HTMLDivElement>(null);
   const lastBubbleTime = useRef(0);
   const lastBallPlayTime = useRef(0);
@@ -462,23 +498,27 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     if (activeBedId !== null) setActiveBedId(null);
   }, [activeBedId, setActiveBedId]);
 
+  const outdoorSceneSizeRef = useRef<{room:RoomType;width:number;height:number;mobile:boolean}|null>(null);
   useEffect(() => {
-    if (!OUTDOOR_ROOMS.has(currentRoom) || !playAreaRef.current) return;
+    if (!OUTDOOR_ROOMS.has(currentRoom)){outdoorSceneSizeRef.current=null;return;}
+    if (!playAreaRef.current) return;
 
     const rect = playAreaRef.current.getBoundingClientRect();
+    const previousScene = outdoorSceneSizeRef.current;
+    if(previousScene?.room===currentRoom&&!mobileCamera&&!previousScene.mobile)return;
     const routedPlacement = outdoorEntryPlacementRef.current?.room === currentRoom
       ? outdoorEntryPlacementRef.current.placement
       : null;
     const placement = routedPlacement || OUTDOOR_INITIAL_PLACEMENT[currentRoom] || { x: 0.5, y: 0.55 };
     outdoorEntryPlacementRef.current = null;
-    const initialPos = {
-      x: rect.width * placement.x,
-      y: rect.height * placement.y,
-    };
+    const initialPos = previousScene?.room===currentRoom
+      ? {x:outsidePetPosRef.current.x*rect.width/Math.max(1,previousScene.width),y:outsidePetPosRef.current.y*rect.height/Math.max(1,previousScene.height)}
+      : {x:rect.width*placement.x,y:rect.height*placement.y};
+    outdoorSceneSizeRef.current={room:currentRoom,width:rect.width,height:rect.height,mobile:mobileCamera};
     outsidePetPosRef.current = initialPos;
     setOutsidePetPos(initialPos);
     setOutsidePetPose('idle');
-  }, [currentRoom]);
+  }, [currentRoom,mobileCamera,mobileViewport.width,mobileViewport.height]);
 
   useEffect(() => {
     if (currentRoom !== RoomType.GAMES) setShowGamesMenu(false);
@@ -494,7 +534,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     if (!area || !lane) return null;
 
     const rect = area.getBoundingClientRect();
-    const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
+    const roomRect = mobileCamera ? {width:mobileWorld.width,height:mobileWorld.height} : roomRootRef.current?.getBoundingClientRect() || rect;
     const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
     const displayScale = currentRoom === RoomType.BEDROOM
       ? bedroomSceneScale * BEDROOM_PET_SCALE_MULTIPLIER
@@ -512,7 +552,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
   const getIndoorPetVerticalBounds = () => {
     const area = playAreaRef.current;
-    const depth = INDOOR_FLOOR_DEPTH[currentRoom];
+    const depth = INDOOR_FLOOR_DEPTH[currentRoom] || (mobileCamera && currentRoom === RoomType.GARDEN ? {min:-0.22,max:0.34} : undefined);
     if (!area || !depth) return null;
 
     const rect = area.getBoundingClientRect();
@@ -524,6 +564,14 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
   const startRoomTransition = (exit: RoomExit) => {
     if (roomTransition || isRoomTransitionLoading) return;
+    // A room exit must not wait on a movement loop paused by sleep or a menu.
+    setIsSleeping(false);
+    setIsWalkingToBedroomBed(false);
+    setIsReturningFromBedroomBed(false);
+    setShowFoodMenu(false);
+    setShowBathroomMenu(false);
+    setShowGamesMenu(false);
+    setActiveShop(null);
 
     if (currentRoom === RoomType.FISHING_POND) {
       setRoomTransition(exit);
@@ -540,7 +588,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       }
 
       const rect = area.getBoundingClientRect();
-      const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
+      const roomRect = mobileCamera ? {width:mobileWorld.width,height:mobileWorld.height} : roomRootRef.current?.getBoundingClientRect() || rect;
       const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
       const outdoorPetScale = getOutdoorPetScale(currentRoom);
       const petHalfWidth = (192 * outdoorPetScale) / 2;
@@ -653,7 +701,31 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     setLoadingAnimationKey((key) => key + 1);
     setIsRoomTransitionLoading(true);
     setIndoorPetPose('idle');
-  }, [bedroomSceneScale, indoorPetX, isRoomTransitionLoading, roomTransition]);
+  }, [bedroomSceneScale, indoorPetX, isRoomTransitionLoading, roomTransition,mobileCamera,mobileViewport.width,mobileViewport.height]);
+
+  // Resume automatic travel after a viewport reset or another input cleanup.
+  useEffect(()=>{
+    if(!roomTransition||isRoomTransitionLoading||OUTDOOR_ROOMS.has(currentRoom))return;
+    const bounds=getIndoorPetBounds();
+    if(bounds){
+      indoorPetTargetXRef.current=roomTransition.direction==='left'?bounds.min:bounds.max;
+      indoorPetTargetYOffsetRef.current=null;
+    }
+  },[currentRoom,roomTransition,isRoomTransitionLoading,bedroomSceneScale,mobileCamera,mobileViewport.width,mobileViewport.height]);
+
+  useEffect(()=>{
+    if(!roomTransition||isRoomTransitionLoading)return;
+    let last={x:OUTDOOR_ROOMS.has(currentRoom)?outsidePetPosRef.current.x:indoorPetXRef.current,y:OUTDOOR_ROOMS.has(currentRoom)?outsidePetPosRef.current.y:indoorPetYOffsetRef.current};
+    let stalled=0;
+    const timer=window.setInterval(()=>{
+      const next={x:OUTDOOR_ROOMS.has(currentRoom)?outsidePetPosRef.current.x:indoorPetXRef.current,y:OUTDOOR_ROOMS.has(currentRoom)?outsidePetPosRef.current.y:indoorPetYOffsetRef.current};
+      stalled=Math.hypot(next.x-last.x,next.y-last.y)<1?stalled+1:0;
+      last=next;
+      // Finish the requested room change if a route is no longer reachable.
+      if(stalled>=4){setLoadingAnimationKey(key=>key+1);setIsRoomTransitionLoading(true);}
+    },500);
+    return()=>window.clearInterval(timer);
+  },[currentRoom,roomTransition,isRoomTransitionLoading]);
 
   useEffect(() => {
     if (!OUTDOOR_ROOMS.has(currentRoom) || !roomTransition || isRoomTransitionLoading) return;
@@ -721,7 +793,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     resizeObserver.observe(area);
 
     return () => resizeObserver.disconnect();
-  }, [bedroomSceneScale, currentRoom]);
+  }, [bedroomSceneScale, currentRoom,mobileCamera,mobileViewport.width,mobileViewport.height]);
 
   useEffect(() => {
     if (OUTDOOR_ROOMS.has(currentRoom) || arcadePortal || showShopModal || showGamesMenu || showBathroomMenu || showFoodMenu || isSleeping) {
@@ -838,7 +910,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       cancelAnimationFrame(indoorPetRaf.current);
       indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
     };
-  }, [arcadePortal, bedroomSceneScale, currentRoom, isReturningFromBedroomBed, isSleeping, isWalkingToBedroomBed, roomTransition, setIsSleeping, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal]);
+  }, [arcadePortal, bedroomSceneScale, currentRoom, isReturningFromBedroomBed, isSleeping, isWalkingToBedroomBed, roomTransition, setIsSleeping, showBathroomMenu, showFoodMenu, showGamesMenu, showShopModal,mobileCamera,mobileViewport.width,mobileViewport.height]);
 
   useEffect(() => {
     const doorExit = ROOM_DOOR_EXITS[currentRoom];
@@ -1119,7 +1191,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       const outdoorPetScale = getOutdoorPetScale(currentRoom);
       const petHalfWidth = (192 * outdoorPetScale) / 2;
       const petHalfHeight = (208 * outdoorPetScale) / 2;
-      const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
+      const roomRect = mobileCamera ? {width:mobileWorld.width,height:mobileWorld.height} : roomRootRef.current?.getBoundingClientRect() || rect;
       const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
       outsideBallTargetRef.current = null;
       const requestedTarget = {
@@ -1228,7 +1300,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         ballVel.current = { vx, vy };
       }
       lastDragPos.current = { x: e.clientX, y: e.clientY, time: now };
-      setBallPos({ x: e.clientX, y: e.clientY });
+      const sceneRect=mobileCamera?playAreaRef.current?.getBoundingClientRect():null;
+      setBallPos({ x: e.clientX-(sceneRect?.left??0), y: e.clientY-(sceneRect?.top??0) });
     }
   };
 
@@ -1590,7 +1663,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       const outdoorPetScale = getOutdoorPetScale(currentRoom);
       const petWidth = 192 * outdoorPetScale;
       const petHeight = 208 * outdoorPetScale;
-      const roomRect = roomRootRef.current?.getBoundingClientRect() || rect;
+      const roomRect = mobileCamera ? {width:mobileWorld.width,height:mobileWorld.height} : roomRootRef.current?.getBoundingClientRect() || rect;
       const { sceneLeft, sceneWidth } = getRoomSceneHorizontalBounds(roomRect.width, roomRect.height);
       const outsideMinX = sceneLeft + petWidth / 2;
       const outsideMaxX = sceneLeft + sceneWidth - petWidth / 2;
@@ -1603,7 +1676,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       const verticalDirection = Number(keys.down) - Number(keys.up);
       const pointerTarget = outsidePointerTargetRef.current;
       const chaseTarget = pointerTarget || (hasReleasedBallTarget
-        ? { x: latestBallPos.x - rect.left, y: latestBallPos.y - rect.top }
+        ? (mobileCamera ? latestBallPos : { x: latestBallPos.x - rect.left, y: latestBallPos.y - rect.top })
         : null);
 
       if (Date.now() < outsideWakeUntilRef.current) {
@@ -1677,13 +1750,13 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
     outsidePetRaf.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(outsidePetRaf.current);
-  }, [currentRoom]);
+  }, [currentRoom,mobileCamera,mobileViewport.width,mobileViewport.height]);
 
   return (
     <div
       ref={roomRootRef}
       className={`relative flex h-[100dvh] min-h-0 w-full flex-col items-center justify-between overflow-hidden py-[clamp(8px,2dvh,24px)] transition-colors duration-700 ease-in-out ${roomConfig.bg}`}
-      style={{ isolation: 'isolate' }}
+      style={{ isolation: 'isolate', ...(mobileViewport.active && currentRoom === RoomType.FISHING_POND ? {paddingTop:0,paddingBottom:0} : {}) }}
       onClickCapture={(event) => {
         if (isRoomTransitionLoading) {
           event.preventDefault();
@@ -1718,11 +1791,14 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           pointerEvents: 'none',
           userSelect: 'none',
           zIndex: -1,
+          ...(cameraWorldStyle||{}),
+          ...(mobileCamera ? {maxWidth:'none',maxHeight:'none',right:'auto',bottom:'auto'} : {}),
         }}
       />
 
-      <SceneCats key={currentRoom} room={currentRoom} spriteSheets={assetUrls?.spriteSheets} />
+      <div style={mobileCamera?{...cameraWorldStyle,pointerEvents:'none'}:{display:'contents'}}><SceneCats key={currentRoom} room={currentRoom} spriteSheets={assetUrls?.spriteSheets} /></div>
 
+      <div style={mobileCamera&&OUTDOOR_ROOMS.has(currentRoom)?{...cameraWorldStyle,pointerEvents:'none'}:{display:'contents'}}>
       {currentRoom === RoomType.SPORTS_STADIUM && (
         <>
           {(['football', 'hurdle'] as StadiumActivity[]).map((activity) => {
@@ -1741,7 +1817,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                 key={activity}
                 type="button"
                 className={`pet-stadium-activity absolute z-[12] -translate-x-1/2 -translate-y-1/2 border-0 bg-transparent p-0 outline-none ${isNearby ? 'is-nearby' : ''}`}
-                style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%` }}
+                style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%`,...(mobileCamera?{pointerEvents:'auto' as const}:{}) }}
                 aria-label={isFootball ? 'Enter the football game' : 'Enter the hurdle game'}
                 title={isFootball ? 'Enter the football game' : 'Enter the hurdle game'}
                 onPointerDown={(event) => event.stopPropagation()}
@@ -1827,6 +1903,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         );
       })}
 
+      </div>
+      <div style={mobileCamera?{...cameraWorldStyle,pointerEvents:'none'}:{display:'contents'}}>
       <RoomInteractionOutlines
         room={currentRoom}
         hidden={!!arcadePortal || !!roomTransition || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu}
@@ -1848,6 +1926,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         }}
       />
 
+      </div>
       {isRoomTransitionLoading && (
         <div
           key={loadingAnimationKey}
@@ -1904,9 +1983,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       {currentRoom === RoomType.BEDROOM && (
         <div
           className="pointer-events-none absolute left-[28%] z-[5] flex -translate-x-1/2 flex-col items-center"
-          style={{ top: 'env(safe-area-inset-top, 0px)' }}
+          style={mobileCamera?{left:clamp(mobileWorld.width*.28-boundedCamera.x,40,mobileViewport.width-40),top:'env(safe-area-inset-top, 0px)',zIndex:60}:{ top: 'env(safe-area-inset-top, 0px)' }}
         >
-          <div className="h-[clamp(132px,20dvh,176px)] w-1 bg-slate-800/80" />
+          <div className="h-[clamp(132px,20dvh,176px)] w-1 bg-slate-800/80" style={mobileCamera?{height:'clamp(156px, 28dvh, 196px)'}:undefined} />
 
           <button
             type="button"
@@ -1920,6 +1999,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             className="pointer-events-auto -mt-1 flex h-[clamp(44px,8dvh,56px)] w-[clamp(44px,8dvh,56px)] touch-manipulation items-center justify-center text-[clamp(36px,8dvh,60px)] outline-none transition-transform duration-300 hover:scale-110 active:scale-95"
             title={isBedroomLightOff ? 'Turn On' : 'Turn Off'}
             aria-label={isBedroomLightOff ? 'Turn on bedroom light' : 'Turn off bedroom light'}
+            aria-pressed={!isBedroomLightOff}
+            style={mobileCamera?{minWidth:48,minHeight:48}:undefined}
           >
             <span
               className={`rotate-180 transition-all duration-500 ${
@@ -1986,10 +2067,11 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       )}
 
       {/* The Pet */}
-      <div ref={playAreaRef} className="relative flex min-h-0 w-full flex-1 items-center justify-center">
+      <div ref={playAreaRef} style={mobileViewport.active && currentRoom === RoomType.FISHING_POND ? {position:'absolute',inset:0,width:'100%',height:'100%'} : cameraWorldStyle} className="relative flex min-h-0 w-full flex-1 items-center justify-center">
         {currentRoom === RoomType.FISHING_POND ? (
           <FishingGame
             petId={activePet.id}
+            onClose={() => startRoomTransition({ direction: 'left', destination: RoomType.TOWN_HOME, label: 'Return home' })}
             onCatch={(fishId, coins, xp) => {
               grantItem(fishId, 1);
               addCoins(coins);
@@ -2065,7 +2147,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                 }
                 displayScale={bedroomSceneScale * BEDROOM_PET_SCALE_MULTIPLIER}
                 sleepVisualOffsetY={0}
-                sleepLabelClassName="top-24 right-14"
+                sleepLabelClassName="top-[10%] left-1/2 -translate-x-1/2 whitespace-nowrap"
                 spriteSheetUrl={activePet.spriteSheetUrl}
                 mouthPosition={activePet.mouthPosition}
                 idleFrames={activePet.idleFrames}
@@ -2143,6 +2225,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
       {/* Playroom Ball */}
       {currentRoom === RoomType.PLAYROOM && !showMoleGame && (
+        <div style={mobileCamera?cameraWorldStyle:{display:'contents'}}>
         <Ball
           position={ballPos}
           isDragging={isDraggingBall}
@@ -2150,9 +2233,20 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           imageSrc={resolveItemPixelImage(TOY_ITEMS.find(t => t.id === activeBallId) || TOY_ITEMS[0])}
           color={TOY_ITEMS.find(t => t.id === activeBallId)?.color}
           icon={TOY_ITEMS.find(t => t.id === activeBallId)?.icon}
-        />
+        /></div>
       )}
 
+      {mobileCamera&&<RoomJoystick key={`${currentRoom}-${mobileViewport.width}-${mobileViewport.height}`} disabled={!!arcadePortal||!!roomTransition||isSleeping||showShopModal||showFoodMenu||showBathroomMenu||showGamesMenu||showMoleGame||isWalkingToBedroomBed||isReturningFromBedroomBed} onMove={(x,y)=>{
+        const keys={left:x<-.2,right:x>.2,up:y<-.2,down:y>.2};
+        if(OUTDOOR_ROOMS.has(currentRoom)){
+          outsideMovementKeysRef.current=keys;
+          if(x!==0||y!==0)outsidePointerTargetRef.current=null;
+        }
+        else{
+          indoorMovementKeysRef.current=keys;
+          if(x!==0||y!==0){indoorPetTargetXRef.current=null;indoorPetTargetYOffsetRef.current=null;}
+        }
+      }}/>}
       {/* Menus */}
       {showFoodMenu && currentRoom === RoomType.KITCHEN && (
         <FoodMenu

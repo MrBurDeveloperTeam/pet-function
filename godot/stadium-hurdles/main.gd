@@ -38,6 +38,7 @@ var distance := 0.0
 var teeth := 0
 var speed := 16.0
 var magnet_time := 0.0
+var phase_time := 0.0
 var flight_time := 0.0
 var flight_height := 0.0
 var air_route_lane := -1
@@ -100,7 +101,59 @@ const LESSONS = [
 	[KEY_UP,"UP / W / SPACE", "Follow the teeth above the cone", "cone"],
 ]
 
+var mobile_portrait := false
+var swipe_id := -1
+var swipe_origin := Vector2.ZERO
+var mobile_world_offset := Vector2.ZERO
+const MOBILE_WORLD_SCALE := 0.72
+var mobile_depth_span := 378.0
+
+func view_depth_span() -> float:
+	return mobile_depth_span if mobile_portrait else 378.0
+
+func configure_mobile_view(screen_size: Vector2i = Vector2i.ZERO) -> void:
+	if not mobile_portrait: return
+	if screen_size == Vector2i.ZERO: screen_size = DisplayServer.window_get_size()
+	var height := maxi(960,roundi(720.0*screen_size.y/maxi(1,screen_size.x)))
+	get_tree().root.content_scale_size = Vector2i(720,height)
+	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
+	# A closer, elevated portrait camera: sky takes 28%, cat feet sit at 76%.
+	mobile_depth_span = height*0.48/MOBILE_WORLD_SCALE
+	mobile_world_offset = Vector2((720-1280*MOBILE_WORLD_SCALE)/2,height*0.28-210*MOBILE_WORLD_SCALE)
+	if world:
+		world.scale = Vector2.ONE*MOBILE_WORLD_SCALE
+		world.position = mobile_world_offset
+		world.queue_redraw()
+		world.update_mobile_sky()
+		for child in world.get_children():
+			if child is CanvasItem: child.queue_redraw()
+			if child.has_method("refresh_projection"): child.refresh_projection()
+	if hud:
+		hud.position = Vector2(328,24)
+		toast.position = Vector2(60,130)
+		tutorial_hint.position = Vector2(20,180)
+		tutorial_hint.size.x = 680
+		skip_button.position = Vector2(230,height-80)
+		overlay.position = Vector2(70,height*0.25)
+
+func mobile_ground_height() -> float:
+	return (get_viewport_rect().size.y-mobile_world_offset.y)/MOBILE_WORLD_SCALE if mobile_portrait else 720.0
+
+func clear_mobile_movement() -> void:
+	swipe_id = -1
+
+func swipe_action(start: Vector2, finish: Vector2) -> int:
+	var offset := finish-start
+	if offset.length() < 36: return 0
+	if absf(offset.x)>absf(offset.y): return KEY_RIGHT if offset.x>0 else KEY_LEFT
+	return KEY_DOWN if offset.y>0 else KEY_UP
+
 func _ready() -> void:
+	add_child(preload("res://orientation_guard.gd").new())
+	if OS.has_feature("web"):
+		mobile_portrait = bool(JavaScriptBridge.eval("/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||matchMedia('(pointer:coarse)').matches"))
+	configure_mobile_view()
 	rng.randomize()
 	# Warm up once instead of allocating/freeing a whole pickup row during a run.
 	for i in range(160):
@@ -111,6 +164,8 @@ func _ready() -> void:
 	build_world()
 	build_cat()
 	build_ui()
+	configure_mobile_view()
+	if mobile_portrait: get_tree().root.size_changed.connect(configure_mobile_view)
 	audio = AudioStreamPlayer.new()
 	add_child(audio)
 	if OS.has_feature("web"):
@@ -157,7 +212,7 @@ func pickup_blocked(lane_index: int, z: float, height: float, air: bool = false,
 
 func make_obstacle(kind: String, lane_index: int, z: float, height: float = 0.45, air: bool = false, paid: bool = false, world_x: float = INF) -> void:
 	# The two courses have distinct hazards; benches and dentures stay grounded.
-	if air and kind not in ["tooth","magnet","jetpack","cloud","bird"]: return
+	if air and kind not in ["tooth","magnet","jetpack","phase","cloud","bird"]: return
 	if not air and kind in AIR_HAZARDS: return
 	var x := (lane_index-1)*LANE_WIDTH if is_inf(world_x) else world_x
 	if air and kind=="tooth": height=0.45
@@ -167,7 +222,7 @@ func make_obstacle(kind: String, lane_index: int, z: float, height: float = 0.45
 	if PICKUP_FLOORS.has(kind) or kind in AIR_HAZARDS:
 		for entity in entities:
 			if entity.kind=="npc" and entity.lane==lane_index and entity.get("air",false)==air and absf(entity.node.position.y-z)<NPC_CLEARANCE: return
-			if entity.kind in ["magnet","jetpack"] and entity.lane==lane_index and entity.get("air",false)==air and absf(entity.node.position.y-z)<PICKUP_CLEARANCE: return
+			if entity.kind in ["magnet","jetpack","phase"] and entity.lane==lane_index and entity.get("air",false)==air and absf(entity.node.position.y-z)<PICKUP_CLEARANCE: return
 		var floor_height: float=1.8 if kind in AIR_HAZARDS else PICKUP_FLOORS[kind]
 		for i in range(entities.size()-1,-1,-1):
 			var entity: Dictionary=entities[i]
@@ -199,7 +254,7 @@ func spawn_row() -> void:
 		spawn_arc(blocked,-92)
 		if elapsed>8 and rng.randf()<npc_spawn_chance(): spawn_npc(0 if rng.randf()<0.5 else 2,-92)
 	if not tutorial and powerup_spawn_time<=0 and flight_height<=FLIGHT_HEIGHT+0.1:
-		spawn_powerup("magnet" if rng.randf()<0.5 else "jetpack",rng.randi_range(0,2),-64,air)
+		spawn_powerup(["magnet","jetpack","phase"][rng.randi_range(0,2)],rng.randi_range(0,2),-64,air)
 		powerup_spawn_time=rng.randf_range(13,20)
 
 func spawn_air_row(center_z: float = -92.0) -> void:
@@ -244,7 +299,9 @@ func remove_opening_powerups() -> void:
 			entities.remove_at(i)
 
 func activate_powerup(kind: String) -> void:
-	if kind=="magnet":
+	if kind=="phase":
+		phase_time=10.0
+	elif kind=="magnet":
 		magnet_time=POWERUP_DURATION
 		# Existing passed teeth stay missed; activation never rewinds the road.
 		for entity in entities:
@@ -268,7 +325,7 @@ func activate_powerup(kind: String) -> void:
 			# The opening segment begins closer than subsequent segments.
 			spawn_time=8.0/run_speed()
 	speed=run_speed()
-	toast.text="MAGNET!" if kind=="magnet" else "JETPACK!  FLIGHT MODE"
+	toast.text="GHOST CAT!  10 SECONDS" if kind=="phase" else ("MAGNET!" if kind=="magnet" else "JETPACK!  FLIGHT MODE")
 	toast_time=1.1
 	beep(660,0.09)
 	report_powerups()
@@ -306,10 +363,11 @@ func report_powerups() -> void:
 	var magnet := snappedf(magnet_time,0.1)
 	var jetpack := snappedf(flight_time,0.1)
 	var landing := state in ["running","paused","rankings"] and flight_time<=0 and flight_height>0
-	var signature := "%s:%.1f:%.1f:%s" % [run_id,magnet,jetpack,landing]
+	var phase := snappedf(phase_time,0.1)
+	var signature := "%s:%.1f:%.1f:%.1f:%s" % [run_id,magnet,jetpack,phase,landing]
 	if signature==powerup_report_signature: return
 	powerup_report_signature=signature
-	post_host("RUNNER_POWERUPS",{"runId":run_id,"magnet":magnet,"jetpack":jetpack,"landing":landing})
+	post_host("RUNNER_POWERUPS",{"runId":run_id,"magnet":magnet,"jetpack":jetpack,"phase":phase,"landing":landing})
 
 func end_flight() -> void:
 	# Keep ground obstacles visible and let the player steer during descent.
@@ -448,7 +506,7 @@ func _process(delta: float) -> void:
 	if state!=reported_state:
 		reported_state=state
 		post_host("RUNNER_STATE",{"state":state,"tutorial":tutorial})
-	world.position=collision_shake(CRASH_DURATION-crash_time) if state=="crashed" else Vector2.ZERO
+	world.position=mobile_world_offset+(collision_shake(CRASH_DURATION-crash_time) if state=="crashed" else Vector2.ZERO)
 	var effect_delta := delta if state=="running" else 0.0
 	for i in range(sparks.size()-1,-1,-1):
 		var spark: Dictionary = sparks[i]
@@ -469,6 +527,9 @@ func _process(delta: float) -> void:
 			JavaScriptBridge.eval("var canvas = document.getElementById('canvas'); if (canvas) { canvas.setAttribute('aria-label', %s); canvas.setAttribute('data-runner-fps', '%d'); }" % [JSON.stringify(description),Engine.get_frames_per_second()])
 	if tutorial and state=="running" and tutorial_waiting:
 		tutorial_hint.text="%d / 6   PRESS %s\n%s" % [tutorial_step+1,LESSONS[tutorial_step][1],LESSONS[tutorial_step][2]]
+		if mobile_portrait:
+			var direction = {KEY_LEFT:"LEFT",KEY_RIGHT:"RIGHT",KEY_UP:"UP",KEY_DOWN:"DOWN"}[LESSONS[tutorial_step][0]]
+			tutorial_hint.text="%d / 6   SWIPE %s\n%s" % [tutorial_step+1,direction,LESSONS[tutorial_step][2]]
 
 func tooth_contact(before: Vector2, after: Vector2, tooth_x: float, before_z: float, after_z: float, height: float, rolling: bool = false) -> bool:
 	# Intersect the contact intervals on all axes at the same instant, including touchdown.
@@ -508,6 +569,9 @@ func simulate(dt: float) -> void:
 		animation_time+=dt
 		if not tutorial: elapsed += dt
 		magnet_time=maxf(0,magnet_time-dt)
+		var was_phasing := phase_time>0
+		phase_time=maxf(0,phase_time-dt)
+		if was_phasing and phase_time==0: finish_phase_safely()
 		var was_flying := flight_time>0
 		flight_time=maxf(0,flight_time-dt)
 		if was_flying and flight_time<=0: end_flight()
@@ -558,7 +622,7 @@ func simulate(dt: float) -> void:
 				return
 			# Pickups remain eligible across the whole contact interval. Switching
 			# lanes or landing after z=0 must not permanently discard a tooth.
-			if entity.kind in ["magnet","jetpack"]:
+			if entity.kind in ["magnet","jetpack","phase"]:
 				var pickup_height: float=entity.height+(FLIGHT_HEIGHT if entity.air else 0)
 				if not entity.checked and absf(node.position.y)<=1.8 and absf(node.position.x-runner.position.x)<1.25 and can_collect(jump_height,pickup_height):
 					entity.checked=true
@@ -623,7 +687,17 @@ func collision_shake(age: float) -> Vector2:
 	var strength := pow(1-age/SHAKE_DURATION,2)*9.0
 	return Vector2(cos(age*91),sin(age*113)*0.65)*strength
 
+func finish_phase_safely() -> void:
+	# Obstacles already inside the reaction window get one final safe pass.
+	# Keep their sprites moving normally; later obstacles retain normal collision.
+	var clearance := maxf(5.0,run_speed()*0.8)
+	for entity in entities:
+		if entity.kind not in PICKUP_FLOORS and entity.kind not in AIR_HAZARDS: continue
+		if entity.node.position.y>=-clearance and entity.node.position.y<=8:
+			entity.checked=true
+
 func can_pass(kind: String, height: float, sliding: bool) -> bool:
+	if phase_time>0: return true
 	if kind=="npc": return true
 	if kind=="closed" or kind=="cone": return height>1.05
 	if kind=="open": return height>1.05 or sliding
@@ -640,7 +714,26 @@ func roll_phase() -> float:
 	# Repeat fast forward rolls throughout the low-profile travel window.
 	return fposmod((ROLL_WINDOW_DURATION-slide_time)/roll_duration,1.0)
 
+func _input(event: InputEvent) -> void:
+	# Finish a field gesture even if its release lands over a UI control.
+	if mobile_portrait and event is InputEventScreenTouch and not event.pressed and event.index == swipe_id:
+		if event.canceled: swipe_id = -1
+		else: _unhandled_input(event)
+
 func _unhandled_input(event: InputEvent) -> void:
+	if mobile_portrait and event is InputEventScreenTouch:
+		if event.pressed and swipe_id == -1:
+			swipe_id = event.index
+			swipe_origin = event.position
+		elif not event.pressed and event.index == swipe_id:
+			var key := swipe_action(swipe_origin,event.position)
+			swipe_id = -1
+			if key != 0:
+				var press := InputEventKey.new()
+				press.keycode = key
+				press.pressed = true
+				_unhandled_input(press)
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		# Physical WASD works across keyboard layouts; synthetic events may only have keycode.
 		var action_key: int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
@@ -722,7 +815,7 @@ func start_run(practice: bool = false, opening: bool = true) -> void:
 	animation_time=0
 	celebration_time=0
 	crash_time=0
-	world.position=Vector2.ZERO
+	world.position=mobile_world_offset
 	lane=1
 	runner.position=Vector2.ZERO
 	runner.scale=Vector2.ONE
@@ -732,6 +825,7 @@ func start_run(practice: bool = false, opening: bool = true) -> void:
 	teeth=0
 	speed=BASE_SPEED
 	magnet_time=0
+	phase_time=0
 	flight_time=0
 	flight_height=0
 	camera_height=0
@@ -773,6 +867,7 @@ func finish_run(reason: String) -> void:
 	if tutorial: return
 	reward_sent=true
 	magnet_time=0
+	phase_time=0
 	flight_time=0
 	if reason!="collision":
 		flight_height=0
@@ -785,7 +880,7 @@ func finish_run(reason: String) -> void:
 	overlay.hide()
 	if reason=="collision":
 		crash_time=CRASH_DURATION
-		world.position=collision_shake(0)
+		world.position=mobile_world_offset+collision_shake(0)
 		celebration_time=0
 		jump_time=0
 		jump_buffer=0
@@ -898,7 +993,7 @@ func build_ui() -> void:
 	tooth_texture.region=world.object_regions[2]
 	tooth_icon.texture=tooth_texture
 	tooth_icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
-	tooth_icon.position=Vector2(554,22)
+	tooth_icon.position=Vector2(274,22) if mobile_portrait else Vector2(554,22)
 	tooth_icon.size=Vector2(42,45)
 	root.add_child(tooth_icon)
 	hud=label("",30,Color("fff4cf"))
@@ -1009,7 +1104,7 @@ func build_ui() -> void:
 	var ranking_button := Button.new()
 	ranking_button.text=""
 	ranking_button.tooltip_text="Rankings"
-	ranking_button.position=Vector2(1208,106)
+	ranking_button.position=Vector2(650,106) if mobile_portrait else Vector2(1208,106)
 	ranking_button.custom_minimum_size=Vector2(48,48)
 	var ranking_skin := style(Color("fff0ba"))
 	ranking_skin.content_margin_left=8

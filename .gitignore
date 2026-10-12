@@ -1,6 +1,8 @@
 node_modules/
 dist/
 *.tsbuildinfo
+/*.tgz
+/release-*.local.log
 .DS_Store
 baseline.tar
 migration-backups/

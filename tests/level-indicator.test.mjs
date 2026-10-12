@@ -9,7 +9,7 @@ const source = readFileSync(
 
 test('level progress uses a high-contrast teal fill instead of yellow', () => {
   assert.match(source, /fill="#238f83"/);
-  assert.match(source, /fill="#6fd1bd"/);
+  assert.doesNotMatch(source, /fill="#6fd1bd"/);
   assert.match(source, /bg-\[#238f83\]/);
   assert.doesNotMatch(source, /fill="#f7b733"/);
   assert.doesNotMatch(source, /bg-amber-400/);

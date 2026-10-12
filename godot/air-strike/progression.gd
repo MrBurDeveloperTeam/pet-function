@@ -203,7 +203,14 @@ func drone_positions() -> Array:
 	var result = []
 	for i in range(drone_count()):
 		var pos: Vector2 = game.player+Vector2(-78 if i == 0 else 78,24)
-		result.append(pos if game.escaping else pos.clamp(Vector2(38,38),game.arena_size-Vector2(38,38)))
+		if not game.escaping:
+			pos = pos.clamp(Vector2(38,38),game.arena_size-Vector2(38,38))
+			# At a side wall, move vertically instead of collapsing into the pilot.
+			var dx: float = absf(pos.x-game.player.x)
+			if pos.distance_to(game.player)<78:
+				var spacing := sqrt(maxf(0,78*78-dx*dx))
+				pos.y = game.player.y+spacing if game.player.y+spacing<=game.arena_size.y-38 else game.player.y-spacing
+		result.append(pos)
 	return result
 func projectile(pos: Vector2, velocity: Vector2, damage: float, source: String = "player", missile: bool = false) -> Dictionary:
 	var crit = game.rng.randf() < crit_chance() if source == "player" else false

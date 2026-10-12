@@ -134,6 +134,82 @@
   .snabbb-molar-experience .runner-records-board table { border-spacing: 0 4px; }
   .snabbb-molar-experience .runner-records-board nav { padding-top: 6px; }
 }
+.snabbb-molar-experience .pet-room-map-close { display: none; }
+.snabbb-molar-experience .pet-orientation-tip-backdrop {
+  position: absolute; inset: 0; z-index: 3000; display: grid; place-items: center;
+  padding: 20px; background: rgba(24, 19, 13, 0.75);
+}
+.snabbb-molar-experience .pet-orientation-tip {
+  box-sizing: border-box; width: min(100%, 400px); max-height: calc(100dvh - 40px);
+  overflow-y: auto; padding: 22px; border: 4px solid #684427; background: #fff3bd;
+  color: #4b321e; text-align: center; box-shadow: 6px 6px 0 #302315;
+}
+.snabbb-molar-experience .pet-orientation-tip-icon { font-size: 40px; }
+.snabbb-molar-experience .pet-orientation-tip h2 { margin: 12px 0; font-size: 24px; font-weight: 900; }
+.snabbb-molar-experience .pet-orientation-tip p { margin: 12px 0; font-size: 15px; line-height: 1.6; }
+.snabbb-molar-experience .pet-orientation-tip button {
+  width: 100%; min-height: 48px; margin-top: 8px; padding: 10px 16px;
+  border: 3px solid #684427; background: #f6c867; color: #4b321e; font-weight: 900;
+  box-shadow: 3px 3px 0 #684427; cursor: pointer; touch-action: manipulation;
+}
+
+@media (pointer: coarse) and (max-width: 1400px) {
+  .snabbb-molar-experience .pet-coin-indicator.pet-coin-indicator { top: 36px; right: 76px; transform: translateY(-50%); }
+}
+@media (pointer: coarse) and (min-width: 640px) and (max-width: 1400px) {
+  .snabbb-molar-experience .pet-coin-indicator.pet-coin-indicator { top: 52px; right: 140px; }
+}
+
+@media (pointer: coarse) and (max-width: 1400px) {
+  .snabbb-molar-experience .pet-room-map {
+    left: 12px;
+    top: 68px;
+    width: min(360px, calc(100% - 30px));
+    max-height: calc(100% - 84px);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    overflow: hidden;
+  }
+  .snabbb-molar-experience .pet-room-map-heading { flex: 0 0 auto; min-height: 44px; padding-bottom: 4px; }
+  .snabbb-molar-experience .pet-room-map-heading > span { flex: 1; }
+  .snabbb-molar-experience .pet-room-map-close {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; flex-shrink: 0;
+    border: 2px solid #6b4423; background: #fff8dc; color: #5c3a1e;
+    font-size: 26px; font-weight: 900; touch-action: manipulation;
+  }
+  .snabbb-molar-experience .pet-room-map-content {
+    min-height: 0; overflow: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch; padding: 0 4px 4px 0;
+  }
+  .snabbb-molar-experience .pet-room-map-grid > button { min-height: 80px; touch-action: manipulation; }
+  .snabbb-molar-experience .pet-room-map.pet-room-map-travel {
+    width: 672px; min-width: 672px; max-width: none; max-height: none; padding: 12px;
+    overflow: hidden; visibility: hidden;
+  }
+  .snabbb-molar-experience .pet-room-map-travel .pet-room-map-content {
+    overflow: visible; padding: 0; flex-shrink: 0;
+  }
+  .snabbb-molar-experience .pet-room-map-travel .pet-room-map-outdoor { width: 640px; height: 400px; min-height: 400px; aspect-ratio: 16 / 10; box-sizing: border-box; }
+  .snabbb-molar-experience .pet-room-map-outdoor > button { width: 72px; height: 64px; }
+  .snabbb-molar-experience .pet-room-map-outdoor > button > svg { width: 28px; height: 28px; }
+  .snabbb-molar-experience .pet-room-map-outdoor > button > span:last-child { font-size: 9px; }
+}
+@media (pointer: coarse) and (max-width: 1400px) and (orientation: landscape) {
+  .snabbb-molar-experience .pet-room-map {
+    top: 100px; left: 24px; width: min(560px, calc(100% - 54px));
+    max-height: calc(100% - 116px);
+  }
+  .snabbb-molar-experience .pet-room-map-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .snabbb-molar-experience .pet-room-map-grid > button { min-height: 72px; }
+  .snabbb-molar-experience .pet-room-map-grid > button > svg { height: 28px; width: 28px; }
+  .snabbb-molar-experience .pet-room-map.pet-room-map-travel {
+    max-height: none; width: 672px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .snabbb-molar-experience .runner-rival-notice,
   .snabbb-molar-experience .runner-rival-star,
@@ -1377,41 +1453,46 @@
 }
 
 @keyframes pet-interaction-pulse {
-  0%, 100% { stroke-opacity: 0.25; }
-  50% { stroke-opacity: 0.95; }
+  0%, 100% { stroke-opacity: 0.4; }
+  50% { stroke-opacity: 1; }
 }
 
 .snabbb-molar-experience .pet-interaction-outline {
   fill: transparent;
-  stroke: #fff6c8;
-  stroke-width: 2;
+  stroke: #ffe379;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 2px #392912) drop-shadow(0 0 5px #ffc94f);
   stroke-linejoin: round;
   pointer-events: all;
   cursor: pointer;
   outline: none;
-  animation: pet-interaction-pulse 3.2s ease-in-out infinite;
+  animation: pet-interaction-pulse 900ms ease-in-out infinite;
 }
 
 .snabbb-molar-experience .pet-interaction-outline:hover,
 .snabbb-molar-experience .pet-interaction-outline:focus-visible {
   animation: none;
   stroke-opacity: 1;
-  stroke-width: 2.5;
+  stroke-width: 5;
+  fill: rgba(255, 222, 112, 0.12);
 }
 
 .snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='door'] {
   stroke: #ffeab0;
-  stroke-width: 1.5;
+  stroke-width: 4;
 }
 
 .snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='door']:hover,
 .snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='door']:focus-visible {
-  stroke-width: 2;
+  stroke-width: 5;
 }
 
 .snabbb-molar-experience .pet-interaction-outline-preview {
   pointer-events: none;
   cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .snabbb-molar-experience .pet-interaction-outline { animation: none; }
 }
 
 .snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='karting'] {
@@ -1419,7 +1500,7 @@
   stroke: #ffe379;
   stroke-width: 4;
   filter: drop-shadow(0 0 2px #392912) drop-shadow(0 0 5px #ffc94f);
-  animation: pet-kart-outline-pulse 2s ease-in-out infinite;
+  animation: pet-kart-outline-pulse 900ms ease-in-out infinite;
 }
 
 .snabbb-molar-experience .pet-interaction-outline[data-pet-interaction-action='karting']:hover,
@@ -1505,7 +1586,7 @@
 }
 
 @keyframes pet-kart-outline-pulse {
-  0%, 100% { stroke-opacity: .65; }
+  0%, 100% { stroke-opacity: .4; }
   50% { stroke-opacity: 1; }
 }
 
@@ -1526,8 +1607,8 @@
 .snabbb-molar-experience .pet-stadium-hurdle { width: clamp(58px, 6vw, 104px); }
 
 @keyframes pet-stadium-interaction-pulse {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 0.95; }
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
 }
 
 /* Trace the sprite's alpha silhouette, including the gap under the hurdle. */
@@ -1537,7 +1618,10 @@
   pointer-events: none;
   filter: drop-shadow(1.5px 0 0 #ffeab0) drop-shadow(-1.5px 0 0 #ffeab0)
     drop-shadow(0 1.5px 0 #ffeab0) drop-shadow(0 -1.5px 0 #ffeab0);
-  animation: pet-stadium-interaction-pulse 3.2s ease-in-out infinite;
+  opacity: 1;
+  filter: drop-shadow(2.5px 0 0 #ffe379) drop-shadow(-2.5px 0 0 #ffe379)
+    drop-shadow(0 2.5px 0 #ffe379) drop-shadow(0 -2.5px 0 #ffe379) drop-shadow(0 0 5px #392912);
+  animation: pet-stadium-interaction-pulse 900ms ease-in-out infinite;
 }
 
 .snabbb-molar-experience .pet-stadium-activity:hover .pet-stadium-object.pet-stadium-interaction-hint,

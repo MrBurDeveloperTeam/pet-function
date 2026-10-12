@@ -31,6 +31,8 @@ var settled := false
 var touch_move := Vector2.ZERO
 var touch_shoot := false
 var touch_sprint := false
+var mobile_mode := false
+var mobile_controls: Control
 var input_aim := Vector2.ZERO
 var match_id := ""
 var phase_before_pause := "playing"
@@ -69,9 +71,13 @@ var tutorial_card: PanelContainer
 var tutorial_text: Label
 
 func _ready() -> void:
+	add_child(preload("res://orientation_guard.gd").new())
+	if OS.has_feature("web"):
+		mobile_mode = bool(JavaScriptBridge.eval("/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||matchMedia('(pointer:coarse)').matches"))
 	build_world()
 	build_cats()
 	build_ui()
+	if mobile_mode: build_mobile_controls()
 	audio = AudioStreamPlayer.new()
 	add_child(audio)
 	if OS.has_feature("web"):
@@ -535,7 +541,7 @@ func update_tutorial(delta: float) -> void:
 			if input_aim.length()>0.1: tutorial_progress+=delta
 			done=tutorial_progress>=0.8
 		1:
-			if input_aim.length()>0.1 and Input.is_physical_key_pressed(KEY_SHIFT): tutorial_progress+=delta
+			if input_aim.length()>0.1 and (Input.is_physical_key_pressed(KEY_SHIFT) or touch_sprint): tutorial_progress+=delta
 			done=tutorial_progress>=0.7
 		2: done=game.passes>0 and game.owner==1
 		3:
@@ -730,6 +736,13 @@ func update_action_hint() -> void:
 	action_hint.visible = false
 	prompt_hud.visible = started and game.state == "playing" and status in ["possession","ready"]
 	prompt_title.text = "RELEASE TO SHOOT" if charging_cat>=0 else ("HOLD TO SHOOT" if own_ball else "TAP TO STEAL")
+	if mobile_mode and mobile_controls:
+		var ratio: float = mobile_controls.layout().pixel_ratio
+		prompt_hud.scale = Vector2.ONE*ratio
+		prompt_hud.position = Vector2(-176,-170)*ratio
+		prompt_key.text = "LIFT" if charging_cat>=0 else ("HOLD" if own_ball else "TAP")
+		prompt_title.text = "RELEASE TO SHOOT" if charging_cat>=0 else ("SHOOT BUTTON" if own_ball else "STEAL BUTTON")
+		ball_tag.text = "TAP STEAL" if status == "ready" else "BALL"
 	prompt_hud.queue_redraw()
 	energy_hud.visible = started and game.state!="finished"
 	energy_hud.queue_redraw()
@@ -847,12 +860,21 @@ func release_shot() -> void:
 	charging_cat = -1
 	game.shot_charge = 0
 
+func build_mobile_controls() -> void:
+	mobile_controls = preload("res://mobile_controls.gd").new()
+	mobile_controls.football = self
+	ui.add_child(mobile_controls)
+
+func clear_mobile_movement() -> void:
+	if mobile_controls: mobile_controls.cancel_all()
+
 func toggle_pause() -> void:
 	if not started or game.state == "finished": return
 	if game.state == "paused":
 		game.state = phase_before_pause
 		pause_panel.hide()
 	else:
+		clear_mobile_movement()
 		phase_before_pause = game.state
 		game.state = "paused"
 		game.shot_charge = 0

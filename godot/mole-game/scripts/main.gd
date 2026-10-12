@@ -72,8 +72,24 @@ var tutorial_step := -1
 var tutorial_reaction_resume_hole := -1
 var tutorial_progress_pending := -1
 var host_message_callback: JavaScriptObject
+var mobile_controls := false
+var last_skill_status := ""
+
+func set_mobile_controls(enabled: bool) -> void:
+	mobile_controls = enabled
+	# Explicit touch input below must not also produce an emulated mouse hit.
+	Input.emulate_mouse_from_touch = not enabled
+	last_skill_status = ""
+
+func publish_skill_status() -> void:
+	if not mobile_controls: return
+	var status := "%d:%s:%s:%s" % [floori(energy), skill_time > 0.0, playing, tutorial_paused]
+	if status == last_skill_status: return
+	last_skill_status = status
+	post_to_host("skill-status", {"energy": floori(energy), "active": skill_time > 0.0, "playing": playing, "paused": tutorial_paused})
 
 func _ready() -> void:
+	add_child(preload("res://orientation_guard.gd").new())
 	rng.randomize()
 	font = ThemeDB.fallback_font
 	register_host_messages()
@@ -84,6 +100,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	update_scene_layout()
+	publish_skill_status()
 	if reaction_hole >= 0:
 		reaction_age += delta
 		if reaction_age >= 0.48:
@@ -190,6 +207,14 @@ func get_target_lifetime() -> float:
 	return 0.72 if time_left > 8.0 else 0.42
 
 func _unhandled_input(event: InputEvent) -> void:
+	if mobile_controls and event is InputEventScreenTouch:
+		if event.pressed:
+			var tap := InputEventMouseButton.new()
+			tap.button_index = MOUSE_BUTTON_LEFT
+			tap.pressed = true
+			tap.position = event.position
+			_unhandled_input(tap)
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if scene_exit_rect().has_point(to_local(event.position)):
 			post_to_host("close")
@@ -416,6 +441,15 @@ func _on_host_message(arguments: Array) -> void:
 		return
 	var data = event.data
 	if data == null or data.source != "pet-function:mole-game":
+		return
+	if data.type == "mobile-controls":
+		set_mobile_controls(bool(data.enabled))
+		publish_skill_status()
+		return
+	if data.type == "activate-skill":
+		if mobile_controls and playing and not tutorial_paused:
+			activate_skill()
+			publish_skill_status()
 		return
 	if data.type == "tutorial-active":
 		tutorial_paused = true
@@ -745,7 +779,7 @@ func draw_hud() -> void:
 	draw_rect(Rect2(1217,449-energy_height,20,energy_height),Color("35d9e6") if energy < 100.0 else Color("ffd34f"),true)
 	for marker in range(1,4):
 		draw_line(Vector2(1214,321+marker*33),Vector2(1240,321+marker*33),Color("15110e"),2.0)
-	if catalyst_ready:
+	if catalyst_ready and not mobile_controls:
 		# The input hint floats outside the left side of the vertical energy frame.
 		var hint_y := 337.0+ready_pulse*2.0
 		draw_rect(Rect2(1014,hint_y,164,42),Color("24150e"),true)

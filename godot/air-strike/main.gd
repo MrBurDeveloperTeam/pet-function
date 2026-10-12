@@ -15,7 +15,7 @@ var lobby_launch = false
 var paint: CanvasItem
 var battle_clip: Control
 var render_nodes: Array = []
-const PLAYER_SPEED = 340.0
+const PLAYER_SPEED = 442.0
 const ENEMY_FLIGHT_SPEED_SCALE = 0.5
 const PLAYER_SHOT_INTERVAL = 0.28
 var state = "menu"
@@ -41,6 +41,11 @@ var dragging = false
 var pointer_id = -1
 var drag_anchor = Vector2.ZERO
 var drag_player = Vector2.ZERO
+var joystick_active := false
+var joystick_origin := Vector2.ZERO
+var joystick_axis := Vector2.ZERO
+const JOYSTICK_RADIUS := 48.0
+const JOYSTICK_DEADZONE := 8.0
 var target = player
 var shots: Array = []
 var enemies: Array = []
@@ -71,7 +76,33 @@ var muzzle_flash = 0.0
 var bank = 0.0
 var hit_flash = 0.0
 
+func clear_mobile_movement() -> void:
+	dragging = false
+	pointer_id = -1
+	reset_touch_joystick()
+
+func reset_touch_joystick() -> void:
+	if joystick_active: target = player
+	joystick_active = false
+	joystick_axis = Vector2.ZERO
+
+func update_touch_joystick(pos: Vector2) -> void:
+	var offset := (pos - joystick_origin).limit_length(JOYSTICK_RADIUS)
+	joystick_axis = Vector2.ZERO if offset.length() <= JOYSTICK_DEADZONE else offset / JOYSTICK_RADIUS
+
+func draw_touch_joystick() -> void:
+	if not joystick_active or state != "playing" or skill_inventory.opened: return
+	paint.draw_circle(joystick_origin, JOYSTICK_RADIUS, Color(0.03,0.12,0.18,0.50))
+	paint.draw_arc(joystick_origin, JOYSTICK_RADIUS, 0, TAU, 48, Color(0.55,0.93,0.90,0.8), 2)
+	paint.draw_arc(joystick_origin, JOYSTICK_RADIUS-5, 0, TAU, 48, Color(0.9,0.75,0.45,0.45), 1)
+	for axis in [Vector2.RIGHT, Vector2.DOWN]:
+		paint.draw_line(joystick_origin-axis*12,joystick_origin+axis*12,Color(0.55,0.93,0.90,0.25),1)
+	var knob := joystick_origin + joystick_axis * JOYSTICK_RADIUS
+	paint.draw_circle(knob, 18, Color(0.15,0.40,0.48,0.90))
+	paint.draw_arc(knob, 18, 0, TAU, 32, Color("f4d68e"), 2)
+
 func _ready():
+	add_child(preload("res://orientation_guard.gd").new())
 	progression.game = self
 	campaign.game = self
 	if OS.has_feature("web"):
@@ -187,6 +218,7 @@ func resize_arena(next_size: Vector2):
 	target = player
 	dragging = false
 	pointer_id = -1
+	reset_touch_joystick()
 	for entities in [shots,enemies,enemy_shots,drops,effects,particles]:
 		for entity in entities:
 			entity.pos = remap_point(entity.pos,previous,combat_rect)
@@ -226,6 +258,7 @@ func reset_run():
 	boss_spawned = false
 	dragging = false
 	pointer_id = -1
+	reset_touch_joystick()
 	shots.clear()
 	enemies.clear()
 	enemy_shots.clear()
@@ -254,6 +287,7 @@ func toggle_pause():
 		state = "paused"
 		dragging = false
 		pointer_id = -1
+		reset_touch_joystick()
 	elif state == "paused":
 		play_cue("resume")
 		state = pause_return_state
@@ -264,6 +298,7 @@ func exit_run():
 	ending_result = "defeat"
 	dragging = false
 	pointer_id = -1
+	reset_touch_joystick()
 	complete_ending()
 	redraw_layers()
 
@@ -293,6 +328,10 @@ func _notification(what):
 		toggle_pause()
 
 func _unhandled_input(event):
+	# Release is handled even if an alert or another modal changed the run state.
+	if event is InputEventScreenTouch and not event.pressed:
+		if event.index == pointer_id: clear_mobile_movement()
+		return
 	if skill_inventory.opened and event is InputEventKey:
 		if event.pressed and not event.echo and event.keycode in [KEY_ESCAPE,KEY_P]:
 			skill_inventory.toggle(self)
@@ -313,14 +352,13 @@ func _unhandled_input(event):
 		elif event.keycode == KEY_P or event.keycode == KEY_ESCAPE:
 			toggle_pause()
 	if event is InputEventScreenTouch:
-		if event.pressed and pointer_id == -1:
-			pointer_id = event.index
-			pointer_press(event.position)
-		elif not event.pressed and event.index == pointer_id:
-			dragging = false
-			pointer_id = -1
+		if event.pressed:
+			var had_joystick := joystick_active
+			pointer_press(event.position, true)
+			if state != "playing" or skill_inventory.opened: reset_touch_joystick()
+			if joystick_active and not had_joystick: pointer_id = event.index
 	elif event is InputEventScreenDrag and event.index == pointer_id:
-		pointer_move(event.position)
+		if joystick_active: update_touch_joystick(event.position)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			pointer_press(event.position)
@@ -329,7 +367,7 @@ func _unhandled_input(event):
 	elif event is InputEventMouseMotion and dragging:
 		pointer_move(event.position)
 
-func pointer_press(pos: Vector2):
+func pointer_press(pos: Vector2, touch_input := false):
 	if state in ["playing","paused","skill_choice"] and skill_inventory.button_rect(self).has_point(pos):
 		skill_inventory.toggle(self)
 		return
@@ -366,6 +404,14 @@ func pointer_press(pos: Vector2):
 		return
 	if not combat_rect.has_point(pos):
 		return
+	if touch_input:
+		if joystick_active: return
+		joystick_active = true
+		joystick_origin = pos
+		joystick_axis = Vector2.ZERO
+		dragging = false
+		target = player
+		return
 	dragging = true
 	drag_anchor = pos
 	drag_player = player
@@ -377,6 +423,7 @@ func pointer_move(pos: Vector2):
 		target = target.clamp(player_bounds.position, player_bounds.end)
 
 func _physics_process(delta):
+	if joystick_active and (state != "playing" or skill_inventory.opened): reset_touch_joystick()
 	if skill_inventory.opened:
 		redraw_layers()
 		return
@@ -414,13 +461,7 @@ func _physics_process(delta):
 	elapsed += delta
 	invincible = maxf(0, invincible - delta)
 	notice_time = maxf(0, notice_time - delta)
-	var axis = Vector2(float(Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D)) - float(Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A)), float(Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S)) - float(Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W)))
-	if axis.length_squared() > 0:
-		player += axis.normalized() * PLAYER_SPEED * delta
-		target = player
-	elif dragging:
-		player = player.move_toward(target, 1000.0 * delta)
-	player = player.clamp(player_bounds.position, player_bounds.end)
+	var axis = update_player_movement(delta)
 	bank = lerpf(bank,clampf(axis.x*0.13+(target.x-player.x)*0.002,-0.16,0.16),minf(delta*10,1))
 	fire_timer -= delta
 	if fire_timer <= 0:
@@ -464,6 +505,20 @@ func update_visual_effects(delta: float):
 
 func laser_origin() -> Vector2:
 	return player+Vector2(0,-aircraft_dimensions("player").y*0.48).rotated(bank)
+
+func update_player_movement(delta: float) -> Vector2:
+	var axis = Vector2(float(Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D)) - float(Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A)), float(Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S)) - float(Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W)))
+	if joystick_active:
+		axis = joystick_axis
+		player += axis * PLAYER_SPEED * delta
+		target = player
+	elif axis.length_squared() > 0:
+		player += axis.normalized() * PLAYER_SPEED * delta
+		target = player
+	elif dragging:
+		player = player.move_toward(target, 1000.0 * delta)
+	player = player.clamp(player_bounds.position, player_bounds.end)
+	return axis
 
 func fire_player():
 	play_cue("laser_charge" if progression.skill("laser") or progression.skill("ring_laser") else "shot")
@@ -512,6 +567,7 @@ func update_enemies(delta: float):
 		campaign.update_enemy(e,delta)
 		e.age += delta
 		e.flash = maxf(0.0, e.flash - delta)
+		e.contact_cooldown = maxf(0,e.get("contact_cooldown",0.0)-delta)
 		if e.kind == "boss":
 			e.pos.y = minf(boss_entry_y(), e.pos.y + delta * 70.0 * ENEMY_FLIGHT_SPEED_SCALE)
 			e.pos.x = arena_size.x * 0.5 + sin(e.age * ENEMY_FLIGHT_SPEED_SCALE * (0.85 if e.get("mutations",[]).has("berserk") else 0.65)) * minf(arena_size.x * 0.25, 240.0)
@@ -533,9 +589,15 @@ func update_enemies(delta: float):
 		if e.pos.y > combat_rect.end.y + 120:
 			enemies.remove_at(i)
 		elif e.pos.distance_to(player) < e.radius + 9.0:
+			if e.contact_cooldown > 0: continue
+			e.contact_cooldown = 2.0
+			if boss_can_take_damage(e):
+				e.hp -= progression.current_damage()*2.0
+				e.flash = 0.18
+				add_effect(e.pos,"impact",0.22,e.radius)
 			hit_player(false,e.get("damage",1.0))
 			if state != "playing": return
-			if e.get("role","") == "suicide": kill_enemy(i)
+			if e.hp <= 0 or e.get("role","") == "suicide": kill_enemy(i)
 
 func fire_enemy(e: Dictionary):
 	if campaign.fire(e): return
@@ -803,6 +865,7 @@ func finish_run(result: String):
 	progression.shield_layers = 0
 	dragging = false
 	pointer_id = -1
+	reset_touch_joystick()
 
 func complete_ending():
 	if ending_completed: return
@@ -1427,3 +1490,4 @@ func draw_hud():
 		else:
 			centered("BEST  %07d" % best if state == "menu" else "CORAL COAST  /  MISSION 01",y+340,13,Color("8ba5ad"))
 	draw_run_controls()
+	draw_touch_joystick()

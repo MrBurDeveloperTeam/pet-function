@@ -6,12 +6,12 @@ export const RunnerPowerupIcon: React.FC<{ kind: RunnerPowerup }> = ({ kind }) =
 );
 
 export const RunnerPowerupTimers: React.FC<{ status: RunnerPowerupStatus; visible: boolean }> = ({ status, visible }) => {
-    if (!visible || (status.magnet <= 0 && status.jetpack <= 0 && !status.landing)) return null;
+    if (!visible || (status.magnet <= 0 && status.jetpack <= 0 && (status.phase || 0) <= 0 && !status.landing)) return null;
     return <div className="runner-powerup-timers" aria-label="Active Cat Dash powerups">
-        {(['magnet', 'jetpack'] as const).map(kind => {
-            const remaining = status[kind];
+        {(['magnet', 'jetpack', 'phase'] as const).map(kind => {
+            const remaining = status[kind] || 0;
             if (remaining <= 0 && !(kind === 'jetpack' && status.landing)) return null;
-            const name = kind === 'magnet' ? 'MAGNET' : 'JETPACK';
+            const name = kind === 'phase' ? 'GHOST CAT' : kind === 'magnet' ? 'MAGNET' : 'JETPACK';
             return <div key={kind} className={`runner-powerup-timer runner-powerup-timer--${kind}`} role="timer"
                 aria-label={`${name}: ${remaining > 0 ? `${Math.ceil(remaining)} seconds` : 'landing'}`}>
                 <span className="runner-powerup-timer-badge">

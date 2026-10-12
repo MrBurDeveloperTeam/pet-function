@@ -14,6 +14,7 @@
  * the Phase 3D final report's asset section for the full rationale.
  */
 import React, { useEffect, useState, useRef } from 'react';
+import { MobileLandscapeGate } from './MobileLandscapeGate';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import type { GameProgressClient } from '../../SharedVirtualPet';
 import { runnerRewards } from '../runnerRewards';
@@ -101,7 +102,11 @@ interface GamePageProps {
     userId: string | null;
 }
 
-export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, gameProgressClient, userId }) => {
+export const GamePage: React.FC<GamePageProps> = props => props.gameId === 'stadium-hurdles'
+    ? <MobileLandscapeGate game="hurdles" title="Hurdles" orientation="portrait" onClose={props.onClose}><GamePageContent {...props}/></MobileLandscapeGate>
+    : <GamePageContent {...props}/>;
+
+const GamePageContent: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, gameProgressClient, userId }) => {
     const [isLoading, setIsLoading] = useState(true);
     const { stats, setStats, addCoins, addXP, spendCoins } = useGameState();
     const [powerups, setPowerups] = useState(emptyRunnerPowerups);
@@ -404,6 +409,7 @@ export const GamePage: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
                     )}
 
                     <iframe
+                        data-landscape-game={isPixelRunner ? 'hurdles' : undefined}
                         ref={iframeRef}
                         src={config.url}
                         className="w-full h-full border-0 block"

@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import { normalizePetId } from '../petOptions';
+import { MobileLandscapeGate } from './MobileLandscapeGate';
 
 export function KartGame({ onClose }: { onClose: () => void }) {
+  return <MobileLandscapeGate game="kart" title="Kart Racing" onClose={onClose}><KartGameContent onClose={onClose} /></MobileLandscapeGate>;
+}
+
+function KartGameContent({ onClose }: { onClose: () => void }) {
   const { petName } = useGameState();
   const iframe = useRef<HTMLIFrameElement>(null);
   const [retry, setRetry] = useState(0);
@@ -15,7 +20,7 @@ export function KartGame({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('message', handleMessage);
   }, [onClose]);
   return <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#254451' }}>
-    <iframe key={retry} ref={iframe} title="Cat Kart — 3D Town Sprint"
+    <iframe key={retry} ref={iframe} data-landscape-game="kart" title="Cat Kart — 3D Town Sprint"
       src={`/games/cat-kart/index.html?embedded=1&cat=${encodeURIComponent(normalizePetId(petName))}`}
       allow="autoplay; fullscreen" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
     <div style={{ position: 'absolute', right: 16, top: 16, display: 'flex', gap: 8 }}>

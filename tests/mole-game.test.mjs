@@ -35,8 +35,8 @@ test('mole game embeds the shared Godot export and persists validated rewards', 
 test('mole game launcher declares the current exported pack size', () => {
   const exportedPage = readFileSync(new URL('../public/games/mole-game/index.html', import.meta.url), 'utf8');
   const packSize = statSync(new URL('../public/games/mole-game/index.pck', import.meta.url)).size;
-  assert.match(exportedPage, new RegExp(`"index\\.pck\\?v=godot-v11":${packSize}`));
-  assert.match(exportedPage, /"mainPack":"index\.pck\?v=godot-v11"/);
+  assert.match(exportedPage, new RegExp(`"index\\.pck\\?v=godot-v14":${packSize}`));
+  assert.match(exportedPage, /"mainPack":"index\.pck\?v=godot-v14"/);
 });
 
 test('mole game provides a full-screen scene and loading state without a popup dialog', () => {
@@ -184,7 +184,7 @@ test('mole HUD anchors its scene return arrow to the upper-left viewport corner'
   assert.match(script, /scene_exit_rect\(\)\.has_point\(to_local\(event\.position\)\)/);
   assert.doesNotMatch(script, /Rect2\(18,\s*331,\s*64,\s*64\)/);
   assert.doesNotMatch(script, /"<  OUTSIDE"/);
-  assert.match(gameSource, /godot-v12/);
+  assert.match(gameSource, /godot-v14/);
   assert.doesNotMatch(gameSource, /Entering the mine|animate-spin/);
   assert.match(roomSource, /stats=\{stats\}/);
 });
