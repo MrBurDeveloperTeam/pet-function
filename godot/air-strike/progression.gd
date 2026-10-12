@@ -26,7 +26,7 @@ const LIBRARY = [
  ["damage","Damage +25%","All player damage +25%",1,"",[]],
  ["crit_damage","Critical power","Critical damage +10%",1,"critical",[]],
  ["crit_chance","Critical chance","Critical chance +10%",1,"critical",[]],
- ["evade","Dodge","Bullet dodge chance +10%",1,"counter",[]],
+ ["evade","Dodge","Bullet dodge chance +25%",1,"counter",[]],
  ["leech","Leech","40%: heal 15% of actual damage",1,"vampire",[]],
  ["shield","Energy shield","One shield every 20 seconds",1,"life",[]],
  ["defense","Defense","Incoming damage -8%",1,"",[]],
@@ -171,7 +171,7 @@ func choose(index: int):
 	if energy >= energy_required():
 		collect_energy(0)
 func energy_required() -> int:
-	return ceili((6+skill_level*3)*1.5)
+	return ceili((6+skill_level*3)*0.75)
 func collect_energy(amount: int):
 	energy += amount
 	if game.state == "skill_choice":
@@ -300,15 +300,17 @@ func prevent_hit(allow_evade: bool = true) -> bool:
 		shield_layers -= 1
 		game.add_effect(game.player,"shield_hit",0.35,55)
 		return true
-	var evade = ((0.1 if skill("evade") else 0.0)+(0.2 if skill("double_counter") else 0.0)) if allow_evade else 0.0
+	var evade = dodge_chance() if allow_evade else 0.0
 	if game.rng.randf() < evade:
 		game.play_cue("dodge")
-		game.add_effect(game.player,"impact",0.25,35)
+		game.add_effect(game.player,"dodge",0.7,65)
 		if skill("counter") or skill("double_counter"):
 			for i in range(6 if skill("double_counter") else 3):
 				missile(game.player+Vector2((i-2)*14,0),current_damage()*(0.85 if skill("double_counter") else 0.75))
 		return true
 	return false
+func dodge_chance() -> float:
+	return (0.25 if skill("evade") else 0.0)+(0.2 if skill("double_counter") else 0.0)
 func survive() -> bool:
 	var saves = 2 if skill("dimension") else (1 if skill("life_evolve") else 0)
 	if saves_used < saves:

@@ -57,6 +57,8 @@ var font: Font
 var audio = preload("res://combat_audio.gd").new()
 var ending_result = ""
 var ending_wait = 0.0
+var ending_age = 0.0
+var ending_completed = false
 var escaping = false
 var abandoned = false
 var pause_return_state = "playing"
@@ -203,6 +205,8 @@ func reset_run():
 	skill_inventory.reset()
 	ending_result = ""
 	ending_wait = 0
+	ending_age = 0
+	ending_completed = false
 	escaping = false
 	abandoned = false
 	play_cue("launch")
@@ -421,12 +425,15 @@ func _physics_process(delta):
 	fire_timer -= delta
 	if fire_timer <= 0:
 		fire_player()
-		fire_timer += PLAYER_SHOT_INTERVAL/(1.1 if progression.has(2) else 1.0)
+		fire_timer += player_shot_interval()
 	campaign.update(delta)
 	if state != "playing":
 		redraw_layers()
 		return
 	update_enemies(delta)
+	if state != "playing":
+		redraw_layers()
+		return
 	update_shots(delta)
 	update_drops(delta)
 	if state == "playing":
@@ -471,6 +478,10 @@ func fire_player():
 		if progression.skill("ring_laser"):
 			angle = i*TAU/12
 		shots.append(progression.projectile(player+Vector2(offset if count < 3 else 0,-30),Vector2(0,-690).rotated(angle),damage))
+
+func player_shot_interval() -> float:
+	var frequency = 0.75 if progression.skill("laser") or progression.skill("ring_laser") else 1.0
+	return PLAYER_SHOT_INTERVAL/((1.1 if progression.has(2) else 1.0)*frequency)
 
 func spawn_enemy(kind: String, pos: Vector2, phase: float = 0.0, role: String = "", elite: bool = false):
 	var health = 3 if kind == "fighter" else (12 if kind == "bomber" else 18)
@@ -517,11 +528,13 @@ func update_enemies(delta: float):
 		if e.kind != "boss" and e.fire <= 0 and e.pos.y > combat_rect.position.y + 20 and e.pos.y < player_bounds.end.y - 55:
 			fire_enemy(e)
 			e.fire = (2.4 if e.kind == "fighter" else 1.7)/(1.0+progression.routes(true).size()*0.02 if infinite_mode else 1.0)
+			e.fire /= e.get("fire_scale",1.0)
 			if e.get("affixes",[]).has("berserk"): e.fire *= 0.75
 		if e.pos.y > combat_rect.end.y + 120:
 			enemies.remove_at(i)
 		elif e.pos.distance_to(player) < e.radius + 9.0:
 			hit_player(false,e.get("damage",1.0))
+			if state != "playing": return
 			if e.get("role","") == "suicide": kill_enemy(i)
 
 func fire_enemy(e: Dictionary):
@@ -542,7 +555,7 @@ func update_boss_attack(e: Dictionary, delta: float):
 	if e.volley > 0:
 		fire_boss_pattern(e)
 		e.volley -= 1
-		e.fire = 0.65 if e.volley > 0 else 1.8
+		e.fire = (0.65 if e.volley > 0 else 1.2)/e.get("attack_cadence",1.0)
 		if e.volley == 0:
 			e.attack = (e.attack+1)%boss_patterns.LABELS.size()
 		return
@@ -552,7 +565,7 @@ func update_boss_attack(e: Dictionary, delta: float):
 		return
 	if not e.warning:
 		e.warning = true
-		e.telegraph = 1.1
+		e.telegraph = 1.0
 		e.gap_x = clampf(player.x,150,arena_size.x-150)
 		e.aim_point = player
 		return
@@ -563,10 +576,10 @@ func update_boss_attack(e: Dictionary, delta: float):
 	fire_boss_pattern(e)
 	if boss_patterns.extra_volleys(e.attack) > 0:
 		e.volley = boss_patterns.extra_volleys(e.attack)
-		e.fire = 0.65
+		e.fire = 0.65/e.get("attack_cadence",1.0)
 	else:
 		e.attack = (e.attack+1)%boss_patterns.LABELS.size()
-		e.fire = 1.8
+		e.fire = 1.2/e.get("attack_cadence",1.0)
 
 func fire_boss_pattern(e: Dictionary):
 	play_cue("boss_shot")
@@ -624,6 +637,7 @@ func glow_launch(pos: Vector2):
 
 func update_shots(delta: float):
 	for i in range(shots.size() - 1, -1, -1):
+		if state != "playing": return
 		var b = shots[i]
 		var prev: Vector2 = b.pos
 		b.life = b.get("life",4.0)-delta
@@ -674,6 +688,7 @@ func update_shots(delta: float):
 				impact_shake = maxf(impact_shake,2.5)
 				if e.hp <= 0:
 					kill_enemy(enemies.find(e))
+					if state != "playing": return
 				if e.kind != "boss" and b.get("bounces",0) > 0 and not progression.skill("ring_laser"):
 					var other = progression.nearest(e.pos,b.get("hits",[]))
 					if not other.is_empty():
@@ -712,6 +727,7 @@ func update_shots(delta: float):
 			b.pos.x = b.wave_x+sin(b.wave_age*5+b.wave_phase)*20
 		if segment_hits(prev, b.pos, player, 7.0 + b.radius):
 			hit_player(true,b.get("damage",1.0))
+			if state != "playing": return
 			enemy_shots.remove_at(i)
 		elif not combat_rect.grow(16).has_point(b.pos):
 			enemy_shots.remove_at(i)
@@ -778,6 +794,8 @@ func finish_run(result: String):
 		return
 	ending_result = result
 	state = "ending_"+result
+	ending_age = 0
+	clear_finished_combat()
 	ending_wait = 1.5
 	for effect in effects: ending_wait = maxf(ending_wait,effect.life)
 	for particle in particles: ending_wait = maxf(ending_wait,particle.life)
@@ -787,6 +805,9 @@ func finish_run(result: String):
 	pointer_id = -1
 
 func complete_ending():
+	if ending_completed: return
+	ending_completed = true
+	clear_finished_combat()
 	state = ending_result
 	play_cue(state)
 	best = maxi(best, score)
@@ -810,6 +831,12 @@ func play_cue(cue: String):
 	audio.play(cue)
 
 func update_ending(delta: float):
+	ending_age += delta
+	# Bound the transition even if a resize keeps moving the aircraft back on screen.
+	if ending_age >= 7.0:
+		if ending_result == "victory": player.y = -aircraft_dimensions("player").y
+		complete_ending()
+		return
 	if not escaping:
 		ending_wait -= delta
 		if ending_wait > 0: return
@@ -823,6 +850,17 @@ func update_ending(delta: float):
 	player.y -= (220+ending_wait*900)*delta
 	bank = lerpf(bank,0.0,minf(1,delta*8))
 	if player.y+aircraft_dimensions("player").y/2 < 0: complete_ending()
+
+func clear_finished_combat():
+	shots.clear()
+	enemy_shots.clear()
+	drops.clear()
+	enemies.clear()
+	campaign.hazards.clear()
+	progression.choices.clear()
+	progression.airstrike_pending = false
+	skill_inventory.opened = false
+	muzzle_flash = 0
 
 func text_at(message: String, pos: Vector2, size: int = 18, color: Color = Color("e4f3f5")):
 	paint.draw_string(font, pos, message, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
@@ -1102,6 +1140,21 @@ func draw_combat_effect(effect: Dictionary):
 	var ratio: float = effect.life/effect.duration
 	var age = 1.0-ratio
 	var kind: String = effect.get("kind","explosion")
+	if kind == "dodge":
+		var cyan = Color(0.4,1.0,0.9,ratio)
+		glow(effect.pos,effect.size,Color("7cf8df"),ratio*0.65,2.76)
+		for side in [-1,1]:
+			var origin: Vector2 = effect.pos+Vector2(side*(20+age*55),0)
+			pixel_ring(origin,25+age*30,cyan,-PI*0.8 if side < 0 else -PI*0.3,PI*0.8 if side < 0 else PI*0.3,2.76)
+			for i in range(3):
+				var at = effect.pos+Vector2(side*(24+i*13+age*40),10+i*7)
+				paint.draw_line(at,at+Vector2(side*18,14),cyan,3)
+		var label = "DODGE!"
+		var at = Vector2(clampf(effect.pos.x,70,arena_size.x-70),clampf(effect.pos.y-55-age*30,30,arena_size.y-30))
+		at.x -= font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,18).x/2
+		paint.draw_string_outline(font,at,label,HORIZONTAL_ALIGNMENT_LEFT,-1,18,4,Color(0.02,0.08,0.12,ratio))
+		text_at(label,at,18,cyan)
+		return
 	if kind == "shockwave":
 		var points = PackedVector2Array()
 		for i in range(65):

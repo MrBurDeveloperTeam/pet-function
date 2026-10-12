@@ -49,6 +49,9 @@ export const FISHING_REWARD_ITEMS: FoodItem[] = [
   { id: 'golden_fish', icon: '🐠', label: 'Golden Fish', hunger: 30, xp: 18, happiness: 10, price: 0, category: 'Healthy', levelReq: 1 },
 ];
 
+// Kept in the food registry for fridge rendering and feeding, never for sale.
+export const isFishingRewardItem = (id: string): boolean => FISHING_REWARD_ITEMS.some(item => item.id === id);
+
 export const FOOD_ITEMS: FoodItem[] = [
   ...FISHING_REWARD_ITEMS,
   // Breakfast

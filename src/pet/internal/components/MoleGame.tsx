@@ -1,3 +1,4 @@
+import {requiredPetXP} from '../petExperience.mjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PixelCoinBag } from './CoinIndicator';
@@ -76,7 +77,8 @@ interface MoleGameProps {
 const MOLE_LEVEL_HEAD = '3,7 3,2 8,6 16,6 21,2 21,7 23,9 23,19 20,19 20,22 16,22 16,24 8,24 8,22 4,22 4,19 1,19 1,9';
 
 export const MoleLevelBadge = ({ stats }: { stats: Pick<PetStats, 'level' | 'xp'> }) => {
-  const xpPercent = Math.min(100, Math.max(0, stats.xp));
+  const xpRequired = requiredPetXP(stats.level);
+  const xpPercent = Math.min(100, Math.max(0, stats.xp / xpRequired * 100));
   const fillY = 24 - (xpPercent / 100) * 22;
 
   return (
@@ -90,7 +92,7 @@ export const MoleLevelBadge = ({ stats }: { stats: Pick<PetStats, 'level' | 'xp'
         <polygon points={MOLE_LEVEL_HEAD} fill="#fff0ad" stroke="#3f321f" strokeWidth="1.35" />
         <g clipPath="url(#mole-game-level-mask)">
           <rect x="0" y={fillY} width="24" height="24" fill="#238f83" />
-          <path fill="#6fd1bd" d="M3 8h18v3H3z" />
+          
         </g>
         <polygon points={MOLE_LEVEL_HEAD} fill="none" stroke="#3f321f" strokeWidth="1.35" />
         <path fill="#3f321f" d="M1 13h5v1H1zM1 16h5v1H1zM18 13h5v1h-5zM18 16h5v1h-5z" />

@@ -1,4 +1,4 @@
-import { normalizeTalents } from './airStrikeTalents.mjs';
+import { normalizeTalents, TALENTS } from './airStrikeTalents.mjs';
 
 // Permanent readiness estimate, not a simulation of a run or a win guarantee.
 // Multi-target weapons have discounted weights because not every shot connects.
@@ -19,7 +19,12 @@ export function combatPower(aircraftTier, talents = []) {
 export function recommendedPower(stage) {
  const level = Math.max(1, Math.min(100, Math.floor(Number(stage) || 1)));
  const t = (level - 1) / 99;
- // Mirrors campaign HP/damage/count scaling; softened to account for movement
- // and skills earned during the run. Keep recommendations advisory.
- return Math.round(1000 * Math.sqrt((1 + 2.2 * t) * (1 + 1.2 * t) * (1 + 1.6 * t)) / 50) * 50;
+ // Anchor the last mission to tier 10 plus all permanent talents. Preserve the
+ // stage threat curve between the starting and fully upgraded configurations.
+ const start = combatPower(1);
+ const fullyUpgraded = combatPower(10, TALENTS.map(talent => talent.id));
+ const threat = Math.sqrt((1 + 2.2 * t) * (1 + 1.2 * t) * (1 + 1.6 * t));
+ const finalThreat = Math.sqrt(3.2 * 2.2 * 2.6);
+ const progress = (threat - 1) / (finalThreat - 1);
+ return Math.round((start + (fullyUpgraded - start) * progress) / 50) * 50;
 }

@@ -31,6 +31,7 @@ func run():
 	game.explode(Vector2(300,180),90,true)
 	var start = game.player
 	game.finish_run("victory")
+	check(game.shots.is_empty() and game.enemy_shots.is_empty() and game.drops.is_empty(),"ending clears projectiles and pickups")
 	game._physics_process(0.5)
 	check(game.state == "ending_victory" and game.player == start and not game.effects.is_empty(),"victory waits while the explosion is visible")
 	for i in range(300):
@@ -50,6 +51,16 @@ func run():
 	check(game.state == "ending_defeat" and not game.effects.is_empty(),"defeat waits for player explosion")
 	for i in range(180): game._physics_process(1.0/60)
 	check(game.state == "defeat" and not game.escaping,"defeat completes without flying a destroyed aircraft out")
+	game.reset_run()
+	game.progression.skills = ["laser","ring_laser"]
+	game.fire_player()
+	game.finish_run("victory")
+	check(game.shots.is_empty(),"ring laser cannot remain frozen during flyout")
+	for i in range(480):
+		game.player.y = game.arena_size.y
+		game._physics_process(1.0/60)
+		if game.state == "victory": break
+	check(game.state == "victory" and game.ending_completed,"ending deadline prevents stalled flyout")
 	for cue in game.audio.CUES:
 		var stream = game.audio.synthesize(game.audio.CUES[cue])
 		check(stream.data.size() > 1000 and Array(stream.data).any(func(sample): return sample != 0),"audible PCM exists for "+cue)

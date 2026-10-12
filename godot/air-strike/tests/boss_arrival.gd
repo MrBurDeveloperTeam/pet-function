@@ -19,7 +19,7 @@ func run():
 	game._physics_process(0.4)
 	game.pointer_press(game.skill_card_rect(0).get_center())
 	check(game.state == "playing","fresh click selects opening skill")
-	check(game.progression.energy_required() == 9,"initial energy requirement is 1.5x")
+	check(game.progression.energy_required() == 5,"initial energy requirement is 0.75x")
 	var c = game.campaign
 	game.enemies.clear()
 	game.wave = c.wave_limit()

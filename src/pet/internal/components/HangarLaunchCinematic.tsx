@@ -1,4 +1,5 @@
 import {useEffect,useRef,type ReactNode} from 'react';
+import {CinematicSkipButton} from './CinematicSkipButton';
 
 const DURATION=8400;
 
@@ -35,6 +36,8 @@ export function startHangarLaunchSound():()=>void {
 export function HangarLaunchCinematic({scene,aircraft,onComplete}:{scene:{width:number;height:number};aircraft:ReactNode;onComplete:()=>void}) {
  const world=useRef<HTMLDivElement>(null),plane=useRef<HTMLDivElement>(null),shade=useRef<HTMLDivElement>(null),camera=useRef<HTMLDivElement>(null);
  const completed=useRef(onComplete);completed.current=onComplete;
+ const finished=useRef(false);
+ const finish=()=>{if(finished.current)return;finished.current=true;completed.current();};
  useEffect(()=>{
   const height=world.current!.getBoundingClientRect().height;
   const animations:Animation[]=[];
@@ -54,12 +57,13 @@ export function HangarLaunchCinematic({scene,aircraft,onComplete}:{scene:{width:
   const shakes=Array.from({length:32},(_,i)=>({transform:`translate(${Math.sin(i*2.7)*(i<16?1.5:3)}px,${Math.cos(i*3.7)*(i<16?1:2.5)}px) scale(1.015)`}));
   shakes.push({transform:'translate(0,0) scale(1.015)'});
   play(camera.current!,shakes,{delay:3150,duration:4100,fill:'forwards'});
-  let cancelled=false;void fade.finished.then(()=>{if(!cancelled)completed.current();}).catch(()=>{});
-  const block=(event:KeyboardEvent)=>{event.preventDefault();event.stopImmediatePropagation();};
+  let cancelled=false;void fade.finished.then(()=>{if(!cancelled)finish();}).catch(()=>{});
+  const block=(event:KeyboardEvent)=>{if((event.target as HTMLElement)?.closest('[data-cinematic-skip]'))return;event.preventDefault();event.stopImmediatePropagation();};
   window.addEventListener('keydown',block,true);
   return()=>{cancelled=true;animations.forEach(animation=>animation.cancel());window.removeEventListener('keydown',block,true);};
  },[]);
  return <div className="sky-launch-cinematic" role="status" aria-label="Aircraft launching from the hangar">
+  <CinematicSkipButton onSkip={finish}/>
   <style>{`
    .sky-launch-cinematic{position:absolute;inset:0;z-index:30;overflow:hidden;background:#050d12;pointer-events:auto}
    .sky-launch-camera{position:absolute;inset:0;transform-origin:50% 35%}

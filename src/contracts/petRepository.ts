@@ -141,12 +141,10 @@ export interface PetRepository {
    *  a stale local snapshot the way the runtime's own optimistic local
    *  update can be. Implementations MUST replicate the exact same
    *  threshold/reward rule the shared runtime's own client-side `addXP`
-   *  uses: 100 XP per level, +50 coins per level gained, ONE threshold
-   *  check per call (not a loop — a single large XP gain crosses at most
-   *  one level here too, leaving any leftover XP above threshold to be
-   *  resolved by a later call, exactly matching current product
-   *  behavior) — so client and server can never disagree about
-   *  progression.
+   *  uses: ceil(100 + 20*(level-1) + 2*(level-1)^2) XP per level,
+   *  +50 coins per level gained. Process every crossed threshold atomically
+   *  and retain the remaining XP. Deploy database/pet_experience_v2.sql
+   *  before using the new repositories.
    *
    *  OPTIONAL for backward compatibility: added in 0.9.0. A host
    *  repository that hasn't implemented this yet simply omits it — the

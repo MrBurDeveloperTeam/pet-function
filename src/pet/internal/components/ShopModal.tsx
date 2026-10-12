@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { FoodItem } from '../types';
 import { useGameState } from '../../runtime/SharedPetRuntime';
-import { TOY_ITEMS } from '../constants';
+import { TOY_ITEMS, isFishingRewardItem } from '../constants';
 import { AiOutlineShop } from 'react-icons/ai';
 import { BedImage } from './BedImage';
 import { resolveBedImage } from '../bedImages';
@@ -105,7 +105,7 @@ const ToyVisual = ({ item, size = 'large' }: { item: FoodItem; size?: 'small' | 
 const ShopModal: React.FC<ShopModalProps> = ({
   isOpen,
   onClose,
-  items,
+  items: catalogItems,
   inventory,
   activeBallId,
   coins,
@@ -117,6 +117,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
   shopType,
 }) => {
   const { currencyRate, assetUrls } = useGameState();
+  const items = useMemo(() => catalogItems.filter(item => !isFishingRewardItem(item.id)), [catalogItems]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const formatPrice = (baseUSD: number) => {

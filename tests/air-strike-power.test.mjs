@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { combatPower, recommendedPower } from '../src/pet/internal/components/airStrikePower.mjs';
+import { TALENTS } from '../src/pet/internal/components/airStrikeTalents.mjs';
 
 test('readiness uses permanent aircraft and talents with replacement upgrades', () => {
  assert.equal(combatPower(1), 1000);
@@ -11,6 +12,15 @@ test('readiness uses permanent aircraft and talents with replacement upgrades', 
  assert.equal(combatPower(1, [10,12]), combatPower(1, [12]));
  assert.equal(combatPower(1, [11]), combatPower(1));
  assert.equal(combatPower(1, [1,1,99]), combatPower(1, [1]));
+});
+test('final-stage recommendation requires a nearly completed permanent build', () => {
+ const all = TALENTS.map(talent => talent.id);
+ const final = recommendedPower(100);
+ assert.ok(Math.abs(final-combatPower(10,all)) <= 25);
+ assert.ok(combatPower(4,all.slice(0,7)) < recommendedPower(50));
+ assert.ok(combatPower(4,all) < final);
+ assert.ok(combatPower(10,all.slice(0,7)) < final);
+ assert.ok(combatPower(9,all) < final);
 });
 test('permanent progression increases power and campaign recommendations never decrease', () => {
  let previous = combatPower(1);

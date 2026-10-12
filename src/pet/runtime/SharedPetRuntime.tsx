@@ -1,4 +1,6 @@
 'use client';
+import {PetLevelUpCelebration} from '../internal/components/PetLevelUpCelebration';
+import {advancePetXP} from '../internal/petExperience.mjs';
 
 /**
  * Generic Virtual Pet runtime — ported from Content Studio's
@@ -22,7 +24,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { PetStats, RoomType, FoodItem, type PetAssetUrls } from '../internal/types';
-import { BED_ITEMS, INITIAL_STATS, XP_TO_LEVEL_UP, INITIAL_INVENTORY, FOOD_ITEMS, TOY_ITEMS, FISHING_REWARD_ITEMS } from '../internal/constants';
+import { BED_ITEMS, INITIAL_STATS, XP_TO_LEVEL_UP, INITIAL_INVENTORY, FOOD_ITEMS, TOY_ITEMS, FISHING_REWARD_ITEMS, isFishingRewardItem } from '../internal/constants';
 import { DEFAULT_PET_ID, normalizePetId } from '../internal/petOptions';
 import type { PetRepository } from '../../contracts/petRepository';
 import type { PetSaveSnapshot } from '../../contracts/pet';
@@ -209,6 +211,9 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
     assetUrls,
 }) => {
     const [stats, setStats] = useState<PetStats>(INITIAL_STATS);
+    const [levelCelebration,setLevelCelebration] = useState<{level:number;id:number}|null>(null);
+    const levelCelebrationId=useRef(0);
+    useEffect(()=>setLevelCelebration(null),[userId]);
     const currentStats = useRef(stats);
     currentStats.current = stats;
     const coinSpendInFlight = useRef(false);
@@ -458,13 +463,16 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
                 // Existing hosts check one level per RPC. Keep each award at
                 // one threshold so large game rewards level up consistently.
                 let result = await repository.addXP(userId, Math.min(delta, XP_TO_LEVEL_UP));
+                let levelsGained=result.levelsGained;
                 let remaining = delta - Math.min(delta, XP_TO_LEVEL_UP);
                 while (remaining > 0) {
                     const portion = Math.min(remaining, XP_TO_LEVEL_UP);
                     result = await repository.addXP(userId, portion);
+                    levelsGained += result.levelsGained;
                     remaining -= portion;
                 }
                 setStats(prev => ({ ...prev, xp: result.xp, level: result.level, coins: result.coins }));
+                if(levelsGained>0)setLevelCelebration({level:result.level,id:++levelCelebrationId.current});
             } else {
                 // Backward-compatible fallback for a host repository that
                 // hasn't implemented addXP yet: persist the optimistic
@@ -858,13 +866,12 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
         let coinsDelta = 0;
         let nextStats: PetStats = stats;
         setStats(prev => {
-            let newXP = prev.xp + amount;
-            let newLevel = prev.level;
+            const advanced = advancePetXP(prev.level,prev.xp,amount);
+            const newXP = advanced.xp;
+            const newLevel = advanced.level;
             let newCoins = prev.coins;
-            if (newXP >= XP_TO_LEVEL_UP) {
-                const gainedLevels = Math.floor(newXP / XP_TO_LEVEL_UP);
-                newXP -= XP_TO_LEVEL_UP * gainedLevels;
-                newLevel += gainedLevels;
+            if (advanced.levelsGained > 0) {
+                const gainedLevels = advanced.levelsGained;
                 newCoins = (prev.coins || 0) + 50 * gainedLevels;
                 coinsDelta = 50 * gainedLevels;
                 nextStats = {
@@ -1075,6 +1082,7 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
     };
 
     const buyItem = (itemId: string, price: number) => {
+        if (isFishingRewardItem(itemId)) return false;
         if (stats.coins >= price) {
             let nextStats: PetStats = stats;
             setStats(prev => {
@@ -1162,6 +1170,7 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             assetUrls,
         }}>
             {children}
+            {levelCelebration&&<PetLevelUpCelebration key={levelCelebration.id} level={levelCelebration.level} onDone={()=>setLevelCelebration(null)}/>}
         </GameStateContext.Provider>
     );
 };

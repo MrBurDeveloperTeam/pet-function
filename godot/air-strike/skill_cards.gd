@@ -4,7 +4,7 @@ const IDS = ["bullet","damage","crit_damage","crit_chance","evade","leech","shie
 const EFFECTS = {
  "bullet":["Bullets +1"], "damage":["Damage +25%"],
  "crit_damage":["Crit damage +10%"], "crit_chance":["Crit chance +10%"],
- "evade":["Dodge +10%"], "leech":["40% drain chance","Heal 15% of damage"],
+ "evade":["Dodge +25%"], "leech":["40% drain chance","Heal 15% of damage"],
  "shield":["1 shield / 20s"], "defense":["Damage taken -8%"],
  "life":["Max HP +15%"], "laser":["Piercing laser","Damage +10%"],
  "drone":["Drone +1","50% aircraft damage"],

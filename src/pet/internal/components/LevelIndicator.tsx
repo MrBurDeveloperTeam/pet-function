@@ -1,3 +1,4 @@
+import {requiredPetXP} from '../petExperience.mjs';
 import React, { useState } from 'react';
 import { PetStats } from '../types';
 
@@ -9,7 +10,8 @@ const CAT_HEAD_POINTS = '3,7 3,2 8,6 16,6 21,2 21,7 23,9 23,19 20,19 20,22 16,22
 
 const LevelIndicator: React.FC<LevelIndicatorProps> = ({ stats }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const xpPercent = Math.min(100, Math.max(0, stats.xp));
+  const xpRequired = requiredPetXP(stats.level);
+  const xpPercent = Math.min(100, Math.max(0, stats.xp / xpRequired * 100));
   const fillY = 24 - (xpPercent / 100) * 22;
 
   return (
@@ -28,7 +30,7 @@ const LevelIndicator: React.FC<LevelIndicatorProps> = ({ stats }) => {
           <polygon points={CAT_HEAD_POINTS} fill="#fff0ad" stroke="#3f321f" strokeWidth="1.2" />
           <g clipPath="url(#pixel-cat-level-mask)">
             <rect x="0" y={fillY} width="24" height="24" fill="#238f83" className="transition-all duration-700" />
-            <path fill="#6fd1bd" d="M3 8h18v3H3z" />
+            
           </g>
           <polygon points={CAT_HEAD_POINTS} fill="none" stroke="#3f321f" strokeWidth="1.2" />
           <path fill="#3f321f" d="M1 13h5v1H1zM1 16h5v1H1zM18 13h5v1h-5zM18 16h5v1h-5z" />
@@ -41,7 +43,7 @@ const LevelIndicator: React.FC<LevelIndicatorProps> = ({ stats }) => {
         <div className="absolute right-0 top-16 w-56 max-w-[90vw] border-4 border-[#5f543e] bg-[#fff3c4] p-4 text-[#3f321f] shadow-[5px_5px_0_rgba(53,45,31,0.5)] sm:top-24 sm:w-64">
           <div className="text-center">
             <h3 className="text-lg font-black uppercase tracking-wide">Level {stats.level}</h3>
-            <div className="mt-1 text-xs font-black text-[#6f654f]">{Math.floor(stats.xp)} / 100 XP</div>
+            <div className="mt-1 text-xs font-black text-[#6f654f]">{Math.floor(stats.xp)} / {xpRequired.toLocaleString()} XP</div>
             <div className="mt-3 h-4 w-full overflow-hidden border-2 border-[#6f654f] bg-[#e9dfbd]">
               <div
                 className="h-full bg-[#238f83] transition-[width] duration-500"

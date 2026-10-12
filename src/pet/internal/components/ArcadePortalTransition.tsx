@@ -1,4 +1,5 @@
 import {useEffect,useRef} from 'react';
+import {CinematicSkipButton} from './CinematicSkipButton';
 
 const DURATION=7600;
 const RIFT='M78 9C96 19 103 4 119 27S150 31 141 56S160 77 141 95S145 131 116 132S95 156 73 143S39 153 35 125S8 112 18 85S2 56 25 43S35 14 58 21S65 1 78 9Z';
@@ -7,6 +8,8 @@ const RIFT='M78 9C96 19 103 4 119 27S150 31 141 56S160 77 141 95S145 131 116 132
 export function ArcadePortalTransition({pet,onComplete}:{pet:HTMLDivElement;onComplete:()=>void}){
  const overlay=useRef<HTMLDivElement>(null),traveller=useRef<HTMLDivElement>(null),portal=useRef<HTMLDivElement>(null);
  const done=useRef(onComplete);done.current=onComplete;
+ const finished=useRef(false);
+ const finish=()=>{if(finished.current)return;finished.current=true;done.current();};
  useEffect(()=>{
   const host=overlay.current!,cat=traveller.current!,gate=portal.current!;
   const scene=pet.closest('[data-pet-room]')||pet.closest('.pet-room')||document.querySelector('[data-room-background="scene"]')?.parentElement;
@@ -26,7 +29,7 @@ export function ArcadePortalTransition({pet,onComplete}:{pet:HTMLDivElement;onCo
   Object.assign(cat.style,{left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`});
   Object.assign(gate.style,{left:`${target.x}px`,top:`${target.y}px`,width:`${108*scale}px`,height:`${108*scale}px`});
   const oldVisibility=pet.style.visibility;pet.style.visibility='hidden';
-  const blockKeys=(event:KeyboardEvent)=>{event.preventDefault();event.stopImmediatePropagation();};
+  const blockKeys=(event:KeyboardEvent)=>{if((event.target as HTMLElement)?.closest('[data-cinematic-skip]'))return;event.preventDefault();event.stopImmediatePropagation();};
   window.addEventListener('keydown',blockKeys,true);
   const dx=target.x-rect.left-rect.width/2,dy=target.y-rect.top-rect.height/2;
   const sprite=clone.querySelector<HTMLElement>('.mallow-virtual-pet');
@@ -63,10 +66,11 @@ export function ArcadePortalTransition({pet,onComplete}:{pet:HTMLDivElement;onCo
    cat.dataset.phase='running';
    if(sprite)animations.push(sprite.animate([{backgroundPosition:`0px -${row*208}px`},{backgroundPosition:`-1536px -${row*208}px`}],{duration:560,iterations:Infinity,easing:'steps(8,end)'}));
   },3500)];
-  let cancelled=false;void animations[0].finished.then(()=>{if(!cancelled)done.current();}).catch(()=>{});
+  let cancelled=false;void animations[0].finished.then(()=>{if(!cancelled)finish();}).catch(()=>{});
   return()=>{cancelled=true;timers.forEach(clearTimeout);animations.forEach(a=>a.cancel());window.removeEventListener('keydown',blockKeys,true);pet.style.visibility=oldVisibility;clone.remove();};
  },[pet]);
- return <div ref={overlay} role="status" aria-label="Entering Sky Patrol through the arcade portal" style={{position:'fixed',inset:0,zIndex:1000,overflow:'hidden',pointerEvents:'auto'}} onKeyDown={e=>{e.preventDefault();e.stopPropagation();}} onPointerDown={e=>e.stopPropagation()}>
+ return <div ref={overlay} role="status" aria-label="Entering Sky Patrol through the arcade portal" style={{position:'fixed',inset:0,zIndex:1000,overflow:'hidden',pointerEvents:'auto'}} onKeyDown={e=>{if(!(e.target as HTMLElement).closest('[data-cinematic-skip]'))e.preventDefault();e.stopPropagation();}} onPointerDown={e=>e.stopPropagation()}>
+  <CinematicSkipButton onSkip={finish}/>
   <style>{`
    @keyframes arcade-rift-flow{to{transform:rotate(360deg)}}
    @keyframes arcade-rift-light{0%,100%{opacity:.5;transform:scale(.95)}50%{opacity:.85;transform:scale(1.1)}}

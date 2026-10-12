@@ -102,10 +102,10 @@ func run():
 	game._physics_process(1)
 	check(game.elapsed == time,"choice pauses battle")
 	p.choose(0)
-	p.collect_energy(8)
+	p.collect_energy(4)
 	check(game.state == "playing" and p.skill_level == 0,"energy below new threshold does not level up")
 	p.collect_energy(1)
-	check(game.state == "skill_choice" and p.skill_level == 1 and p.energy_required() == 14,"1.5x energy threshold grows and rounds up on level up")
+	check(game.state == "skill_choice" and p.skill_level == 1 and p.energy_required() == 7,"0.75x energy threshold grows and rounds up on level up")
 	p.choose(0)
 	check(p.choice_age == 0,"energy upgrade restarts the card animation")
 	p.skills = ["ring_laser","supercrit","double_counter"]
@@ -117,7 +117,7 @@ func run():
 	p.energy = 0
 	p.skill_level = 0
 	p.collect_energy(58)
-	check(game.state == "playing" and p.choices.is_empty() and p.skill_level == 3 and p.energy == 17,"four ultimate routes stop cards but continue energy leveling")
+	check(game.state == "playing" and p.choices.is_empty() and p.skill_level == 5 and p.energy == 11,"four ultimate routes stop cards but continue energy leveling")
 	p.offer()
 	check(game.state == "playing" and p.choices.is_empty(),"direct offers cannot bypass completed routes")
 	game.allow_skill_choices = false

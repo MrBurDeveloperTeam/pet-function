@@ -45,9 +45,9 @@ func run():
 	check(bag.page == 1,"additional selected skills are reachable by paging")
 	game.reset_run()
 	check(not bag.opened and bag.entries(game).is_empty() and bag.page == 0,"replay resets backpack with the new run")
-	check(game.progression.energy_required() == 9,"energy starts at 1.5x")
+	check(game.progression.energy_required() == 5,"energy starts at 0.75x")
 	game.progression.skill_level = 1
-	check(game.progression.energy_required() == 14,"fractional requirements round up")
+	check(game.progression.energy_required() == 7,"fractional requirements round up")
 	print("SKILL INVENTORY: %d failures" % failures)
 	game.queue_free()
 	quit(failures)

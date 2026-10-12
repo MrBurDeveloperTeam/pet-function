@@ -32,10 +32,15 @@ func wave_limit() -> int:
 	return 5 if game.stage_level <= 20 else (6 if game.stage_level <= 50 else (7 if game.stage_level <= 80 else 8))
 func threat() -> int:
 	return 1+int(infinite_wave/10)
+func recommended_power() -> int:
+	var t = (game.stage_level-1)/99.0
+	var curve = (sqrt((1+2.2*t)*(1+1.2*t)*(1+1.6*t))-1)/(sqrt(3.2*2.2*2.6)-1)
+	return roundi((1000+11118*curve)/50)*50
 func scaling() -> Dictionary:
 	var t = (game.stage_level-1)/99.0
 	if not game.infinite_mode:
-		return {"hp":1+2.2*t,"damage":1+1.2*t,"count":1+1.6*t,"speed":1+0.33*t,"bullet":1+0.42*t}
+		var readiness = recommended_power()/1000.0
+		return {"hp":pow(readiness,0.85),"damage":pow(readiness,0.28),"count":pow(readiness,0.28),"speed":1+0.33*t,"bullet":1+0.35*t,"fire":pow(readiness,0.18)}
 	var w = maxi(0,infinite_wave-1)
 	var health = 1+mini(w,100)*0.02+clampi(w-100,0,200)*0.01+maxi(0,w-300)*0.005
 	var builds = game.progression.routes(true).size()
@@ -66,6 +71,7 @@ func decorate(e: Dictionary, role: String, elite: bool):
 	e.ability = 3.0
 	e.pattern = 0
 	e.damage = scale.damage
+	e.fire_scale = scale.get("fire",1.0)
 	e.speed_scale = scale.speed*(1.6 if role == "fast" else 1.0)
 	e.bullet_scale = scale.bullet
 	e.hp = float(e.hp)*scale.hp*(1.6 if role == "armored" else 1.0)*(1.8 if elite else 1.0)
@@ -142,6 +148,11 @@ func prepare_boss(e: Dictionary):
 	e.stage_phase = 1
 	e.boss_ability = 7.0
 	e.summon_timer = 5.0
+	# Boss durability scales faster than ordinary aircraft to withstand ultimates.
+	var late = (game.stage_level-1)/99.0 if not game.infinite_mode else 0.0
+	e.max_hp *= 1.8+late*0.8
+	e.damage *= 1.2
+	e.attack_cadence = 1.0+late*0.25
 	e.max_hp *= 1.5 if game.infinite_mode and infinite_wave%50 == 0 else 1.0
 	e.hp = e.max_hp
 	if not game.infinite_mode:
@@ -240,6 +251,9 @@ func update_boss(e: Dictionary, delta: float):
 		e.summon_timer += 5.0
 		summon(e,["fighter","fighter","fighter"])
 	if not e.has("mutations"): return
+	var combat_phase = 1 if e.hp/e.max_hp > 0.65 else (2 if e.hp/e.max_hp > 0.3 else 3)
+	e.combat_phase = combat_phase
+	e.attack_cadence = (1.0+((game.stage_level-1)/99.0)*0.25 if not game.infinite_mode else 1.0)*(1.0+(combat_phase-1)*0.12)
 	if game.stage_level in [98,100] and not game.infinite_mode:
 		var phase = 1 if e.hp/e.max_hp > 0.75 else (2 if e.hp/e.max_hp > 0.5 else (3 if e.hp/e.max_hp > 0.25 else 4))
 		if phase > e.stage_phase:

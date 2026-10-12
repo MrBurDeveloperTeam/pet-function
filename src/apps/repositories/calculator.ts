@@ -226,10 +226,8 @@ export function createCalculatorPetRepository(supabase: PetDatabaseClient): PetR
     // resulting xp/level/coin-reward from that current value under the
     // same transaction -- never from a client-supplied final level,
     // which could be computed from a stale local snapshot. The
-    // threshold/reward rule (100 XP per level, +50 coins per level,
-    // one check per call) is a deliberate exact port of the shared
-    // runtime's own client-side addXP.
-    const { data, error } = await supabase.rpc('add_pet_xp', {
+    // v2 uses the shared growing XP curve and handles all crossed levels atomically.
+    const { data, error } = await supabase.rpc('add_pet_xp_v2', {
       p_delta: delta,
     });
     if (error) throw error;
