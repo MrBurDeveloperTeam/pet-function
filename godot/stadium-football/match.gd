@@ -174,7 +174,7 @@ func step(delta: float, movement := Vector2.ZERO, sprint := false) -> void:
 func ai_direction(i: int) -> Vector2:
 	refresh_roles()
 	var offset: Vector2 = ai_target(i) - cats[i].pos
-	return offset.normalized() if offset.length() > 0.35 else Vector2.ZERO
+	return offset.normalized()*minf(1.0,(offset.length()-0.35)/1.5) if offset.length() > 0.35 else Vector2.ZERO
 
 func ensure_keeper_hold() -> void:
 	if owner<0 or not cats[owner].keeper:

@@ -49,8 +49,8 @@ func verify():
 		root.size = Vector2i(844*density,390*density)
 		controls.css_height = 390
 		var p = controls.layout()
-		assert(is_equal_approx(68*controls.action_scale("shoot",p.scale)/p.pixel_ratio,46.24),"Mobile secondary controls are sized for comfortable touch at every pixel density")
-		assert(is_equal_approx(p.radius/p.pixel_ratio,47.6),"Mobile joystick is sized for comfortable touch at every pixel density")
+		assert(is_equal_approx(68*controls.action_scale("shoot",p.scale)/p.pixel_ratio,69.36),"Mobile secondary controls are sized for comfortable touch at every pixel density")
+		assert(is_equal_approx(p.radius/p.pixel_ratio,71.4),"Mobile joystick is sized for comfortable touch at every pixel density")
 	assert(is_equal_approx(controls.self_modulate.a,0.62),"Mobile controls are translucent")
 	root.size = Vector2i(844,390)
 	controls.css_height = 0

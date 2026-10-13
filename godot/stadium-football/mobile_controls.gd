@@ -21,7 +21,7 @@ func layout() -> Dictionary:
 	var view := get_viewport_rect().size
 	var logical_height := css_height if css_height>0 else view.y
 	var pixel_ratio := view.y/logical_height
-	var s := clampf(logical_height/440.0,1.0,1.2)*pixel_ratio*0.85
+	var s := clampf(logical_height/440.0,1.0,1.2)*pixel_ratio*1.275
 	return {"scale":s,"pixel_ratio":pixel_ratio,"stick":Vector2(82*s,view.y-82*s),"radius":56*s,"buttons":{
 		"sprint":view-Vector2(48,44)*s,
 		"shoot":view-Vector2(48,118)*s,"switch":view-Vector2(122,44)*s,"pass":view-Vector2(100,96)*s}}

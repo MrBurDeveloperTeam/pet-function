@@ -407,6 +407,14 @@ function AirStrikeGameContent({onClose,userId}:{onClose:()=>void;userId?:string|
  .sky-talent-inspector .buy{min-width:185px;font:13px SkyPixel,monospace;align-self:center;background:linear-gradient(#e4bd73,#aa7c39);border:2px solid #e0be7d;box-shadow:inset 0 0 0 2px #654b29}
  .sky-talent-empty{width:100%;text-align:center;display:flex;flex-direction:column;gap:10px;color:#8fb5c2}.sky-talent-empty b{font:15px SkyPixel,monospace;letter-spacing:2px;color:#d4ba82}.sky-talent-empty small{font-size:12px}
  .sky-talent-save-message,.sky-talent-tree-notice{position:relative;z-index:1;flex-shrink:0;font-size:12px!important;margin:4px 0!important;line-height:1.4!important}.sky-talent-save-message{display:flex;align-items:center;gap:12px}.sky-talent-tree-notice{color:#efd198!important}
+ @media (pointer:coarse){
+ .sky-refit-fit:has(.sky-stage-grid){width:calc(100vw - 24px)!important;height:calc(100dvh - 32px)!important}
+ .sky-refit-fit .sky-stage-terminal:has(.sky-stage-grid){transform:none!important;width:100%;height:100%;padding:14px}
+ .sky-refit-fit .sky-stage-terminal:has(.sky-stage-grid) header{margin:-14px -14px 8px;padding:12px;flex-wrap:wrap}
+ .sky-refit-fit .sky-stage-terminal:has(.sky-stage-grid) h2{font-size:18px}
+ .sky-stage-terminal .sky-stage-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:60px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:8px;gap:8px;margin:8px 0}
+ .sky-stage-terminal .sky-stage-grid .sky-hangar-button{font-size:20px;min-height:60px}
+ }
 `}</style>
  {view==='hangar'?<>
  <div className="sky-hangar-scene"/>

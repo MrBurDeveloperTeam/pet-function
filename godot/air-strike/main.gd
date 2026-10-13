@@ -217,6 +217,7 @@ func remap_point(point: Vector2, old: Rect2, next: Rect2) -> Vector2:
 func configure_mobile_scale() -> void:
 	if not mobile_skill_cards: return
 	# Double all game and HUD pixels together; touch coordinates use the same viewport transform.
+	Engine.max_fps=30
 	get_tree().root.content_scale_size=Vector2i(480,270)
 	get_tree().root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	get_tree().root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
@@ -1002,9 +1003,9 @@ func poly(points: Array, color: Color):
 	paint.draw_colored_polygon(PackedVector2Array(points), color)
 
 func burst(pos: Vector2, count: int, kind: String):
-	if mobile_skill_cards: count=maxi(1,ceili(count*0.25))
+	if mobile_skill_cards: count=maxi(1,ceili(count*(0.25 if kind in ["fire","debris","smoke"] else 0.1)))
 	for i in range(count):
-		if particles.size() >= (120 if mobile_skill_cards else 500):
+		if particles.size() >= (80 if mobile_skill_cards else 500):
 			break
 		var direction = Vector2.from_angle(visual_rng.randf()*TAU)
 		var life = visual_rng.randf_range(0.22,0.5) if kind == "spark" else visual_rng.randf_range(0.55,1.15)
@@ -1106,7 +1107,7 @@ func draw_aircraft_sprite(pos: Vector2, kind: String, flash: bool):
 			poly([Vector2(x-1.5,height*0.34),Vector2(x,height*0.34+length*0.65),Vector2(x+1.5,height*0.34)],Color("fff2c8"))
 	var tint = Color(1.8,0.65,0.45) if is_player and flash else (Color(1.9,1.65,1.25) if flash else Color.WHITE)
 	if is_player and invincible > 0 and not flash:
-		tint.a = 0.5 if int(invincible*12)%2 == 0 else 1.0
+		tint.a = 0.2 if int(invincible*8)%2 == 0 else 1.0
 	paint.draw_texture_rect(texture,Rect2(-dimensions/2,dimensions),false,tint)
 	if is_player:
 		for x in [-14.0,14.0]:

@@ -24,6 +24,7 @@ import LevelIndicator from './components/LevelIndicator';
 import CoinIndicator from './components/CoinIndicator';
 import { getPetOption } from './petOptions';
 import { ROOM_BACKGROUNDS } from './roomBackgrounds';
+import { SCENE_CATS } from './sceneCats';
 import { RoomInteractionOutlines } from './components/RoomInteractionOutlines';
 import { SceneCats } from './components/SceneCats';
 import { KART_GAME_ID, isNearKartEntrance } from './kartInteraction';
@@ -177,7 +178,7 @@ const INDOOR_PET_OFFSET_Y = 32;
 const INDOOR_PET_KEYBOARD_SPEED = 360;
 const INDOOR_PET_MOUSE_SPEED = 520;
 const INDOOR_PET_STOP_DISTANCE = 2;
-const ROOM_TRANSITION_LOADING_MS = 1800;
+
 
 const INDOOR_FLOOR_LANES: Partial<Record<RoomType, { min: number; max: number }>> = {
   [RoomType.KITCHEN]: { min: 0.14, max: 0.86 },
@@ -751,24 +752,51 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   }, [currentRoom, isRoomTransitionLoading, outsidePetPos.x, outsidePetPos.y, roomTransition]);
 
   useEffect(() => {
-    if (!roomTransition || !isRoomTransitionLoading) return;
+    if (!roomTransition || !isRoomTransitionLoading || currentRoom === roomTransition.destination) return;
+    let cancelled = false;
+    let retry = 0;
+    const destination = roomTransition.destination;
+    const images = [...new Set([
+      ROOM_BACKGROUNDS[destination], activePet.spriteSheetUrl,
+      '/pet-function/pets/scene-standing-cats.png',
+      ...(SCENE_CATS[destination] ?? []).map(cat => getPetOption(cat.pet, assetUrls?.spriteSheets).spriteSheetUrl),
+    ])];
+    const load = async () => {
+      try {
+        await Promise.all(images.map(src => new Promise<void>((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => { image.decode().then(() => resolve(), reject); };
+          image.onerror = reject;
+          image.src = src;
+        })));
+        if (cancelled) return;
+        const routePlacement = OUTDOOR_ROUTE_ENTRY_PLACEMENT[currentRoom]?.[destination];
+        outdoorEntryPlacementRef.current = routePlacement ? { room: destination, placement: routePlacement } : null;
+        outsideExitPathRef.current = [];
+        outsideExitTravelRef.current = false;
+        // Mount the destination while the loading overlay still covers it.
+        setCurrentRoom(destination);
+      } catch {
+        // Keep the overlay on failed downloads, and retry instead of revealing a blank scene.
+        if (!cancelled) retry = window.setTimeout(load, 1500);
+      }
+    };
+    void load();
+    return () => { cancelled = true; window.clearTimeout(retry); };
+  }, [isRoomTransitionLoading, roomTransition, currentRoom, setCurrentRoom, activePet.spriteSheetUrl, assetUrls?.spriteSheets]);
 
-    const timer = window.setTimeout(() => {
-      const routePlacement = OUTDOOR_ROUTE_ENTRY_PLACEMENT[currentRoom]?.[roomTransition.destination];
-      outdoorEntryPlacementRef.current = routePlacement
-        ? { room: roomTransition.destination, placement: routePlacement }
-        : null;
-      setCurrentRoom(roomTransition.destination);
-      outsideExitPathRef.current = [];
-      outsideExitTravelRef.current = false;
-      setRoomTransition(null);
-      setIsRoomTransitionLoading(false);
-      onRoomNavigationRequestHandled?.();
-    }, ROOM_TRANSITION_LOADING_MS);
-
-    return () => window.clearTimeout(timer);
-  }, [isRoomTransitionLoading, onRoomNavigationRequestHandled, roomTransition, setCurrentRoom]);
-
+  useEffect(() => {
+    if (!roomTransition || !isRoomTransitionLoading || currentRoom !== roomTransition.destination) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => {
+        setRoomTransition(null);
+        setIsRoomTransitionLoading(false);
+        onRoomNavigationRequestHandled?.();
+      });
+    });
+    return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
+  }, [currentRoom, roomTransition, isRoomTransitionLoading, onRoomNavigationRequestHandled]);
   useEffect(() => {
     if (OUTDOOR_ROOMS.has(currentRoom)) return;
 

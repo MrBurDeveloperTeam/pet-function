@@ -26,7 +26,7 @@ export function GameRevival({iframe,source,coins,spendCoins}:{iframe:RefObject<H
     const receive=(event:MessageEvent)=>{
       const data=event.data;
       if(event.origin===location.origin&&event.source===iframe.current?.contentWindow&&data?.source==='pet-function:revive-ack'&&String(data.runId)===String(activeOffer.current?.runId)){
-        if(ackTimer.current)clearTimeout(ackTimer.current);setOffer(null);setVideo(null);setPending(null);setBusy(false);lock.current=false;iframe.current?.contentWindow?.focus();return;
+        if(ackTimer.current)clearTimeout(ackTimer.current);setOffer(null);setVideo(null);setPending(null);setBusy(false);lock.current=false;requestAnimationFrame(()=>requestAnimationFrame(()=>{const frame=iframe.current;if(!frame||activeOffer.current)return;frame.focus();frame.contentWindow?.focus();const canvas=frame.contentDocument?.querySelector('canvas');if(canvas){canvas.tabIndex=0;canvas.focus({preventScroll:true});}}));return;
       }
       if(event.origin!==location.origin||event.source!==iframe.current?.contentWindow||data?.source!==source||data.type!=='REVIVE_OFFER'||!Number.isInteger(data.used)||data.used<0||data.used>=3||!['string','number'].includes(typeof data.runId))return;
       lock.current=false;setBusy(false);setPending(null);setError('');setVideo(null);watch.current=0;setWatched(0);setOffer({runId:data.runId,used:data.used});

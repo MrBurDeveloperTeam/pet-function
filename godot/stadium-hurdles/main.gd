@@ -724,6 +724,15 @@ func roll_phase() -> float:
 	return fposmod((ROLL_WINDOW_DURATION-slide_time)/roll_duration,1.0)
 
 func _input(event: InputEvent) -> void:
+	if mobile_portrait and event is InputEventScreenDrag and event.index == swipe_id:
+		var key := swipe_action(swipe_origin,event.position)
+		if key != 0:
+			swipe_id = -1
+			var press := InputEventKey.new()
+			press.keycode = key
+			press.pressed = true
+			_unhandled_input(press)
+			get_viewport().set_input_as_handled()
 	# Finish a field gesture even if its release lands over a UI control.
 	if mobile_portrait and event is InputEventScreenTouch and not event.pressed and event.index == swipe_id:
 		if event.canceled: swipe_id = -1

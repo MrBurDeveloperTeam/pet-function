@@ -226,13 +226,16 @@ func draw_cat() -> void:
 	if game.phase_time>0:
 		var aura := Vector2(p.x,p.y-65)
 		var pulse: float = 0.65+sin(game.animation_time*7)*0.15
-		if game.phase_time<2: pulse *= 0.6+sin(game.animation_time*14)*0.4
+		if game.phase_time<=3: pulse *= 0.6+sin(game.animation_time*14)*0.4
 		draw_circle(aura,83,Color(0.3,0.8,1,0.10*pulse))
 		draw_arc(aura,83,game.animation_time,game.animation_time+TAU*0.85,48,Color(0.5,0.9,1,0.65*pulse),3,true)
 	draw_shadow(Vector2(ground.x,ground.y),110-game.runner.position.y*9,0.28)
 	if game.state=="crashed":
 		draw_hurt_cat(Vector2(p.x,p.y))
 		return
+	var cat_tint := Color(0.65,0.92,1,0.65) if game.phase_time>0 else Color.WHITE
+	if game.phase_time>0 and game.phase_time<=3: cat_tint.a = 0.15 if int(game.phase_time*8)%2==0 else 0.9
+	if game.revive_grace>0: cat_tint.a = 0.2 if int(game.revive_grace*8)%2==0 else 1.0
 	var flying: bool=game.flight_time>0 or game.flight_height>0
 	if game.magnet_time>0:
 		var pulse: float=sin(game.animation_time*7)*4
@@ -240,11 +243,11 @@ func draw_cat() -> void:
 			draw_arc(Vector2(p.x,p.y-65),103+pulse,-PI*0.28 if side==1 else PI*0.72,PI*0.28 if side==1 else PI*1.28,12,Color(1,0.86,0.47,0.6),3)
 	if game.celebration_time>0:
 		var phase: float=1-game.celebration_time/game.CELEBRATION_DURATION
-		draw_texture_rect_region(CAT_FLIP,somersault_rect(Vector2(p.x,p.y),phase),somersault_regions[somersault_frame(phase)])
+		draw_texture_rect_region(CAT_FLIP,somersault_rect(Vector2(p.x,p.y),phase),somersault_regions[somersault_frame(phase)],cat_tint)
 		return
 	if game.slide_time>0:
 		var phase: float=game.roll_phase()
-		draw_texture_rect_region(CAT_FLIP,roll_rect(Vector2(p.x,p.y),phase),somersault_regions[roll_frame(phase)])
+		draw_texture_rect_region(CAT_FLIP,roll_rect(Vector2(p.x,p.y),phase),somersault_regions[roll_frame(phase)],cat_tint)
 		if flying: draw_flight_gear(Vector2(p.x,p.y))
 		else: draw_motion_dust(Vector2(ground.x,ground.y))
 		return
@@ -259,7 +262,7 @@ func draw_cat() -> void:
 	var cell_origin := Vector2(int(frame%4)*cell.x,int(frame/4)*cell.y)
 	var baseline := cat_baseline if frame<4 else region.end.y-cell_origin.y
 	var rect := Rect2(Vector2(p.x-96,p.y-baseline*sprite_scale+bob)+(region.position-cell_origin)*sprite_scale,region.size*sprite_scale)
-	draw_texture_rect_region(CAT,rect,region,Color(0.65,0.92,1,0.65) if game.phase_time>0 else Color.WHITE)
+	draw_texture_rect_region(CAT,rect,region,cat_tint)
 	if flying: draw_flight_gear(Vector2(p.x,p.y))
 	if game.flight_time<=0 and game.flight_height<=0: draw_motion_dust(Vector2(ground.x,ground.y))
 

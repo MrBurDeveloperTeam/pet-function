@@ -6,6 +6,11 @@ func swipe(game, offset: Vector2):
 	event.position = Vector2(300,400)
 	event.pressed = true
 	game._unhandled_input(event)
+	var drag := InputEventScreenDrag.new()
+	drag.index=0
+	drag.position=event.position+offset
+	game._input(drag)
+	if offset.length()>=36: assert(game.swipe_id == -1,"Swipe triggers before finger release")
 	event.pressed = false
 	event.position += offset
 	game._input(event)

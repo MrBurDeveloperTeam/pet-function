@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 export function RoomJoystick({onMove,disabled}:{onMove:(x:number,y:number)=>void;disabled:boolean}) {
  const pointer=useRef<number|null>(null),pad=useRef<HTMLDivElement>(null),origin=useRef({x:0,y:0});
+ const petDrag=useRef(false),suppressClick=useRef(false);
  const blocked=useRef(disabled);blocked.current=disabled;
  const fade=useRef<ReturnType<typeof setTimeout>|null>(null);
  const [center,setCenter]=useState<{x:number;y:number}|null>(null),[active,setActive]=useState(false);
@@ -26,20 +27,24 @@ export function RoomJoystick({onMove,disabled}:{onMove:(x:number,y:number)=>void
   const down=(e:PointerEvent)=>{
    if(blocked.current||pointer.current!==null||!['touch','pen'].includes(e.pointerType)||e.button!==0)return;
    const target=e.target instanceof Element?e.target:null;
-   if(!target||target.closest('button,a,input,textarea,select,[contenteditable="true"],[role="dialog"],[role="button"],[data-pet-movement-block],[data-pet-joystick-ignore]'))return;
-   e.preventDefault();e.stopPropagation();
+   const onPet=!!target?.closest('[data-pet-joystick-ignore]');
+   if(!target||(!onPet&&target.closest('button,a,input,textarea,select,[contenteditable="true"],[role="dialog"],[role="button"],[data-pet-movement-block],[data-pet-joystick-ignore]')))return;
+   petDrag.current=onPet;suppressClick.current=false;if(!onPet){e.preventDefault();e.stopPropagation();}
    if(fade.current)clearTimeout(fade.current);
    const rect=surface.getBoundingClientRect();origin.current={x:e.clientX,y:e.clientY};pointer.current=e.pointerId;
    setCenter({x:e.clientX-rect.left,y:e.clientY-rect.top});setActive(true);setStick({x:0,y:0});move.current(0,0);
-   surface.setPointerCapture(e.pointerId);
+   if(!onPet)surface.setPointerCapture(e.pointerId);
   };
-  const drag=(e:PointerEvent)=>{if(e.pointerId===pointer.current){e.preventDefault();e.stopPropagation();update(e.clientX,e.clientY);}};
+  const drag=(e:PointerEvent)=>{if(e.pointerId===pointer.current){if(petDrag.current){if(Math.hypot(e.clientX-origin.current.x,e.clientY-origin.current.y)<9)return;petDrag.current=false;suppressClick.current=true;surface.setPointerCapture(e.pointerId);}e.preventDefault();e.stopPropagation();update(e.clientX,e.clientY);}};
   const up=(e:PointerEvent)=>{if(e.pointerId===pointer.current)stop();};
+  const click=(e:MouseEvent)=>{if(suppressClick.current){e.preventDefault();e.stopPropagation();suppressClick.current=false;}};
+  surface.addEventListener('click',click,true);
   const visibility=()=>{if(document.hidden)stop();};
   surface.addEventListener('pointerdown',down,true);window.addEventListener('pointermove',drag,{capture:true,passive:false});
   window.addEventListener('pointerup',up,true);window.addEventListener('pointercancel',up,true);surface.addEventListener('lostpointercapture',up);
   window.addEventListener('blur',stop);document.addEventListener('visibilitychange',visibility);
   return()=>{
+   surface.removeEventListener('click',click,true);
    surface.removeEventListener('pointerdown',down,true);window.removeEventListener('pointermove',drag,true);
    window.removeEventListener('pointerup',up,true);window.removeEventListener('pointercancel',up,true);surface.removeEventListener('lostpointercapture',up);
    window.removeEventListener('blur',stop);document.removeEventListener('visibilitychange',visibility);
