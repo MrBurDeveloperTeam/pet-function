@@ -1,23 +1,56 @@
 import {useEffect,useRef,useState} from 'react';
 export function RoomJoystick({onMove,disabled}:{onMove:(x:number,y:number)=>void;disabled:boolean}) {
- const pointer=useRef<number|null>(null),pad=useRef<HTMLDivElement>(null);
+ const pointer=useRef<number|null>(null),pad=useRef<HTMLDivElement>(null),origin=useRef({x:0,y:0});
+ const blocked=useRef(disabled);blocked.current=disabled;
+ const fade=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const [center,setCenter]=useState<{x:number;y:number}|null>(null),[active,setActive]=useState(false);
  const [stick,setStick]=useState({x:0,y:0});
  const move=useRef(onMove);move.current=onMove;
- const stop=()=>{pointer.current=null;setStick({x:0,y:0});move.current(0,0);};
- useEffect(()=>{if(disabled)stop();},[disabled]);
- useEffect(()=>{window.addEventListener('blur',stop);return()=>{window.removeEventListener('blur',stop);move.current(0,0);};},[]);
+ const stop=()=>{
+  const id=pointer.current;pointer.current=null;
+  const surface=pad.current?.parentElement;
+  if(id!==null&&surface?.hasPointerCapture(id))surface.releasePointerCapture(id);
+  setStick({x:0,y:0});move.current(0,0);setActive(false);
+  if(fade.current)clearTimeout(fade.current);
+  fade.current=setTimeout(()=>setCenter(null),650);
+ };
+ useEffect(()=>{if(disabled){stop();setCenter(null);}},[disabled]);
  const update=(x:number,y:number)=>{
-  const rect=pad.current!.getBoundingClientRect();
-  const dx=x-rect.left-rect.width/2,dy=y-rect.top-rect.height/2;
+  const dx=x-origin.current.x,dy=y-origin.current.y;
   const distance=Math.hypot(dx,dy),factor=Math.min(1,38/Math.max(1,distance));
   setStick({x:dx*factor,y:dy*factor});
   move.current(distance<9?0:dx/Math.max(38,distance),distance<9?0:dy/Math.max(38,distance));
  };
- return <div ref={pad} role="group" aria-label="Move cat with directional joystick" data-pet-movement-block style={{position:'absolute',left:'max(18px,env(safe-area-inset-left))',bottom:'max(18px,env(safe-area-inset-bottom))',width:116,height:116,zIndex:55,borderRadius:'50%',border:'3px solid #c19a60',background:'#16383bbd',boxShadow:'inset 0 0 0 7px #092a3277,3px 4px 0 #271b1366',touchAction:'none',opacity:disabled?.35:1,visibility:disabled?'hidden':'visible',userSelect:'none'}}
-  onPointerDown={e=>{e.stopPropagation();if(disabled||pointer.current!==null)return;e.preventDefault();pointer.current=e.pointerId;e.currentTarget.setPointerCapture(e.pointerId);update(e.clientX,e.clientY);}}
-  onPointerMove={e=>{e.stopPropagation();if(pointer.current===e.pointerId)update(e.clientX,e.clientY);}}
-  onPointerUp={e=>{e.stopPropagation();if(pointer.current===e.pointerId)stop();}} onPointerCancel={stop} onLostPointerCapture={stop}>
+ useEffect(()=>{
+  const surface=pad.current?.parentElement;if(!surface)return;
+  const down=(e:PointerEvent)=>{
+   if(blocked.current||pointer.current!==null||!['touch','pen'].includes(e.pointerType)||e.button!==0)return;
+   const target=e.target instanceof Element?e.target:null;
+   if(!target||target.closest('button,a,input,textarea,select,[contenteditable="true"],[role="dialog"],[role="button"],[data-pet-movement-block],[data-pet-joystick-ignore]'))return;
+   e.preventDefault();e.stopPropagation();
+   if(fade.current)clearTimeout(fade.current);
+   const rect=surface.getBoundingClientRect();origin.current={x:e.clientX,y:e.clientY};pointer.current=e.pointerId;
+   setCenter({x:e.clientX-rect.left,y:e.clientY-rect.top});setActive(true);setStick({x:0,y:0});move.current(0,0);
+   surface.setPointerCapture(e.pointerId);
+  };
+  const drag=(e:PointerEvent)=>{if(e.pointerId===pointer.current){e.preventDefault();e.stopPropagation();update(e.clientX,e.clientY);}};
+  const up=(e:PointerEvent)=>{if(e.pointerId===pointer.current)stop();};
+  const visibility=()=>{if(document.hidden)stop();};
+  surface.addEventListener('pointerdown',down,true);window.addEventListener('pointermove',drag,{capture:true,passive:false});
+  window.addEventListener('pointerup',up,true);window.addEventListener('pointercancel',up,true);surface.addEventListener('lostpointercapture',up);
+  window.addEventListener('blur',stop);document.addEventListener('visibilitychange',visibility);
+  return()=>{
+   surface.removeEventListener('pointerdown',down,true);window.removeEventListener('pointermove',drag,true);
+   window.removeEventListener('pointerup',up,true);window.removeEventListener('pointercancel',up,true);surface.removeEventListener('lostpointercapture',up);
+   window.removeEventListener('blur',stop);document.removeEventListener('visibilitychange',visibility);
+   if(fade.current)clearTimeout(fade.current);
+   const id=pointer.current;pointer.current=null;
+   if(id!==null&&surface.hasPointerCapture(id))surface.releasePointerCapture(id);
+   move.current(0,0);
+  };
+ },[]);
+ return <div ref={pad} style={{display:'contents'}}>{center&&!disabled&&<div role="group" aria-label="Move cat with directional joystick" data-pet-movement-block style={{position:'absolute',left:center.x,top:center.y,transform:'translate(-50%,-50%)',width:116,height:116,zIndex:55,borderRadius:'50%',border:'3px solid #c19a60',background:'#16383bbd',boxShadow:'inset 0 0 0 7px #092a3277,3px 4px 0 #271b1366',pointerEvents:'none',opacity:active?1:0,transition:active?'none':'opacity 650ms ease-out',userSelect:'none'}}>
   <span aria-hidden="true" style={{position:'absolute',inset:0,display:'grid',placeItems:'center',color:'#fff0b8',fontSize:24}}>✥</span>
   <span aria-hidden="true" style={{position:'absolute',left:33,top:33,width:44,height:44,borderRadius:'50%',border:'3px solid #ffe0a0',background:'linear-gradient(#ffeab2,#c9964c)',boxShadow:'0 4px 8px #061b2899',transform:`translate(${stick.x}px,${stick.y}px)`,pointerEvents:'none'}}/>
- </div>;
+ </div>}</div>;
 }

@@ -1031,13 +1031,15 @@
     const l=currentLevel(),
       board=$('board');
     board.style.setProperty('--size',l.n);
-    board.innerHTML='';
+    const reuse=window.PetGamePerformance?.mobile&&board.dataset.mobileBoardSize===String(l.n)&&board.children.length===l.n*l.n;
+    if(!reuse)board.innerHTML='';
+    board.dataset.mobileBoardSize=String(l.n);
 
     for(let r=0;r<l.n;r++)
       for(let c=0;c<l.n;c++){
         const key=`${r},${c}`,
           color=l.colorGrid[r][c],
-          cell=document.createElement('button');
+          cell=reuse?board.children[r*l.n+c]:document.createElement('button');
         cell.className='cell';
         cell.style.setProperty(
           '--tile-color',COLORS[l.colorPalette[color]]
@@ -1048,7 +1050,7 @@
         if(state.marks.has(key))cell.classList.add('marked');
         if(state.found.has(key)){
           const action=state.catActions.get(key),
-            cat=document.createElement('span');
+            cat=cell.querySelector('.cat-sprite')||document.createElement('span');
           cat.className=`cat-sprite${action?` ${action}`:''}`;
           cat.setAttribute('role','img');
           cat.setAttribute(
@@ -1057,7 +1059,7 @@
           );
           cell.appendChild(cat);
           if(key===animateKey)cell.classList.add('just-found')
-        }
+        }else if(cell.firstChild)cell.replaceChildren();
         if(
           (state.coachStep===3||state.coachStep===4)&&
           state.coachTarget
@@ -1065,6 +1067,7 @@
           cell.classList.add(
             key===state.coachTarget?'tutorial-focus':'tutorial-dim'
           );
+        if(!reuse){
         let tapTimer;
         cell.onclick=()=>{
           clearTimeout(tapTimer);
@@ -1086,6 +1089,7 @@
           lastTouch=now
         };
         board.appendChild(cell)
+        }
       }
   }
 

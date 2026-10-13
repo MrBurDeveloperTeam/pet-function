@@ -787,7 +787,8 @@ function update(time = 0) {
         return;
     }
 
-    const delta = time - gameState.lastTime;
+    const elapsed = time - gameState.lastTime;
+    const delta = window.PetGamePerformance?.frameDelta(elapsed) ?? elapsed;
     gameState.lastTime = time;
     gameState.dropCounter += delta;
 

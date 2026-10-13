@@ -14,6 +14,7 @@
  * the Phase 3D final report's asset section for the full rationale.
  */
 import React, { useEffect, useState, useRef } from 'react';
+import {GameRevival} from './GameRevival';
 import { MobileLandscapeGate } from './MobileLandscapeGate';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import type { GameProgressClient } from '../../SharedVirtualPet';
@@ -332,6 +333,7 @@ const GamePageContent: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
 
     return (
         <div className="fixed inset-0 z-50 bg-black" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+            {gameId==='stadium-hurdles'&&<GameRevival iframe={iframeRef} source="pet-function:stadium-hurdles" coins={stats.coins||0} spendCoins={spendCoins}/>}
             {/* Container - Full Screen */}
             <div className="relative w-full h-full animate-in zoom-in-95 fade-in duration-300">
 

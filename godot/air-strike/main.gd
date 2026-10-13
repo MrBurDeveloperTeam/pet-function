@@ -1,6 +1,7 @@
 extends Node2D
 ## Original arcade shooter. All gameplay runs in Godot, including touch input.
 var arena_size = Vector2(960, 540)
+var mobile_skill_cards := false
 var combat_rect = Rect2(0, 0, 960, 540)
 var player_bounds = Rect2(60, 60, 840, 420)
 var start_rect: Rect2
@@ -102,6 +103,9 @@ func draw_touch_joystick() -> void:
 	paint.draw_arc(knob, 18, 0, TAU, 32, Color("f4d68e"), 2)
 
 func _ready():
+	if OS.has_feature("web"):
+		mobile_skill_cards = bool(JavaScriptBridge.eval("/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||matchMedia('(pointer:coarse)').matches"))
+	add_child(preload("res://revive_bridge.gd").new())
 	add_child(preload("res://orientation_guard.gd").new())
 	progression.game = self
 	campaign.game = self
@@ -234,6 +238,8 @@ func resize_arena(next_size: Vector2):
 	redraw_layers()
 
 func reset_run():
+	revive_count=0
+	revive_declined=false
 	skill_inventory.reset()
 	ending_result = ""
 	ending_wait = 0
@@ -445,11 +451,14 @@ func _physics_process(delta):
 		return
 	if state == "skill_choice":
 		progression.choice_age += delta
-	if state not in ["paused","skill_choice"]:
+	if state not in ["paused","skill_choice","reviving"]:
 		scroll += delta * 44.0
 		update_visual_effects(delta)
 	if state in ["ending_victory","ending_defeat"]:
 		update_ending(delta)
+	if state=="dying_revive":
+		revive_delay=maxf(0,revive_delay-delta)
+		if revive_delay==0: show_revive_offer()
 	if state != "playing":
 		redraw_layers()
 		return
@@ -851,8 +860,41 @@ func update_drops(delta: float):
 		elif d.pos.y > combat_rect.end.y - 12:
 			drops.remove_at(i)
 
+var revive_count := 0
+var revive_declined := false
+var revive_delay := 0.0
+func begin_revive_death():
+	state="dying_revive"
+	clear_mobile_movement()
+	revive_delay=1.5
+	for effect in effects: revive_delay=maxf(revive_delay,effect.life+0.1)
+	for particle in particles: revive_delay=maxf(revive_delay,particle.life+0.1)
+func show_revive_offer():
+	state="reviving"
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.parent.postMessage(%s,window.location.origin)" % JSON.stringify({"source":"air-strike","type":"REVIVE_OFFER","runId":run_id,"used":revive_count,"token":launch_token}))
+func resolve_revive(approved: bool):
+	if state!="reviving": return
+	state="playing"
+	if approved and revive_count<3:
+		revive_count+=1
+		hp=progression.max_health()
+		invincible=3.0
+		player=Vector2(arena_size.x/2,player_bounds.end.y-28)
+		target=player
+		enemy_shots.clear()
+		campaign.hazards.clear()
+		effects.clear()
+		particles.clear()
+		play_cue("revive")
+	else:
+		revive_declined=true
+		finish_run("defeat")
 func finish_run(result: String):
 	if state != "playing":
+		return
+	if result=="defeat" and not abandoned and not revive_declined and revive_count<3 and OS.has_feature("web"):
+		begin_revive_death()
 		return
 	ending_result = result
 	state = "ending_"+result
@@ -1396,7 +1438,7 @@ func draw_battle():
 		paint.draw_circle(b.pos,maxf(1,b.radius*0.45),Color("fff0ac"))
 
 func skill_card_rect(index: int) -> Rect2:
-	return skill_cards.card_rect(arena_size,progression.choices.size(),index)
+	return skill_cards.card_rect(arena_size,progression.choices.size(),index,mobile_skill_cards)
 
 func draw_hud():
 	if state == "boss_alert":

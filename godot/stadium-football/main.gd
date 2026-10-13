@@ -30,6 +30,7 @@ var started := false
 var settled := false
 var touch_move := Vector2.ZERO
 var touch_shoot := false
+var touch_shot_aim := Vector2.RIGHT
 var touch_sprint := false
 var mobile_mode := false
 var mobile_controls: Control
@@ -66,6 +67,8 @@ var tutorial_success_time := 0.0
 var tutorial_success_step := -1
 var tutorial_progress := 0.0
 var tutorial_charged := false
+var tutorial_aimed := false
+var tutorial_touch_actions: Dictionary = {}
 var tutorial_overlay: Control
 var tutorial_card: PanelContainer
 var tutorial_text: Label
@@ -502,6 +505,9 @@ func prepare_tutorial_step() -> void:
 	tutorial_success_step = -1
 	tutorial_progress = 0
 	tutorial_charged = false
+	tutorial_aimed = false
+	tutorial_touch_actions.clear()
+	if mobile_controls: mobile_controls.cancel_all()
 	charging_cat = -1
 	game.reset_positions(0)
 	game.state = "playing"
@@ -519,6 +525,8 @@ func prepare_tutorial_step() -> void:
 		game.select_initial_defender()
 	game.update_ball(0)
 	tutorial_text.text = ["1 / 6   MOVE YOUR CAT\nUse WASD or arrow keys. Follow the gold arrow.","2 / 6   SPRINT\nHold SHIFT while moving. Watch your energy drain.","3 / 6   PASS TO A TEAMMATE\nYou have the ball. Press C to pass to the highlighted cat.","4 / 6   CHARGE AND SHOOT\nHold SPACE briefly, then release. Watch the ball fly.","5 / 6   WIN THE BALL\nMove close to the opponent. Wait for the SPACE cue.","6 / 6   SWITCH YOUR CAT\nPress X. The gold arrow moves to your other teammate."][tutorial_step]
+	if mobile_mode:
+		tutorial_text.text = ["1 / 6   MOVE YOUR CAT\nDrag the left joystick. Follow the gold arrow.","2 / 6   SPRINT\nHold SPRINT while moving the left joystick.","3 / 6   PASS TO A TEAMMATE\nYour ball: tap PASS to pass to the marked cat.","4 / 6   AIM, CHARGE AND SHOOT\nHold SHOOT, drag to aim, then lift to shoot.","5 / 6   WIN THE BALL\nThe PASS button is now STEAL. Move close, then tap STEAL.","6 / 6   SWITCH YOUR CAT\nTap SWITCH. The gold arrow moves to your other teammate."][tutorial_step]
 
 func update_tutorial(delta: float) -> void:
 	if tutorial_step<0: return
@@ -538,29 +546,33 @@ func update_tutorial(delta: float) -> void:
 	var done := false
 	match tutorial_step:
 		0:
-			if input_aim.length()>0.1: tutorial_progress+=delta
+			if (touch_move if mobile_mode else input_aim).length()>0.1: tutorial_progress+=delta
 			done=tutorial_progress>=0.8
 		1:
-			if input_aim.length()>0.1 and (Input.is_physical_key_pressed(KEY_SHIFT) or touch_sprint): tutorial_progress+=delta
+			if (touch_move if mobile_mode else input_aim).length()>0.1 and (touch_sprint if mobile_mode else (Input.is_physical_key_pressed(KEY_SHIFT) or touch_sprint)): tutorial_progress+=delta
 			done=tutorial_progress>=0.7
-		2: done=game.passes>0 and game.owner==1
+		2: done=game.passes>0 and game.owner==1 and (not mobile_mode or tutorial_touch_actions.has("pass"))
 		3:
-			done=tutorial_charged and game.shots>0
+			done=tutorial_charged and game.shots>0 and (not mobile_mode or tutorial_aimed)
 			if game.shots>0:
 				tutorial_progress+=delta
 				if not done and tutorial_progress>4.0:
 					game.shots=0
 					prepare_tutorial_step()
 					tutorial_text.text="4 / 6   TRY AGAIN\nAim toward the right goal. Charge SPACE, then release."
-		5: done=game.controlled==1
+					if mobile_mode: tutorial_text.text="4 / 6   TRY AGAIN\nHold SHOOT, drag toward the right goal, then lift your finger."
+		5: done=game.controlled==1 and (not mobile_mode or tutorial_touch_actions.has("switch"))
 		4:
 			if game.tackle_status(game.controlled)=="ready": tutorial_text.text="5 / 6   STEAL NOW!\nYou are close enough. Tap SPACE once to win the ball."
-			done=game.tackles>0 and game.owner==game.controlled
+			if mobile_mode and game.tackle_status(game.controlled)=="ready": tutorial_text.text="5 / 6   STEAL NOW!\nTap STEAL (the shared PASS button) once to win the ball."
+			done=game.tackles>0 and game.owner==game.controlled and (not mobile_mode or tutorial_touch_actions.has("steal"))
 	if done:
 		if tutorial_step in [3,4,5]:
 			tutorial_success_step=tutorial_step
 			tutorial_success_time=0
 			tutorial_text.text="4 / 6   WATCH YOUR SHOT\nReleasing SPACE kicks the ball along your aiming line." if tutorial_step==3 else "5 / 6   YOU NOW HAVE THE BALL\nThe yellow ring shows your possession. Move to dribble."
+			if mobile_mode:
+				tutorial_text.text="4 / 6   WATCH YOUR SHOT\nYour shot follows the direction you chose with SHOOT." if tutorial_step==3 else "5 / 6   YOU NOW HAVE THE BALL\nSTEAL is now PASS again. Use the joystick to dribble."
 			if tutorial_step==5: tutorial_text.text="6 / 6   CONTROL SWITCHED\nThe gold arrow moved. Move to control this teammate."
 			charging_cat=-1
 		else: advance_tutorial()
@@ -688,7 +700,7 @@ func build_ball_marker() -> void:
 # Preview the exact player-directed shot heading.
 func draw_shot_guide() -> void:
 	if not shot_guide.visible: return
-	var direction: Vector2 = game.shot_direction(game.controlled,input_aim)
+	var direction: Vector2 = game.shot_direction(game.controlled,current_shot_aim())
 	var origin := Vector2(game.ball.x,game.ball.z)
 	var length := lerpf(5.0,11.0,game.shot_charge)
 	var distance := 0.8
@@ -853,12 +865,30 @@ func begin_shot_or_tackle() -> void:
 		charging_cat = -1
 		game.tackle(game.controlled)
 
+func mobile_pass_or_steal() -> void:
+	if game.owner == game.controlled:
+		try_pass()
+	else:
+		# The existing tackle path also requests a pass from a friendly carrier.
+		begin_shot_or_tackle()
+
 func release_shot() -> void:
 	if not started or game.state != "playing": return
 	if tutorial_step==3 and charging_cat==game.controlled and game.shot_charge>0.0: tutorial_charged=true
-	if charging_cat == game.controlled and game.shoot(game.controlled, game.shot_charge, input_aim): play_tone(250,0.1)
+	if charging_cat == game.controlled and game.shoot(game.controlled, game.shot_charge, current_shot_aim()): play_tone(250,0.1)
 	charging_cat = -1
 	game.shot_charge = 0
+
+func current_shot_aim() -> Vector2:
+	return touch_shot_aim if mobile_mode and touch_shoot else input_aim
+
+func mobile_shot_direction(screen_delta: Vector2) -> Vector2:
+	var pos: Vector2 = game.cats[game.controlled].pos
+	var origin := camera.unproject_position(pitch_position(pos,0))
+	var x_axis := camera.unproject_position(pitch_position(pos+Vector2.RIGHT,0))-origin
+	var y_axis := camera.unproject_position(pitch_position(pos+Vector2.DOWN,0))-origin
+	var projection := Transform2D(x_axis,y_axis,Vector2.ZERO)
+	return projection.affine_inverse().basis_xform(screen_delta).normalized() if absf(projection.determinant())>0.0001 else screen_delta.normalized()
 
 func build_mobile_controls() -> void:
 	mobile_controls = preload("res://mobile_controls.gd").new()

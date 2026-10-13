@@ -22,10 +22,13 @@ test('Android and iOS wait in portrait and admit landscape', () => {
   assert.equal(blocked('Mozilla Macintosh', 1024, 768, 'MacIntel', 5), false);
   assert.equal(blocked('Mozilla Windows', 600, 900, 'Win32', 0, false), false);
 });
-test('five games require landscape while hurdles requires portrait', () => {
+test('mole, kart and football require landscape; fishing, aircraft and hurdles require portrait', () => {
   for (const name of ['MoleGame', 'KartGame', 'FootballGame', 'FishingGame', 'AirStrikeGame']) {
     const game = readFileSync(new URL(`../src/pet/internal/components/${name}.tsx`, import.meta.url), 'utf8');
     assert.match(game, /<MobileLandscapeGate/);
+    const gate=game.match(/<MobileLandscapeGate\b[^>]*>/)[0];
+    if(['FishingGame','AirStrikeGame'].includes(name))assert.match(gate,/orientation="portrait"/);
+    else assert.doesNotMatch(gate,/orientation="portrait"/);
     if (name !== 'FishingGame') assert.match(game, /data-landscape-game=/);
   }
   const runner = readFileSync(new URL('../src/pet/internal/components/GamePage.tsx', import.meta.url), 'utf8');
@@ -33,6 +36,7 @@ test('five games require landscape while hurdles requires portrait', () => {
   assert.match(runner, /orientation="portrait"/);
   assert.equal(blocked('Android', 390, 844, '', 1, true, 'portrait'), false);
   assert.equal(blocked('iPhone', 844, 390, '', 1, true, 'portrait'), true);
+  assert.equal(blocked('Mozilla Windows',844,390,'Win32',0,false,'portrait'),false);
   assert.match(source, /\{admitted && <LandscapePauseContext.Provider/);
 });
 

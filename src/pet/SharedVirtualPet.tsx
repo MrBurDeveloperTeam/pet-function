@@ -43,6 +43,7 @@ import { GamePage } from './internal/components/GamePage';
 import { FootballGame } from './internal/components/FootballGame';
 import { KartGame } from './internal/components/KartGame';
 import { AirStrikeGame } from './internal/components/AirStrikeGame';
+import { usePetFullscreen } from './internal/components/MobilePetScreenMode';
 import { KART_GAME_ID } from './internal/kartInteraction';
 import PetAdoptionModal from './internal/components/PetAdoptionModal';
 import { RoomType, type PetAssetUrls, type ExtraGame } from './internal/types';
@@ -509,13 +510,7 @@ export interface SharedVirtualPetProps {
  * requiring a host to introduce a provider it doesn't otherwise need.
  */
 export function SharedVirtualPet({ isOpen, onClose, repository, userId, currencyCode, assetUrls, extraGames, gameProgressClient }: SharedVirtualPetProps) {
-  const [showOrientationTip, setShowOrientationTip] = useState(false);
-  useEffect(() => {
-    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-      || window.matchMedia('(pointer: coarse)').matches;
-    setShowOrientationTip(isOpen && mobile);
-  }, [isOpen]);
+  usePetFullscreen(isOpen);
   useEffect(() => {
     if (!isOpen) return;
 
@@ -557,16 +552,6 @@ export function SharedVirtualPet({ isOpen, onClose, repository, userId, currency
         <SharedPetProvider key={userId ?? 'guest'} repository={repository} userId={userId} currencyCode={currencyCode} assetUrls={assetUrls}>
           <VirtualPetContent onClose={onClose} extraGames={extraGames} gameProgressClient={gameProgressClient} userId={userId} />
         </SharedPetProvider>
-        {showOrientationTip && <div className="pet-orientation-tip-backdrop" data-pet-movement-block
-          onPointerDown={event => event.stopPropagation()}>
-          <div className="pet-orientation-tip" role="dialog" aria-modal="true" aria-labelledby="pet-orientation-tip-title">
-            <div aria-hidden="true" className="pet-orientation-tip-icon">📱 ↻</div>
-            <h2 id="pet-orientation-tip-title">Better in landscape</h2>
-            <p>We recommend landscape mode for easier cat controls and a better view when playing games.</p>
-            <p>You can still explore in portrait mode. Only some games require landscape; Hurdles requires portrait. Each game will let you know before it starts.</p>
-            <button type="button" autoFocus onClick={() => setShowOrientationTip(false)}>Got it — continue</button>
-          </div>
-        </div>}
       </div>
     </div>
     </div>

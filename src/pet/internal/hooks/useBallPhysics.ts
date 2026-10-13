@@ -16,11 +16,17 @@ export const useBallPhysics = (currentRoom: RoomType, worldBounds?: {current:{wi
 
     // Physics Loop
     useEffect(() => {
+        const mobile = window.matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const updateBallPhysics = () => {
             if (currentRoom === RoomType.PLAYROOM) {
                 if (isDraggingBall) {
                     setIsBallMoving(true);
                 } else {
+                    if (mobile && Math.hypot(ballVel.current.vx,ballVel.current.vy)<=0.5) {
+                        ballVel.current={vx:0,vy:0};setIsBallMoving(false);
+                        physicsFrameRef.current=requestAnimationFrame(updateBallPhysics);
+                        return;
+                    }
                     setBallPos(prev => {
                         let { x, y } = prev;
                         let { vx, vy } = ballVel.current;

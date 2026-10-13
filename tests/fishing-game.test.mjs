@@ -84,7 +84,7 @@ test('reeling uses three fixed struggle states and a fast moving colour-match po
   assert.match(fishingSource, /fishingSuccessFlash/);
   assert.match(fishingSource, /fishingSuccessStar/);
   assert.match(fishingSource, /PERFECT MATCH!/);
-  assert.match(fishingSource, /phaseRef\.current === 'reeling'\) judgeReel\(\)/);
+  assert.match(fishingSource, /phaseRef\.current === 'reeling'\) actions\.judgeReel\(\)/);
   assert.doesNotMatch(fishingSource, /Hold Space to reel in/);
   assert.doesNotMatch(fishingSource, /fishing-tension-gradient/);
 });

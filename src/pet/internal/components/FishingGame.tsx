@@ -137,7 +137,7 @@ const FishingCatBack = ({ petId, rodId, sway, landing }: { petId: PetId; rodId: 
   <img src={FISHING_CAT_BACK_IMAGES[petId]} alt="" draggable={false} className="absolute inset-0 z-20 h-full w-full select-none object-contain [image-rendering:pixelated]" />
 </div>;
 
-export const FishingGame: React.FC<FishingGameProps> = props => <MobileLandscapeGate game="fishing" title="Fishing" onClose={props.onClose}><FishingGameContent {...props}/></MobileLandscapeGate>;
+export const FishingGame: React.FC<FishingGameProps> = props => <MobileLandscapeGate game="fishing" title="Fishing" orientation="portrait" onClose={props.onClose}><FishingGameContent {...props}/></MobileLandscapeGate>;
 
 const FishingGameContent: React.FC<FishingGameProps> = ({ petId, equippedRodId = 'beginner_rod', onCatch }) => {
   const orientationPaused = useMobileLandscapePaused();
@@ -174,20 +174,39 @@ const FishingGameContent: React.FC<FishingGameProps> = ({ petId, equippedRodId =
   const castLine = useCallback(() => { setPhase('waiting'); setResult(null); setPointer(0); setDistance(70); resetReel(); previousTimeRef.current = null; }, [resetReel]);
   useFishingTimeout(phase === 'waiting', orientationPaused, 0, () => randomInt(2000, 10000), () => setPhase('power'));
   useEffect(() => {
-    if (phase !== 'power' || orientationPaused) { previousTimeRef.current = null; return; } let frame = 0;
+    if (touchMode || phase !== 'power' || orientationPaused) { previousTimeRef.current = null; return; } let frame = 0;
     const animate = (time: number) => { const previous = previousTimeRef.current ?? time; const elapsed = Math.min(32, time - previous); previousTimeRef.current = time;
       setPointer(current => { let next = current + directionRef.current * elapsed * 0.075; if (next >= 100) { next = 100; directionRef.current = -1; } if (next <= 0) { next = 0; directionRef.current = 1; } return next; }); frame = requestAnimationFrame(animate); };
     frame = requestAnimationFrame(animate); return () => cancelAnimationFrame(frame);
-  }, [phase, orientationPaused]);
-  useEffect(() => { if (orientationPaused) return; let frame = 0; const animate = (time: number) => { setMotionTime(time); frame = requestAnimationFrame(animate); }; frame = requestAnimationFrame(animate); return () => cancelAnimationFrame(frame); }, [orientationPaused]);
+  }, [phase, orientationPaused,touchMode]);
+  useEffect(() => { if (touchMode || orientationPaused) return; let frame = 0; const animate = (time: number) => { setMotionTime(time); frame = requestAnimationFrame(animate); }; frame = requestAnimationFrame(animate); return () => cancelAnimationFrame(frame); }, [orientationPaused,touchMode]);
+
+  const mobileMotionClock=useRef(0);
+  useEffect(()=>{
+    if(!touchMode||orientationPaused||(!['waiting','power','reeling'].includes(phase)&&tutorialStep===null))return;
+    let frame=0,last:number|null=null;
+    const animate=(time:number)=>{
+      if(document.hidden){last=null;return;}
+      const elapsed=Math.min(32,last===null?0:Math.max(0,time-last));last=time;
+      mobileMotionClock.current+=elapsed;
+      // One RAF callback lets React batch scenery and meter updates into one commit.
+      setMotionTime(mobileMotionClock.current);
+      if(phase==='power')setPointer(current=>{let next=current+directionRef.current*elapsed*.075;if(next>=100){next=100;directionRef.current=-1;}if(next<=0){next=0;directionRef.current=1;}return next;});
+      if(phase==='reeling')setReelPointer(current=>(current+reelDirectionRef.current*elapsed*.08568)%100);
+      frame=requestAnimationFrame(animate);
+    };
+    const visibility=()=>{cancelAnimationFrame(frame);last=null;if(!document.hidden)frame=requestAnimationFrame(animate);};
+    visibility();document.addEventListener('visibilitychange',visibility);
+    return()=>{cancelAnimationFrame(frame);document.removeEventListener('visibilitychange',visibility);};
+  },[touchMode,orientationPaused,phase,tutorialStep]);
 
   const finishCatch = useCallback((band: FishingBand) => { const next = rollResult(band, equippedRodId); setResult(next); setPhase('result'); if (next.caught && next.fish) onCatch(next.fish.id, next.coins, next.xp); }, [equippedRodId, onCatch]);
   useEffect(() => {
-    if (phase !== 'reeling' || orientationPaused) { reelPreviousTimeRef.current = null; return; } let frame = 0;
+    if (touchMode || phase !== 'reeling' || orientationPaused) { reelPreviousTimeRef.current = null; return; } let frame = 0;
     const animate = (time: number) => { const previous = reelPreviousTimeRef.current ?? time; const elapsed = Math.min(32, time - previous); reelPreviousTimeRef.current = time;
       setReelPointer(current => { const next = current + reelDirectionRef.current * elapsed * 0.08568; return next >= 100 ? next - 100 : next; }); frame = requestAnimationFrame(animate); };
     frame = requestAnimationFrame(animate); return () => cancelAnimationFrame(frame);
-  }, [phase, orientationPaused]);
+  }, [phase, orientationPaused,touchMode]);
   const advanceStruggle = useCallback(() => {
     const next = randomStruggleState(struggleStateRef.current);
     struggleStateRef.current = next;
@@ -221,11 +240,13 @@ const FishingGameContent: React.FC<FishingGameProps> = ({ petId, equippedRodId =
     });
     advanceStruggle();
   }, [advanceStruggle, finishCatch, reelPointer, rouletteSlices, selectedBand, struggleState]);
+  const keyboardActions=useRef({castLine,judgeReel,prepareCast,selectPower});
+  keyboardActions.current={castLine,judgeReel,prepareCast,selectPower};
   useEffect(() => {
     const editable = (event: KeyboardEvent) => Boolean((event.target instanceof HTMLElement ? event.target : null)?.closest('input,textarea,select,[contenteditable="true"]'));
-    const down = (event: KeyboardEvent) => { if (event.code !== 'Space' || editable(event)) return; if (orientationPaused || tutorialStep !== null) { event.preventDefault(); event.stopImmediatePropagation(); return; } event.preventDefault(); event.stopImmediatePropagation(); if (event.repeat) return; if (phaseRef.current === 'ready') castLine(); else if (phaseRef.current === 'power') selectPower(); else if (phaseRef.current === 'reeling') judgeReel(); else if (phaseRef.current === 'result') prepareCast(); };
+    const down = (event: KeyboardEvent) => { if (event.code !== 'Space' || editable(event)) return; if (orientationPaused || tutorialStep !== null) { event.preventDefault(); event.stopImmediatePropagation(); return; } event.preventDefault(); event.stopImmediatePropagation(); if (event.repeat) return; const actions=keyboardActions.current; if (phaseRef.current === 'ready') actions.castLine(); else if (phaseRef.current === 'power') actions.selectPower(); else if (phaseRef.current === 'reeling') actions.judgeReel(); else if (phaseRef.current === 'result') actions.prepareCast(); };
     window.addEventListener('keydown', down, true); return () => window.removeEventListener('keydown', down, true);
-  }, [castLine, judgeReel, prepareCast, selectPower, tutorialStep, orientationPaused]);
+  }, [tutorialStep, orientationPaused]);
 
   const movementStruggle = Math.sin(motionTime / 217) * 0.52 + Math.sin(motionTime / 83) * 0.31 + Math.sin(motionTime / 47) * 0.17;
   const tutorialPreviewPhase: FishingPhase | null = tutorialStep === null

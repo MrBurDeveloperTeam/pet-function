@@ -546,9 +546,12 @@ function setBoardSize(reset = false) {
     * A DPR 1 Canvas contains about one quarter of the pixels
     * of a DPR 2 Canvas.
     */
-    const dpr = IS_APPLE_DEVICE
+    const baseDpr = IS_APPLE_DEVICE
         ? 1
         : devicePixelRatio;
+    const dpr = window.PetGamePerformance?.mobile
+        ? Math.min(baseDpr,window.PetGamePerformance.renderSize(boardWidth,boardHeight,baseDpr).width/boardWidth)
+        : baseDpr;
 
     board.style.width = `${boardWidth}px`;
     board.style.height = `${boardHeight}px`;

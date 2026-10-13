@@ -135,23 +135,52 @@
   .snabbb-molar-experience .runner-records-board nav { padding-top: 6px; }
 }
 .snabbb-molar-experience .pet-room-map-close { display: none; }
-.snabbb-molar-experience .pet-orientation-tip-backdrop {
-  position: absolute; inset: 0; z-index: 3000; display: grid; place-items: center;
-  padding: 20px; background: rgba(24, 19, 13, 0.75);
-}
-.snabbb-molar-experience .pet-orientation-tip {
-  box-sizing: border-box; width: min(100%, 400px); max-height: calc(100dvh - 40px);
-  overflow-y: auto; padding: 22px; border: 4px solid #684427; background: #fff3bd;
-  color: #4b321e; text-align: center; box-shadow: 6px 6px 0 #302315;
-}
-.snabbb-molar-experience .pet-orientation-tip-icon { font-size: 40px; }
-.snabbb-molar-experience .pet-orientation-tip h2 { margin: 12px 0; font-size: 24px; font-weight: 900; }
-.snabbb-molar-experience .pet-orientation-tip p { margin: 12px 0; font-size: 15px; line-height: 1.6; }
-.snabbb-molar-experience .pet-orientation-tip button {
-  width: 100%; min-height: 48px; margin-top: 8px; padding: 10px 16px;
-  border: 3px solid #684427; background: #f6c867; color: #4b321e; font-weight: 900;
-  box-shadow: 3px 3px 0 #684427; cursor: pointer; touch-action: manipulation;
-}
+/* Portal keeps the revival prompt above native game canvases. */
+.pet-revive-shade { position:fixed; inset:0; z-index:2900; display:grid; place-items:center; padding:16px; background:#020a13d9; backdrop-filter:blur(8px); color:#fff0bd; font-family:Arial,sans-serif; }
+.pet-revive-panel { width:min(680px,100%); max-height:calc(100dvh - 32px); overflow:auto; padding:20px; box-sizing:border-box; border:3px solid #cfad62; background:#17343d; box-shadow:0 20px 60px #0009; text-align:center; }
+.pet-revive-panel h2 {font-size:26px;margin:0 0 12px;}.pet-revive-panel p {font-size:14px;line-height:1.5; margin:12px 0;}
+.pet-revive-panel button {min-height:48px;padding:10px 16px;margin:5px;border:2px solid #d2b771;background:#fff0bd;color:#17343d;font-weight:700;cursor:pointer;}.pet-revive-panel button:disabled {opacity:.4;cursor:not-allowed;}
+.pet-revive-video {width:100%;aspect-ratio:16/9;max-height:48dvh;background:#000;}.pet-revive-player,.pet-revive-player iframe {width:100%;height:100%;}
+.pet-revive-panel {width:min(820px,100%);border:1px solid #66858b;border-top:3px solid #edc777;border-radius:18px;background:radial-gradient(ellipse at top,#244551,#0b1b29 75%);box-shadow:0 24px 100px #000a,inset 0 0 0 5px #ffffff04;padding:28px;text-align:left;}
+.pet-revive-panel header {margin-bottom:22px;}.pet-revive-kicker {font-size:11px;letter-spacing:3px;color:#a8ccce;font-weight:800;}.pet-revive-panel h2 {font-size:clamp(22px,4vw,34px);margin:12px 0;color:#fff1cf;}
+.pet-revive-lives {display:flex;align-items:center;gap:7px;color:#9fb7c1;font-size:12px;}.pet-revive-lives i {width:12px;height:12px;background:#77dfc6;border-radius:50%;box-shadow:0 0 10px #77dfc644;}.pet-revive-lives i.used {background:#344852;box-shadow:none;}.pet-revive-lives span {margin-left:7px;}
+.pet-revive-options {display:grid;grid-template-columns:1fr 1fr;gap:16px;}.pet-revive-options button {display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin:0;padding:22px;border-radius:12px;border:1px solid #658b96;background:linear-gradient(145deg,#2b5261,#18313f);color:#e5f8f2;box-shadow:inset 0 1px #ffffff18;}.pet-revive-options button.coin {border-color:#c6a363;background:linear-gradient(145deg,#65512d,#332d26);color:#ffe3a5;}.pet-revive-options b {font-size:28px;}.pet-revive-options strong {font-size:16px;letter-spacing:1px;}.pet-revive-options small {font-size:12px;font-weight:400;opacity:.8;}
+.pet-revive-panel footer {display:flex;align-items:center;flex-wrap:wrap;gap:12px;border-top:1px solid #ffffff14;padding-top:15px;margin-top:15px;}.pet-revive-panel footer button {background:transparent;border:1px solid #667a82;color:#d6e2e5;border-radius:7px;font-size:12px;margin:0;}.pet-revive-panel footer span {font-size:11px;color:#a0b5bf;margin-left:auto;}
+.pet-revive-panel.has-video {width:min(1050px,100%);padding:18px;}.pet-revive-panel.has-video header {margin-bottom:12px;}.pet-revive-panel.has-video h2 {font-size:22px;margin:6px 0;}
+.pet-revive-video {position:relative;overflow:hidden;max-height:58dvh;border-radius:10px;border:1px solid #354c5b;}.pet-revive-sponsor {position:absolute;top:12px;left:12px;padding:6px 10px;background:#07111bbf;border-radius:5px;font-size:11px;color:#fff;pointer-events:none;}
+.pet-revive-video button {position:absolute;bottom:14px;z-index:2;margin:0;min-height:42px;border-radius:6px;background:#08121ddd;color:#fff;border:1px solid #ffffff66;font-size:13px;}.pet-revive-skip {right:14px;}.pet-revive-video .pet-revive-skip:disabled {opacity:1;color:#c5d0d6;background:#08121ddd;border-color:#ffffff33;}
+.pet-revive-progress {position:absolute;bottom:0;left:0;height:3px;max-height:3px;background:#e9c56e;pointer-events:none;transition:width .25s linear;}.pet-revive-panel .pet-revive-caption {font-size:12px;color:#9eb9c5;margin:8px 0;}.pet-revive-panel .pet-revive-error {color:#ffc28c;min-height:0;}.pet-revive-error:empty {display:none;}.pet-revive-confirm {text-align:center;color:#b3e5d5;}
+@media(max-height:550px){.pet-revive-panel.has-video header h2{display:none;}.pet-revive-panel.has-video{padding:12px;}.pet-revive-panel.has-video header{display:flex;align-items:center;justify-content:space-between;gap:12px;}.pet-revive-panel.has-video footer{padding-top:8px;margin-top:8px;}.pet-revive-video{max-height:62dvh;}.pet-revive-panel .pet-revive-caption{display:none;}}
+@media(max-width:480px){.pet-revive-options{grid-template-columns:1fr;gap:10px;}.pet-revive-options button{padding:14px;gap:8px;}.pet-revive-panel{padding:18px;}.pet-revive-panel footer span{margin-left:0;}}
+/* The illustration and its live controls scale as one canvas. Video stays undecorated. */
+.pet-revive-panel.is-illustrated {position:relative;container-type:inline-size;width:min(900px,calc((100dvh - 32px)*1.5),100%);aspect-ratio:3/2;padding:0;border:0;border-radius:0;background:transparent;overflow:visible;box-shadow:none;}
+.pet-revive-frame {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none;filter:drop-shadow(0 12px 24px #0009);}
+.is-illustrated .pet-revive-content {position:absolute;inset:28% 21% 28%;display:flex;flex-direction:column;gap:1cqw;}
+.theme-stadium-hurdles .pet-revive-content {inset:32% 20% 23%;}
+.is-illustrated header {margin:0;text-align:center;}
+.is-illustrated .pet-revive-kicker {font-size:1.1cqw;letter-spacing:.3cqw;color:#e8cb7b;}
+.is-illustrated h2 {font-size:3.1cqw;line-height:1.1;margin:.6cqw 0 1cqw;text-shadow:0 2px 2px #0008;}
+.is-illustrated .pet-revive-lives {justify-content:center;gap:.6cqw;font-size:1.35cqw;line-height:1.3;}
+.is-illustrated .pet-revive-lives i {width:1.25cqw;height:1.25cqw;}
+.is-illustrated .pet-revive-lives span {margin-left:.7cqw;}
+.is-illustrated .pet-revive-options {flex:1;min-height:0;grid-template-columns:1fr 1fr;gap:1.4cqw;}
+.is-illustrated .pet-revive-options button {min-height:0;padding:1.4cqw;gap:.8cqw;justify-content:center;align-items:center;text-align:center;border:2px solid #64b6c5;border-radius:.6cqw;background:linear-gradient(#24586b,#103142);box-shadow:inset 0 0 0 2px #ffffff12,0 .5cqw 0 #041723;}
+.is-illustrated .pet-revive-options button.coin {border-color:#e9c16e;background:linear-gradient(#735829,#382e20);box-shadow:inset 0 0 0 2px #ffdc7e22,0 .5cqw 0 #211a10;}
+.is-illustrated .pet-revive-options button:not(:disabled):active {transform:translateY(.3cqw);box-shadow:none;}
+.is-illustrated .pet-revive-options b {font-size:2.6cqw;line-height:1;}
+.is-illustrated .pet-revive-options strong {font-size:1.85cqw;letter-spacing:.05cqw;line-height:1.2;}
+.is-illustrated .pet-revive-options small {font-size:1.2cqw;line-height:1.2;}
+.is-illustrated footer {justify-content:center;flex:none;border:0;padding:0;margin:0;}
+.is-illustrated footer button,.is-illustrated .pet-revive-confirm button {min-height:0;margin:0;padding:.6cqw 1.8cqw;font-size:1.3cqw;border-radius:.3cqw;}
+.is-illustrated footer span {display:none;}
+.is-illustrated .pet-revive-error,.is-illustrated .pet-revive-confirm p {font-size:1.3cqw;line-height:1.25;margin:0;}
+.is-illustrated:has(.pet-revive-error:not(:empty)) .pet-revive-options small {display:none;}
+.pet-room-screen-block {position:fixed;inset:0;z-index:3100;display:grid;place-items:center;padding:16px;background:#0a1418f7;color:#4b321e;font-family:Arial,sans-serif;}
+.pet-room-screen-card {box-sizing:border-box;width:min(100%,380px);max-height:calc(100dvh - 32px);overflow:auto;padding:20px;border:4px solid #684427;background:#fff3bd;text-align:center;box-shadow:6px 6px 0 #302315;}
+.pet-room-screen-icon {font-size:clamp(28px,8dvh,48px);}
+.pet-room-screen-card h2 {margin:10px 0;font-size:24px;font-weight:900;}
+.pet-room-screen-card p {margin:10px 0;font-size:15px;line-height:1.5;}
+.pet-room-screen-card button {width:100%;min-height:48px;margin-top:8px;padding:10px 16px;border:3px solid #684427;background:#f6c867;color:#4b321e;font-weight:900;box-shadow:3px 3px 0 #684427;cursor:pointer;touch-action:manipulation;}
 
 @media (pointer: coarse) and (max-width: 1400px) {
   .snabbb-molar-experience .pet-coin-indicator.pet-coin-indicator { top: 36px; right: 76px; transform: translateY(-50%); }
@@ -1921,3 +1950,5 @@
   .snabbb-molar-experience .fishing-ripple--two { transform: scale(1); opacity: 0.45; }
   .snabbb-molar-experience .fishing-bobber__bait { animation: none; }
 }
+
+.pet-revive-player {position:absolute;inset:0;pointer-events:none;}

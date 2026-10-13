@@ -201,6 +201,7 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
   return (
     <div
       ref={ref}
+      data-pet-joystick-ignore
       className="relative cursor-pointer select-none"
       style={{
         width: FRAME_WIDTH * displayScale,

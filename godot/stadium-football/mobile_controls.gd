@@ -3,6 +3,8 @@ var football
 var stick_id := -1
 var held: Dictionary = {}
 var stick_axis := Vector2.ZERO
+var shoot_origin := Vector2.ZERO
+var shoot_axis := Vector2.ZERO
 var css_height := 0.0
 var button_feedback: Dictionary = {}
 var button_flash: Dictionary = {}
@@ -11,6 +13,7 @@ func refresh_metrics():
 func _ready():
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	z_index = 80
+	self_modulate = Color(1,1,1,0.62)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	refresh_metrics()
 	get_viewport().size_changed.connect(refresh_metrics)
@@ -19,11 +22,16 @@ func layout() -> Dictionary:
 	var logical_height := css_height if css_height>0 else view.y
 	var pixel_ratio := view.y/logical_height
 	var s := clampf(logical_height/440.0,1.0,1.2)*pixel_ratio
-	return {"scale":s,"pixel_ratio":pixel_ratio,"stick":Vector2(98*s,view.y-98*s),"radius":70*s,"buttons":{
-		"shoot":view-Vector2(54,48)*s,
-		"sprint":view-Vector2(54,124)*s,"switch":view-Vector2(210,48)*s,"pass":view-Vector2(132,106)*s}}
+	return {"scale":s,"pixel_ratio":pixel_ratio,"stick":Vector2(82*s,view.y-82*s),"radius":56*s,"buttons":{
+		"sprint":view-Vector2(48,44)*s,
+		"shoot":view-Vector2(48,118)*s,"switch":view-Vector2(122,44)*s,"pass":view-Vector2(100,96)*s}}
+func action_scale(action: String, scale_factor: float) -> float:
+	return scale_factor if action == "sprint" else scale_factor*0.8
 func available() -> bool:
 	return football.started and football.game.state == "playing" and not get_tree().paused
+func pass_mode() -> String:
+	var owner: int = football.game.owner
+	return "pass" if owner>=0 and football.game.cats[owner].team == football.game.cats[football.game.controlled].team else "steal"
 func update_stick(pos: Vector2):
 	var p := layout()
 	var offset: Vector2 = (pos-p.stick).limit_length(p.radius)
@@ -31,13 +39,22 @@ func update_stick(pos: Vector2):
 	football.touch_move = stick_axis
 func press_action(action: String, id: int):
 	if held.values().has(action): return
+	if action == "shoot" and football.game.owner != football.game.controlled: return
 	held[id] = action
 	button_flash[action] = 1.0
 	match action:
-		"shoot": football.touch_shoot = true; football.begin_shot_or_tackle()
+		"shoot":
+			shoot_axis = Vector2.ZERO
+			football.touch_shot_aim = Vector2.RIGHT if football.game.cats[football.game.controlled].team == 0 else Vector2.LEFT
+			football.touch_shoot = true
+			football.begin_shot_or_tackle()
 		"sprint": football.touch_sprint = true
-		"switch": football.try_switch_control()
-		"pass": football.try_pass()
+		"switch":
+			football.tutorial_touch_actions["switch"] = true
+			football.try_switch_control()
+		"pass":
+			football.tutorial_touch_actions[pass_mode()] = true
+			football.mobile_pass_or_steal()
 func release_pointer(id: int):
 	if id == stick_id:
 		stick_id = -1
@@ -46,12 +63,17 @@ func release_pointer(id: int):
 	if not held.has(id): return
 	var action: String = held[id]
 	held.erase(id)
-	if action == "shoot": football.touch_shoot = false; football.release_shot()
+	if action == "shoot":
+		football.release_shot()
+		football.touch_shoot = false
+		shoot_axis = Vector2.ZERO
 	if action == "sprint": football.touch_sprint = false
 func cancel_all():
 	stick_id = -1
 	held.clear()
 	stick_axis = Vector2.ZERO
+	shoot_axis = Vector2.ZERO
+	football.touch_shot_aim = Vector2.RIGHT
 	football.touch_move = Vector2.ZERO
 	football.touch_shoot = false
 	football.touch_sprint = false
@@ -68,7 +90,8 @@ func _input(event: InputEvent):
 		if not available(): return
 		var p := layout()
 		for action in p.buttons:
-			if event.position.distance_to(p.buttons[action]) <= 34*p.scale:
+			if event.position.distance_to(p.buttons[action]) <= 34*action_scale(action,p.scale):
+				if action == "shoot": shoot_origin = event.position
 				press_action(action,event.index)
 				get_viewport().set_input_as_handled()
 				return
@@ -79,14 +102,20 @@ func _input(event: InputEvent):
 	elif event is InputEventScreenDrag and event.index == stick_id:
 		if available(): update_stick(event.position)
 		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag and held.get(event.index,"") == "shoot":
+		if available() and football.charging_cat>=0:
+			var delta: Vector2 = event.position-shoot_origin
+			if delta.length()>8*layout().scale:
+				shoot_axis = delta.normalized()
+				football.touch_shot_aim = football.mobile_shot_direction(delta)
+				football.tutorial_aimed = true
+		get_viewport().set_input_as_handled()
 func _process(delta: float):
 	for action in layout().buttons:
 		button_feedback[action] = move_toward(float(button_feedback.get(action,0)),1.0 if held.values().has(action) else 0.0,delta*12)
 		button_flash[action] = move_toward(float(button_flash.get(action,0)),0.0,delta*4)
 	visible = available()
 	if not visible and (stick_id != -1 or not held.is_empty()): cancel_all()
-	if football.tutorial_step >= 0 and football.tutorial_text:
-		football.tutorial_text.text = football.tutorial_text.text.replace("Use WASD or arrow keys", "Use the left joystick").replace("Hold SHIFT", "Hold SPRINT").replace("Press C", "Tap PASS").replace("Hold SPACE", "Hold SHOOT").replace("then release.", "then lift your finger.").replace("Releasing SPACE", "Releasing SHOOT").replace("Press X", "Tap SWITCH").replace("Tap SPACE", "Tap STEAL")
 	queue_redraw()
 func _draw():
 	if not available(): return
@@ -96,10 +125,13 @@ func _draw():
 	draw_circle(center,p.radius,Color(0.06,0.20,0.25,0.65))
 	draw_arc(center,p.radius,0,TAU,48,Color("e8af45"),3)
 	var knob: Vector2 = center+stick_axis*p.radius
-	draw_circle(knob,28*s,Color("28617b"))
-	draw_arc(knob,28*s,0,TAU,32,Color("fff1cb"),2)
+	draw_circle(knob,22.4*s,Color("28617b"))
+	draw_arc(knob,22.4*s,0,TAU,32,Color("fff1cb"),2)
 	for action in p.buttons:
-		draw_action_button(action,p.buttons[action],s)
+		draw_action_button(action,p.buttons[action],action_scale(action,s))
+	if football.touch_shoot and football.charging_cat>=0 and shoot_axis!=Vector2.ZERO:
+		var at: Vector2 = p.buttons.shoot
+		draw_circle(at+shoot_axis*32*action_scale("shoot",s),5*s,Color("fff1cb"))
 
 func draw_action_button(action: String, center: Vector2, scale_factor: float):
 	var down := float(button_feedback.get(action,0))
@@ -123,14 +155,14 @@ func draw_action_button(action: String, center: Vector2, scale_factor: float):
 	var progress := float(football.game.shot_charge) if action=="shoot" and football.charging_cat>=0 else down if action=="sprint" else 0.0
 	if progress>0:
 		draw_arc(at,29*s,-PI/2,-PI/2+TAU*progress,64,accent,3*s,true)
-	var icon := "steal" if action=="shoot" and football.game.owner!=football.game.controlled else action
+	var icon := pass_mode() if action=="pass" else action
 	draw_action_icon(icon,at+Vector2(0,-8*s),s,accent)
 	var titles := {"shoot":"SHOOT","steal":"STEAL","sprint":"SPRINT","switch":"SWITCH","pass":"PASS"}
 	var title: String = titles[icon]
 	var font := ThemeDB.fallback_font
 	var size := roundi(10*s)
 	draw_string(font,at+Vector2(-font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x/2,15*s),title,HORIZONTAL_ALIGNMENT_LEFT,-1,size,Color("fff1cb"))
-	var mode := "HOLD" if icon in ["shoot","sprint"] else "TAP"
+	var mode := "DRAG" if icon == "shoot" else "HOLD" if icon == "sprint" else "TAP"
 	var small := roundi(8*s)
 	draw_string(font,at+Vector2(-font.get_string_size(mode,HORIZONTAL_ALIGNMENT_LEFT,-1,small).x/2,24*s),mode,HORIZONTAL_ALIGNMENT_LEFT,-1,small,Color("93b9b7"))
 

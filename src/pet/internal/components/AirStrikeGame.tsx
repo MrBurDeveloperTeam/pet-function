@@ -1,4 +1,5 @@
 import { PixelCoinBag } from './CoinIndicator';
+import { GameRevival } from './GameRevival';
 import { MobileLandscapeGate } from './MobileLandscapeGate';
 import { MoleLevelBadge } from './MoleGame';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -36,7 +37,7 @@ function MissionArmorFrame(){
  return <svg className="sky-mission-armor" viewBox="0 0 1180 680" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sky-mission-steel" x2=".8" y2="1"><stop stopColor="#607783"/><stop offset=".2" stopColor="#1d3746"/><stop offset=".5" stopColor="#3b535c"/><stop offset="1" stopColor="#102332"/></linearGradient><linearGradient id="sky-mission-edge"><stop stopColor="#e2ac58"/><stop offset=".4" stopColor="#56dadd"/><stop offset=".7" stopColor="#234e61"/><stop offset="1" stopColor="#e2ac58"/></linearGradient><pattern id="sky-mission-hazard" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="18" height="18" fill="#142737"/><rect width="8" height="18" fill="#b68c50"/></pattern></defs><path d="M36 3H324L340 15H840L856 3H1144L1177 36V178L1165 194V486L1177 502V644L1144 677H856L840 665H340L324 677H36L3 644V502L15 486V194L3 178V36Z" fill="url(#sky-mission-steel)" stroke="url(#sky-mission-edge)" strokeWidth="3"/><path d="M44 23H312L330 35H850L868 23H1136L1157 44V168L1145 188V492L1157 512V636L1136 657H868L850 645H330L312 657H44L23 636V512L35 492V188L23 168V44Z" fill="#071523" stroke="#63838a" strokeWidth="1"/><g fill="#1b3543" stroke="#6d8890"><path d="M39 6H210L222 20H46L23 44V150L7 164V37Z"/><path d="M1141 6H970L958 20H1134L1157 44V150L1173 164V37Z"/><path d="M7 520L23 534V636L46 660H222L210 674H39L7 642Z"/><path d="M1173 520L1157 534V636L1134 660H958L970 674H1141L1173 642Z"/></g><g strokeLinecap="square" fill="none"><path d="M340 24H460M720 24H840M24 220V300M24 380V460M1156 220V300M1156 380V460" stroke="#55dce4" strokeWidth="4"/><path d="M45 14H110M1070 14H1135M45 668H110M1070 668H1135" stroke="#d9a357" strokeWidth="3"/><path d="M54 105H170M1010 105H1126" stroke="#2ca3b4" strokeWidth="2"/></g><path d="M490 16H690L678 31H502Z" fill="url(#sky-mission-hazard)"/><path d="M490 649H690L702 664H478Z" fill="url(#sky-mission-hazard)"/>{[[42,42],[1138,42],[42,638],[1138,638],[18,178],[1162,178],[18,502],[1162,502]].map(([x,y])=><g key={`${x}-${y}`}><circle cx={x} cy={y} r="6" fill="#0a1b27" stroke="#a1a794" strokeWidth="2"/><path d={`M${x-2} ${y+2}l4-4`} stroke="#75888d"/></g>)}</svg>;
 }
 export function AirStrikeGame({onClose,userId}:{onClose:()=>void;userId?:string|null}) {
- return <MobileLandscapeGate game="air-strike" title="Sky Patrol" onClose={onClose}><AirStrikeGameContent onClose={onClose} userId={userId}/></MobileLandscapeGate>;
+ return <MobileLandscapeGate game="air-strike" title="Sky Patrol" orientation="portrait" onClose={onClose}><AirStrikeGameContent onClose={onClose} userId={userId}/></MobileLandscapeGate>;
 }
 
 function AirStrikeGameContent({onClose,userId}:{onClose:()=>void;userId?:string|null}) {
@@ -255,6 +256,7 @@ function AirStrikeGameContent({onClose,userId}:{onClose:()=>void;userId?:string|
   finally{purchaseLock.current=false;setBuying(false);}
  };
  return <div ref={root} className={`sky-hangar-root ${arming?'sky-launching':''}`}>
+ {view==='flight'&&<GameRevival iframe={iframe} source="air-strike" coins={stats.coins||0} spendCoins={spendCoins}/>}
  <style>{`
  @font-face{font-family:SkyPixel;src:url('${ROOT}/Quadrit.ttf');font-display:swap}
  .sky-mission-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:14px 0}.sky-mission-grid button{padding:10px 0}.sky-mission-grid button.selected{outline:2px solid #f4d493;background:#4a6259}.sky-mission-grid button.cleared{border-color:#72aa96}.sky-hangar-reward{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);padding:5px 14px;background:#10252de0;color:#ffe1a1;font-size:12px;z-index:4;white-space:nowrap}

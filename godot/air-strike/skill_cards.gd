@@ -22,12 +22,13 @@ const EFFECTS = {
 }
 var atlas: Texture2D
 var drone_icon: Texture2D
-func card_rect(arena: Vector2, count: int, index: int) -> Rect2:
- var columns = count if arena.x/arena.y >= 1.1 else mini(2,count)
+func card_rect(arena: Vector2, count: int, index: int, mobile := false) -> Rect2:
+ var columns = count if mobile or arena.x/arena.y >= 1.1 else mini(2,count)
  var rows = ceili(float(count)/columns)
  var gap = 14.0
  var width = minf(230.0,(arena.x-40-gap*(columns-1))/columns)
  var height = minf(310.0,(arena.y-110-gap*(rows-1))/rows)
+ if mobile: height = minf(height,width*310.0/230.0)
  var row = int(index/columns)
  var in_row = mini(columns,count-row*columns)
  var total_height = rows*height+(rows-1)*gap
@@ -49,7 +50,7 @@ func label(g, text: String, rect: Rect2, y: float, size: int, color: Color):
  var length = g.font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,fitted).x
  g.text_at(text,Vector2(rect.get_center().x-length/2,y),fitted,color)
 func draw_card(g, entry: Array, index: int):
- var card = card_rect(g.arena_size,g.progression.choices.size(),index)
+ var card = g.skill_card_rect(index)
  var tier = int(entry[3])
  var accent = Color("8fe8da") if tier <= 1 else (Color("f5c772") if tier == 2 else Color("d6a0ff"))
  var hover = card.has_point(g.get_global_mouse_position())

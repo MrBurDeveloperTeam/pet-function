@@ -150,6 +150,7 @@ func swipe_action(start: Vector2, finish: Vector2) -> int:
 	return KEY_DOWN if offset.y>0 else KEY_UP
 
 func _ready() -> void:
+	add_child(preload("res://revive_bridge.gd").new())
 	add_child(preload("res://orientation_guard.gd").new())
 	if OS.has_feature("web"):
 		mobile_portrait = bool(JavaScriptBridge.eval("/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||matchMedia('(pointer:coarse)').matches"))
@@ -499,8 +500,13 @@ func _process(delta: float) -> void:
 		if state=="crashed":
 			crash_time=maxf(0,crash_time-dt)
 			if crash_time<=0:
-				state="over"
-				results.reveal()
+				if awaiting_revive:
+					awaiting_revive=false
+					state="reviving"
+					post_host("REVIVE_OFFER",{"runId":run_id,"used":revive_count})
+				else:
+					state="over"
+					results.reveal()
 		else: simulate(dt)
 		remaining-=dt
 	if state!=reported_state:
@@ -571,6 +577,9 @@ func simulate(dt: float) -> void:
 		magnet_time=maxf(0,magnet_time-dt)
 		var was_phasing := phase_time>0
 		phase_time=maxf(0,phase_time-dt)
+		var had_revive_grace := revive_grace>0
+		revive_grace=maxf(0,revive_grace-dt)
+		if had_revive_grace and revive_grace==0: finish_phase_safely()
 		if was_phasing and phase_time==0: finish_phase_safely()
 		var was_flying := flight_time>0
 		flight_time=maxf(0,flight_time-dt)
@@ -697,7 +706,7 @@ func finish_phase_safely() -> void:
 			entity.checked=true
 
 func can_pass(kind: String, height: float, sliding: bool) -> bool:
-	if phase_time>0: return true
+	if phase_time>0 or revive_grace>0: return true
 	if kind=="npc": return true
 	if kind=="closed" or kind=="cone": return height>1.05
 	if kind=="open": return height>1.05 or sliding
@@ -805,6 +814,10 @@ func beep(frequency: float, duration: float) -> void:
 	audio.play()
 
 func start_run(practice: bool = false, opening: bool = true) -> void:
+	awaiting_revive=false
+	revive_count=0
+	revive_declined=false
+	revive_grace=0
 	for entity in entities: recycle_entity(entity.node)
 	entities.clear()
 	sparks.clear()
@@ -862,9 +875,45 @@ func start_run(practice: bool = false, opening: bool = true) -> void:
 	toast.text="GO!"
 	toast_time=3.0
 
+var revive_count := 0
+var revive_declined := false
+var revive_grace := 0.0
+var awaiting_revive := false
+func begin_revive_death():
+	awaiting_revive=true
+	state="crashed"
+	clear_mobile_movement()
+	crash_time=CRASH_DURATION
+	world.position=mobile_world_offset+collision_shake(0)
+	celebration_time=0
+	jump_time=0
+	jump_buffer=0
+	dive_velocity=0
+	slide_time=0
+	runner.position.y=flight_height
+	sparks.clear()
+	toast_time=0
+	beep(120,0.25)
+func resolve_revive(approved: bool):
+	if state!="reviving": return
+	state="running"
+	if approved and revive_count<3:
+		revive_count+=1
+		revive_grace=3.0
+		finish_phase_safely()
+		crash_time=0
+		toast.text="REVIVED!"
+		toast_time=1.5
+		beep(880,0.12)
+	else:
+		revive_declined=true
+		finish_run("collision")
 func finish_run(reason: String) -> void:
 	if reward_sent or state not in ["running","paused"]: return
 	if tutorial: return
+	if reason=="collision" and not revive_declined and revive_count<3 and OS.has_feature("web"):
+		begin_revive_death()
+		return
 	reward_sent=true
 	magnet_time=0
 	phase_time=0

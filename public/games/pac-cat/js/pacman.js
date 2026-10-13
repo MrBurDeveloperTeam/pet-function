@@ -294,11 +294,16 @@ function drawPacman() {
 
         PACMAN_IMG_EL.style.width = imgSize + 'px';
         PACMAN_IMG_EL.style.height = imgSize + 'px';
-        PACMAN_IMG_EL.style.left = PACMAN_POSITION_X + 'px';
-        PACMAN_IMG_EL.style.top = (PACMAN_POSITION_Y + PACMAN_IMAGE_OFFSET_Y) + 'px';
-
         var flip = PACMAN_DIRECTION === 3 ? ' scaleX(-1)' : '';
-        PACMAN_IMG_EL.style.transform = 'translate(-50%, -50%)' + flip;
+        if(window.PetGamePerformance && window.PetGamePerformance.mobile){
+            PACMAN_IMG_EL.style.left = '0px';PACMAN_IMG_EL.style.top = '0px';
+            PACMAN_IMG_EL.style.willChange = 'transform';
+            PACMAN_IMG_EL.style.transform = 'translate3d('+PACMAN_POSITION_X+'px,'+(PACMAN_POSITION_Y+PACMAN_IMAGE_OFFSET_Y)+'px,0) translate(-50%, -50%)'+flip;
+        }else{
+            PACMAN_IMG_EL.style.left = PACMAN_POSITION_X + 'px';
+            PACMAN_IMG_EL.style.top = (PACMAN_POSITION_Y + PACMAN_IMAGE_OFFSET_Y) + 'px';
+            PACMAN_IMG_EL.style.transform = 'translate(-50%, -50%)' + flip;
+        }
         PACMAN_IMG_EL.style.display = 'block';
     } else {
 		// Fallback to original vector Pac-Man while image loads
