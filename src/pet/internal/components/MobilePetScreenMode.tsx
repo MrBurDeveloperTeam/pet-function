@@ -19,10 +19,10 @@ export function releasePetFullscreen(){
 export function usePetFullscreen(open:boolean){
   useEffect(()=>{
     if(!open||!isMobile())return;
-    let attempted=false,closed=false;
+    let pending=false,closed=false,lastAttempt=0;
     const enter=async()=>{
-      if(attempted||inFullscreen())return;
-      attempted=true;
+      if(pending||inFullscreen()||performance.now()-lastAttempt<1500)return;
+      pending=true;lastAttempt=performance.now();
       const target=document.documentElement as FullscreenElement;
       try{
         if(document.fullscreenEnabled&&target.requestFullscreen)await target.requestFullscreen({navigationUI:'hide'});
@@ -31,11 +31,13 @@ export function usePetFullscreen(open:boolean){
         document.documentElement.dataset.petFullscreenOwned='true';
         if(closed)releasePetFullscreen();
       }catch{/* Browser refusal must leave the cat and games usable. */}
+      finally{pending=false;}
     };
     // Capture the first real gesture even when a room/game overlay handles it.
     document.addEventListener('pointerup',enter,true);
+    document.addEventListener('click',enter,true);
     if(navigator.userActivation?.isActive)void enter();
-    return()=>{closed=true;document.removeEventListener('pointerup',enter,true);releasePetFullscreen();};
+    return()=>{closed=true;document.removeEventListener('pointerup',enter,true);document.removeEventListener('click',enter,true);releasePetFullscreen();};
   },[open]);
 }
 

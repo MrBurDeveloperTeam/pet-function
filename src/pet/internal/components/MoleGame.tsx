@@ -413,24 +413,24 @@ const MoleGameTutorial = ({ step, targetBounds, onBack, onNext, onSkip, mobile =
           ...cardStyle,
           ...(mobile ? { top: '8px', right: 'auto', left: '50%', transform: 'translateX(-50%)' } : {}),
           position: 'absolute',
-          width: mobile ? 'min(280px, calc(100% - 2rem))' : 'min(350px, calc(100% - 2rem))',
-          border: '6px solid #5a351d',
-          outline: '3px solid #f5b642',
+          width: mobile ? 'min(220px, 42vw)' : 'min(350px, calc(100% - 2rem))',
+          border: mobile ? '3px solid #5a351d' : '6px solid #5a351d',
+          outline: mobile ? '1px solid #f5b642' : '3px solid #f5b642',
           background: '#fff1b8',
           color: '#402719',
           padding: mobile ? '.45rem' : '1rem',
-          boxShadow: '10px 10px 0 rgba(31,18,10,.88), inset 0 0 0 4px #d99639',
+          boxShadow: mobile ? '3px 3px 0 rgba(31,18,10,.6)' : '10px 10px 0 rgba(31,18,10,.88), inset 0 0 0 4px #d99639',
           opacity: 1,
           pointerEvents: 'auto',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem', marginBottom: mobile ? '.2rem' : '.8rem', paddingBottom: mobile ? '.15rem' : '.55rem', borderBottom: '4px dashed #b66e2d' }}>
-          <strong style={{ color: '#402719', fontSize: '.78rem', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.13em' }}>Nine Burrows Training</strong>
+          <strong style={{ color: '#402719', fontSize: mobile ? '10px' : '.78rem', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: mobile ? 0 : '.13em' }}>{mobile ? 'Training' : 'Nine Burrows Training'}</strong>
           <span style={{ border: '3px solid #5a351d', background: '#f6a83b', color: '#402719', padding: '.3rem .55rem', fontSize: '.72rem', fontWeight: 1000 }}>{step + 1} / {MOLE_TUTORIAL_STEPS.length}</span>
         </div>
         <h2 style={{ margin: 0, color: '#2f1b10', fontSize: mobile ? '.9rem' : '1.25rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', textTransform: 'uppercase' }}>{item.title}</h2>
-        <p style={{ margin: '.65rem 0 0', color: item.interactive ? '#a33b1f' : '#cf342b', fontSize: mobile ? '.9rem' : '1.15rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', letterSpacing: '.08em' }}>{mobile ? item.detail.replace(/CLICK/g, 'TAP') : item.detail}</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.5rem', marginTop: mobile ? '.2rem' : '1rem', minHeight: mobile ? 44 : undefined }}>
+        <p style={{ margin: mobile ? '3px 0 0' : '.65rem 0 0', color: item.interactive ? '#a33b1f' : '#cf342b', fontSize: mobile ? '12px' : '1.15rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', letterSpacing: mobile ? 0 : '.08em' }}>{mobile ? item.detail.replace(/CLICK/g, 'TAP') : item.detail}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.5rem', marginTop: mobile ? '.2rem' : '1rem', minHeight: mobile ? 24 : undefined }}>
           <button type="button" onClick={onSkip} style={{ ...pixelButtonStyle, border: 0, background: 'transparent', padding: '.55rem', fontSize: '.68rem', textDecoration: 'underline' }}>Skip tutorial</button>
           <div style={{ display: 'flex', gap: '.55rem' }}>
             <button type="button" onClick={onBack} disabled={step === 0} style={{ ...pixelButtonStyle, background: '#fff8dc', padding: '.55rem .8rem', fontSize: '.7rem', opacity: step === 0 ? .4 : 1 }}>Back</button>

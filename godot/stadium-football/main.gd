@@ -72,6 +72,7 @@ var tutorial_touch_actions: Dictionary = {}
 var tutorial_overlay: Control
 var tutorial_card: PanelContainer
 var tutorial_text: Label
+var tutorial_skip: Button
 
 func _ready() -> void:
 	add_child(preload("res://orientation_guard.gd").new())
@@ -489,9 +490,43 @@ func build_tutorial() -> void:
 	tutorial_text = label("",18)
 	tutorial_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(tutorial_text)
-	column.add_child(button("SKIP TRAINING / PLAY MATCH",start_match,Vector2(0,36)))
+	tutorial_skip = button("SKIP TRAINING / PLAY MATCH",start_match,Vector2(0,36))
+	column.add_child(tutorial_skip)
+	if mobile_mode:
+		fit_mobile_tutorial()
+		get_viewport().size_changed.connect(fit_mobile_tutorial)
 	tutorial_overlay.hide()
 	tutorial_card.hide()
+
+func fit_mobile_tutorial() -> void:
+	if not mobile_mode or not tutorial_card: return
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var css_height: float = float(JavaScriptBridge.eval("window.innerHeight")) if OS.has_feature("web") else view.y
+	var ratio := view.y/maxf(1,css_height)
+	var width := clampf(view.x/ratio*0.48,240,340)
+	tutorial_card.scale = Vector2.ONE*ratio
+	tutorial_card.position = Vector2(-width*ratio/2,54*ratio)
+	tutorial_card.custom_minimum_size = Vector2(width,0)
+	tutorial_card.size = Vector2(width,0)
+	var padding := StyleBoxEmpty.new()
+	padding.set_content_margin_all(5)
+	tutorial_card.add_theme_stylebox_override("panel",padding)
+	var column: VBoxContainer = tutorial_text.get_parent()
+	column.add_theme_constant_override("separation",2)
+	tutorial_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tutorial_text.add_theme_font_override("font",ThemeDB.fallback_font)
+	tutorial_text.add_theme_font_size_override("font_size",12)
+	tutorial_skip.text = "Skip training"
+	tutorial_skip.custom_minimum_size = Vector2(0,20)
+	tutorial_skip.add_theme_font_override("font",ThemeDB.fallback_font)
+	tutorial_skip.add_theme_font_size_override("font_size",11)
+	for state_name in ["normal","hover","pressed"]:
+		var skin := style_box(Color("243e37"))
+		skin.content_margin_top=2
+		skin.content_margin_bottom=2
+		skin.content_margin_left=6
+		skin.content_margin_right=6
+		tutorial_skip.add_theme_stylebox_override(state_name,skin)
 
 func start_tutorial() -> void:
 	start_match()
@@ -969,6 +1004,7 @@ func update_visuals(delta: float) -> void:
 	ball_marker.texture = ball_textures[ring_index]
 	ball_ring_color = [Color("ffdf54"),Color("ff4d4d"),Color("e9e8d5")][ring_index]
 	ball_marker.size = Vector2.ONE * (57 if feedback_time>0.9 and possession_team==0 else 48)
+	if mobile_mode: ball_marker.size *= 0.5
 	ball_marker.position = ball_screen - ball_marker.size * 0.5
 	ball_tag.position = ball_screen - Vector2(30,46)
 	ball_marker.visible = started and game.state!="finished"

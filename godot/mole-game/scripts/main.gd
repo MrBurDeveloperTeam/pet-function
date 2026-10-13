@@ -73,10 +73,24 @@ var tutorial_reaction_resume_hole := -1
 var tutorial_progress_pending := -1
 var host_message_callback: JavaScriptObject
 var mobile_controls := false
+var mobile_backdrop: TextureRect
 var last_skill_status := ""
 
 func set_mobile_controls(enabled: bool) -> void:
 	mobile_controls = enabled
+	if enabled and not mobile_backdrop:
+		mobile_backdrop = TextureRect.new()
+		mobile_backdrop.set_as_top_level(true)
+		mobile_backdrop.texture = MINE_BACKGROUND
+		mobile_backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		mobile_backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		mobile_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mobile_backdrop.z_index = -100
+		add_child(mobile_backdrop)
+	if mobile_backdrop:
+		mobile_backdrop.visible = enabled
+		mobile_backdrop.position = Vector2.ZERO
+		mobile_backdrop.size = get_viewport_rect().size
 	# Explicit touch input below must not also produce an emulated mouse hit.
 	Input.emulate_mouse_from_touch = not enabled
 	last_skill_status = ""
@@ -606,6 +620,7 @@ func _draw() -> void:
 
 func update_scene_layout() -> void:
 	var viewport_size := get_viewport_rect().size
+	if mobile_backdrop: mobile_backdrop.size = viewport_size
 	scale = Vector2.ONE
 	position = (viewport_size - VIEW) * 0.5
 

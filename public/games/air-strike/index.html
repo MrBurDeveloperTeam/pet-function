@@ -12,12 +12,12 @@
   <canvas id="canvas" tabindex="0" aria-label="Sky Patrol. Drag to move, WASD or arrow keys to fly, P to pause."></canvas>
   <div id="loading" role="status"><strong>SKY PATROL</strong><span id="status">Preparing mission…</span><progress id="progress"></progress></div>
   <!-- Reuse the existing single-thread Godot 4.7.2 web engine. The new game owns its own PCK. -->
-  <script src="/games/mobile-performance.js?v=1"></script><script src="/games/mole-game/index.js"></script>
+  <script src="/games/mobile-performance.js?v=2"></script><script src="/games/mole-game/index.js"></script>
   <script>
     const panel=document.getElementById('loading'), status=document.getElementById('status'), progress=document.getElementById('progress');
     function failed(error){status.textContent='Could not load the mission: '+String(error);progress.hidden=true;const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=()=>location.reload();panel.appendChild(retry);window.parent.postMessage({source:'air-strike',type:'ERROR'},location.origin);}
     try {
-      const engine=new Engine({executable:'/games/mole-game/index',mainPack:'/games/air-strike/index.pck?v=mobile-skill-row-8',canvasResizePolicy:window.PetGamePerformance.canvasPolicy(2),focusCanvas:true,gdextensionLibs:[],ensureCrossOriginIsolationHeaders:false});
+      const engine=new Engine({executable:'/games/mole-game/index',mainPack:'/games/air-strike/index.pck?v=mobile-readable-10',canvasResizePolicy:window.PetGamePerformance.canvasPolicy(2),focusCanvas:true,gdextensionLibs:[],ensureCrossOriginIsolationHeaders:false});
       const missing=Engine.getMissingFeatures({threads:false});
       if(missing.length)throw new Error(missing.join(', '));
       engine.startGame({canvas:document.getElementById('canvas'),onProgress:(current,total)=>{if(total>0){progress.max=total;progress.value=current;}}}).then(()=>{panel.hidden=true;panel.style.display='none';document.getElementById('canvas').focus();},failed);

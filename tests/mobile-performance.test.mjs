@@ -6,7 +6,7 @@ import {transformSync} from 'esbuild';
 const source=readFileSync(new URL('../public/games/mobile-performance.js',import.meta.url),'utf8');
 function load(mobile=true){
   const canvas={width:300,height:150,style:{}},events={};
-  const context={navigator:{userAgent:mobile?'iPhone':'Windows',platform:'',maxTouchPoints:mobile?5:0,hardwareConcurrency:8},matchMedia:()=>({matches:mobile}),innerWidth:440,innerHeight:956,devicePixelRatio:3,document:{getElementById:()=>canvas},setTimeout:callback=>callback(),clearTimeout:()=>{},window:{addEventListener:(name,callback)=>events[name]=callback}};
+  const context={navigator:{userAgent:mobile?'iPhone':'Windows',platform:'',maxTouchPoints:mobile?5:0,hardwareConcurrency:8},matchMedia:()=>({matches:mobile}),innerWidth:440,innerHeight:956,devicePixelRatio:3,document:{getElementById:()=>canvas,addEventListener:()=>{}},setTimeout:callback=>callback(),clearTimeout:()=>{},window:{addEventListener:(name,callback)=>events[name]=callback}};
   vm.runInNewContext(source,context);
   return {api:context.window.PetGamePerformance,canvas,events,context};
 }
@@ -14,13 +14,13 @@ test('mobile high-density displays have a bounded framebuffer without changing C
   const {api,canvas,events,context}=load();
   assert.equal(api.canvasPolicy(2),0);
   assert.equal(canvas.style.width,'440px');assert.equal(canvas.style.height,'956px');
-  assert.ok(canvas.width*canvas.height<=900000);
-  assert.ok(canvas.width*canvas.height/(440*956*9)<.18,'DPR 3 fill load is reduced by over 80%');
+  assert.ok(canvas.width*canvas.height<=2000000);
+  assert.ok(canvas.width*canvas.height/(440*956*9)<.45,'DPR 3 fill load remains reduced by over 55% while text uses DPR 2');
   context.innerWidth=956;context.innerHeight=440;events.resize();
   assert.equal(canvas.style.width,'956px');assert.equal(canvas.style.height,'440px');
   assert.ok(Math.abs(canvas.width/canvas.height-956/440)<.005,'Rotation keeps the original aspect ratio');
   for(const [w,h] of [[320,568],[440,956],[1024,1366],[2560,1600]]){
-    const size=api.renderSize(w,h,3);assert.ok(size.width*size.height<=900000);assert.ok(Math.max(size.width,size.height)<=1600);
+    const size=api.renderSize(w,h,3);assert.ok(size.width*size.height<=2000000);assert.ok(Math.max(size.width,size.height)<=2400);
   }
 });
 test('desktop retains native density and long-frame timing',()=>{

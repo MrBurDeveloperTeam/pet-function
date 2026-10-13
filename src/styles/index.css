@@ -176,6 +176,12 @@
 .is-illustrated .pet-revive-error,.is-illustrated .pet-revive-confirm p {font-size:1.3cqw;line-height:1.25;margin:0;}
 .is-illustrated:has(.pet-revive-error:not(:empty)) .pet-revive-options small {display:none;}
 .pet-room-screen-block {position:fixed;inset:0;z-index:3100;display:grid;place-items:center;padding:16px;background:#0a1418f7;color:#4b321e;font-family:Arial,sans-serif;}
+.pet-revive-video .pet-revive-start {left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%);z-index:3;}
+.snabbb-molar-experience .fishing-mobile-reel {box-sizing:border-box;padding:8px;border-width:3px;}
+.snabbb-molar-experience .fishing-mobile-reel > div:first-child {gap:4px;margin-bottom:4px;}
+.snabbb-molar-experience .fishing-mobile-reel > div:first-child > div > div:first-child {font-size:10px;letter-spacing:0;}
+.snabbb-molar-experience .fishing-mobile-reel > div[aria-label="Pixel fishing roulette"] {width:222px;height:222px;zoom:.55;margin:10px auto;}
+.snabbb-molar-experience .fishing-mobile-reel > div:last-child {font-size:9px;}
 .pet-room-screen-card {box-sizing:border-box;width:min(100%,380px);max-height:calc(100dvh - 32px);overflow:auto;padding:20px;border:4px solid #684427;background:#fff3bd;text-align:center;box-shadow:6px 6px 0 #302315;}
 .pet-room-screen-icon {font-size:clamp(28px,8dvh,48px);}
 .pet-room-screen-card h2 {margin:10px 0;font-size:24px;font-weight:900;}

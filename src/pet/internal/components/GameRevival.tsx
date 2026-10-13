@@ -16,6 +16,7 @@ function youtube(){
 type Offer={runId:string|number;used:number};
 export function GameRevival({iframe,source,coins,spendCoins}:{iframe:RefObject<HTMLIFrameElement|null>;source:string;coins:number;spendCoins:(amount:number)=>Promise<unknown>}){
   const [offer,setOffer]=useState<Offer|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[video,setVideo]=useState<ReviveVideo|null>(null),[watched,setWatched]=useState(0),[pending,setPending]=useState<boolean|null>(null);
+  const [autoplayBlocked,setAutoplayBlocked]=useState(false);
   const lock=useRef(false),container=useRef<HTMLDivElement>(null),player=useRef<any>(null),watch=useRef(0);
   const activeOffer=useRef<Offer|null>(null),ackTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   activeOffer.current=offer;
@@ -42,12 +43,13 @@ export function GameRevival({iframe,source,coins,spendCoins}:{iframe:RefObject<H
   useEffect(()=>()=>{if(ackTimer.current)clearTimeout(ackTimer.current);},[]);
   useEffect(()=>{
     if(!video||!container.current)return;
-    let stopped=false,instance:any,lastTime=0,lastWall=performance.now();
+    let stopped=false,instance:any,lastTime=0,lastWall=performance.now();setAutoplayBlocked(false);
     const timeout=setTimeout(()=>{if(!instance?.getPlayerState?.()){setVideo(null);setError('Video could not load. Please choose a revival option again.');}},15000);
     void youtube().then(YT=>{
       if(stopped)return;
       const mount=document.createElement('div');container.current?.replaceChildren(mount);
-      instance=new YT.Player(mount,{videoId:video.video_id,width:'100%',height:'100%',playerVars:{autoplay:1,controls:0,disablekb:1,playsinline:1,origin:location.origin,rel:0},events:{onReady:()=>{player.current=instance;clearTimeout(timeout);instance.playVideo();setTimeout(()=>{if(!stopped&&instance.getPlayerState()!==1&&playbackAllowed.current){instance.mute();instance.playVideo();}},1200);},onError:()=>{setVideo(null);setError('Sponsor video unavailable. Please choose another revival option.');},onStateChange:(event:any)=>{lastTime=instance.getCurrentTime();lastWall=performance.now();if(event.data===0&&watch.current<30){instance.seekTo(0);instance.playVideo();}}}});
+      const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||matchMedia('(pointer: coarse)').matches;
+      instance=new YT.Player(mount,{videoId:video.video_id,width:'100%',height:'100%',playerVars:{autoplay:1,mute:mobile?1:0,controls:0,disablekb:1,playsinline:1,origin:location.origin,rel:0},events:{onReady:()=>{player.current=instance;instance.getIframe()?.setAttribute('allow','autoplay; encrypted-media; fullscreen; picture-in-picture');clearTimeout(timeout);if(mobile)instance.mute();if(playbackAllowed.current)instance.playVideo();setTimeout(()=>{if(!stopped&&instance.getPlayerState()!==1&&playbackAllowed.current){instance.mute();instance.playVideo();setAutoplayBlocked(true);}},1800);},onAutoplayBlocked:()=>{setAutoplayBlocked(true);instance.mute();if(playbackAllowed.current)instance.playVideo();},onError:()=>{setVideo(null);setError('Sponsor video unavailable. Please choose another revival option.');},onStateChange:(event:any)=>{lastTime=instance.getCurrentTime();lastWall=performance.now();if(event.data===1)setAutoplayBlocked(false);if(event.data===0&&watch.current<30){instance.seekTo(0);instance.playVideo();}}}});
     }).catch(()=>setError('Unable to load the video player. Please retry.'));
     const timer=setInterval(()=>{
       if(!instance?.getCurrentTime)return;
@@ -75,7 +77,7 @@ export function GameRevival({iframe,source,coins,spendCoins}:{iframe:RefObject<H
     {!video&&<img className="pet-revive-frame" src={`/games/${theme}/revive-frame-v1.webp`} alt="" draggable={false}/>}
     <div className="pet-revive-content">
     <header><span className="pet-revive-kicker">{video?'SPONSOR BREAK':'SECOND CHANCE'}</span><h2>{video?'Watch. Return. Keep going.':theme==='air-strike'?'Ready to fly again?':'Back in the race?'}</h2><div className="pet-revive-lives">{[0,1,2].map(i=><i key={i} className={i<offer.used?'used':''}/>)}<span>{3-offer.used} / 3 revivals left</span></div></header>
-    {video?<><div className="pet-revive-video"><div className="pet-revive-player" ref={container}/><span className="pet-revive-sponsor">{video.channel_name} · Sponsored</span><button className="pet-revive-skip" disabled={busy||watched<30||paused} onClick={()=>answer(true)}>{watched<30?`Skip in ${Math.ceil(30-watched)}s`:'Skip & revive →'}</button><div className="pet-revive-progress" style={{width:`${watched/30*100}%`}}/></div><p className="pet-revive-caption">{video.title}</p></>:<div className="pet-revive-options"><button className="coin" disabled={busy||pending!==null||coins<cost} onClick={pay}><b>✦</b><strong>{cost.toLocaleString()} COINS</strong><small>Return to the game immediately</small></button><button disabled={busy||pending!==null} onClick={advert}><b>▶</b><strong>WATCH & REVIVE</strong><small>30 seconds · No coins needed</small></button></div>}
+    {video?<><div className="pet-revive-video"><div className="pet-revive-player" ref={container}/>{autoplayBlocked&&<button className="pet-revive-start" disabled={paused||pending!==null} onClick={()=>{player.current?.mute();player.current?.playVideo();}}>Tap to start ad</button>}<span className="pet-revive-sponsor">{video.channel_name} · Sponsored</span><button className="pet-revive-skip" disabled={busy||watched<30||paused} onClick={()=>answer(true)}>{watched<30?`Skip in ${Math.ceil(30-watched)}s`:'Skip & revive →'}</button><div className="pet-revive-progress" style={{width:`${watched/30*100}%`}}/></div><p className="pet-revive-caption">{video.title}</p></>:<div className="pet-revive-options"><button className="coin" disabled={busy||pending!==null||coins<cost} onClick={pay}><b>✦</b><strong>{cost.toLocaleString()} COINS</strong><small>Return to the game immediately</small></button><button disabled={busy||pending!==null} onClick={advert}><b>▶</b><strong>WATCH & REVIVE</strong><small>30 seconds · No coins needed</small></button></div>}
     {pending!==null?<div className="pet-revive-confirm"><p>{busy?'Returning to your game…':error}</p>{!busy&&<button onClick={()=>answer(pending)}>Retry confirmation</button>}</div>:<><p role="status" className="pet-revive-error">{error}</p>{!video&&<footer><button disabled={busy} onClick={()=>answer(false)}>End run</button><span>Coins and videos share the same three lives.</span></footer>}</>}
     </div>
   </section></div>,document.body);

@@ -2,6 +2,7 @@ extends Node2D
 ## Original arcade shooter. All gameplay runs in Godot, including touch input.
 var arena_size = Vector2(960, 540)
 var mobile_skill_cards := false
+var mobile_css_width := 960.0
 var combat_rect = Rect2(0, 0, 960, 540)
 var player_bounds = Rect2(60, 60, 840, 420)
 var start_rect: Rect2
@@ -212,6 +213,7 @@ func remap_point(point: Vector2, old: Rect2, next: Rect2) -> Vector2:
 	return next.position + (point - old.position) / old.size * next.size
 
 func resize_arena(next_size: Vector2):
+	if mobile_skill_cards and OS.has_feature("web"): mobile_css_width=float(JavaScriptBridge.eval("window.innerWidth"))
 	var previous = combat_rect
 	arena_size = next_size.max(Vector2(960,540))
 	combat_rect = Rect2(Vector2.ZERO,arena_size)

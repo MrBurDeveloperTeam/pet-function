@@ -21,7 +21,7 @@ func layout() -> Dictionary:
 	var view := get_viewport_rect().size
 	var logical_height := css_height if css_height>0 else view.y
 	var pixel_ratio := view.y/logical_height
-	var s := clampf(logical_height/440.0,1.0,1.2)*pixel_ratio
+	var s := clampf(logical_height/440.0,1.0,1.2)*pixel_ratio*0.5
 	return {"scale":s,"pixel_ratio":pixel_ratio,"stick":Vector2(82*s,view.y-82*s),"radius":56*s,"buttons":{
 		"sprint":view-Vector2(48,44)*s,
 		"shoot":view-Vector2(48,118)*s,"switch":view-Vector2(122,44)*s,"pass":view-Vector2(100,96)*s}}
@@ -160,10 +160,10 @@ func draw_action_button(action: String, center: Vector2, scale_factor: float):
 	var titles := {"shoot":"SHOOT","steal":"STEAL","sprint":"SPRINT","switch":"SWITCH","pass":"PASS"}
 	var title: String = titles[icon]
 	var font := ThemeDB.fallback_font
-	var size := roundi(10*s)
+	var size := maxi(roundi(10*s),roundi(8*layout().pixel_ratio))
 	draw_string(font,at+Vector2(-font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x/2,15*s),title,HORIZONTAL_ALIGNMENT_LEFT,-1,size,Color("fff1cb"))
 	var mode := "DRAG" if icon == "shoot" else "HOLD" if icon == "sprint" else "TAP"
-	var small := roundi(8*s)
+	var small := maxi(roundi(8*s),roundi(6*layout().pixel_ratio))
 	draw_string(font,at+Vector2(-font.get_string_size(mode,HORIZONTAL_ALIGNMENT_LEFT,-1,small).x/2,24*s),mode,HORIZONTAL_ALIGNMENT_LEFT,-1,small,Color("93b9b7"))
 
 func icon_line(at: Vector2, points: Array, s: float, color: Color, width: float = 2.0):

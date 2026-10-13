@@ -35,8 +35,8 @@ test('mole game embeds the shared Godot export and persists validated rewards', 
 test('mole game launcher declares the current exported pack size', () => {
   const exportedPage = readFileSync(new URL('../public/games/mole-game/index.html', import.meta.url), 'utf8');
   const packSize = statSync(new URL('../public/games/mole-game/index.pck', import.meta.url)).size;
-  assert.match(exportedPage, new RegExp(`"index\\.pck\\?v=godot-v14":${packSize}`));
-  assert.match(exportedPage, /"mainPack":"index\.pck\?v=godot-v14"/);
+  const mainPack = exportedPage.match(/"mainPack":"(index\.pck\?v=[^"]+)"/)[1];
+  assert.ok(exportedPage.includes(`"${mainPack}":${packSize}`), 'Pack size entry must match the active cache version');
 });
 
 test('mole game provides a full-screen scene and loading state without a popup dialog', () => {

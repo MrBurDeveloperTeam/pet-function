@@ -14,6 +14,9 @@ func verify():
 	assert(scene.mobile_controls == null,"Desktop does not create touch controls")
 	assert(scene.prompt_key.text == "SPACE","Desktop retains its keyboard prompt")
 	scene.mobile_mode = true
+	scene.fit_mobile_tutorial()
+	assert(scene.tutorial_card.custom_minimum_size.x<=340,"Mobile tutorial occupies a compact portion of the landscape screen")
+	assert(scene.tutorial_text.get_theme_font_size("font_size")==12 and scene.tutorial_skip.text=="Skip training","Mobile tutorial uses readable compact text and a short skip button")
 	scene.build_mobile_controls()
 	scene.started = true
 	scene.game.state = "playing"
@@ -41,8 +44,8 @@ func verify():
 		root.size = Vector2i(844*density,390*density)
 		controls.css_height = 390
 		var p = controls.layout()
-		assert(is_equal_approx(68*controls.action_scale("shoot",p.scale)/p.pixel_ratio,54.4),"Secondary buttons shrink by 20% at every pixel density")
-		assert(is_equal_approx(p.radius/p.pixel_ratio,56),"Joystick radius shrinks by 20% at every pixel density")
+		assert(is_equal_approx(68*controls.action_scale("shoot",p.scale)/p.pixel_ratio,27.2),"Mobile secondary controls are half the previous size at every pixel density")
+		assert(is_equal_approx(p.radius/p.pixel_ratio,28),"Mobile joystick is half the previous size at every pixel density")
 	assert(is_equal_approx(controls.self_modulate.a,0.62),"Mobile controls are translucent")
 	root.size = Vector2i(844,390)
 	controls.css_height = 0

@@ -34,8 +34,8 @@ func button(caption: String, at: Vector2, minimum: Vector2, color: Color, action
 	skin.content_margin_top=7
 	skin.content_margin_bottom=7
 	control.add_theme_stylebox_override("normal",skin)
-	control.add_theme_font_override("font",FONT)
-	control.add_theme_font_size_override("font_size",15)
+	control.add_theme_font_override("font",ThemeDB.fallback_font if game.mobile_mode else FONT)
+	control.add_theme_font_size_override("font_size",26 if game.mobile_mode else 15)
 	control.add_theme_color_override("font_color",CREAM)
 	control.add_theme_color_override("font_hover_color",CREAM)
 	control.add_theme_stylebox_override("hover",game.style_box(Color("326589")))
@@ -57,8 +57,10 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func text_center(value: String, y: float, font_size: int, color: Color=CREAM, center_x: float=450) -> void:
-	var width := FONT.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
-	draw_string(FONT,Vector2(center_x-width*0.5,y),value,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size,color)
+	var font: Font = ThemeDB.fallback_font if game.mobile_mode else FONT
+	var readable_size := maxi(font_size,20) if game.mobile_mode else font_size
+	var width := font.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,readable_size).x
+	draw_string(font,Vector2(center_x-width*0.5,y),value,HORIZONTAL_ALIGNMENT_LEFT,-1,readable_size,color)
 
 func coin_outline(center: Vector2, radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()

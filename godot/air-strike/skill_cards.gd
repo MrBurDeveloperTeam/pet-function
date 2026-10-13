@@ -26,9 +26,9 @@ func card_rect(arena: Vector2, count: int, index: int, mobile := false) -> Rect2
  var columns = count if mobile or arena.x/arena.y >= 1.1 else mini(2,count)
  var rows = ceili(float(count)/columns)
  var gap = 14.0
- var width = minf(230.0,(arena.x-40-gap*(columns-1))/columns)
+ var width = minf(300.0 if mobile else 230.0,(arena.x-40-gap*(columns-1))/columns)
  var height = minf(310.0,(arena.y-110-gap*(rows-1))/rows)
- if mobile: height = minf(height,width*310.0/230.0)
+ if mobile: height = minf(arena.y-110,width*2.1)
  var row = int(index/columns)
  var in_row = mini(columns,count-row*columns)
  var total_height = rows*height+(rows-1)*gap
@@ -50,6 +50,9 @@ func label(g, text: String, rect: Rect2, y: float, size: int, color: Color):
  var length = g.font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,fitted).x
  g.text_at(text,Vector2(rect.get_center().x-length/2,y),fitted,color)
 func draw_card(g, entry: Array, index: int):
+ if g.mobile_skill_cards:
+  draw_mobile_card(g,entry,index)
+  return
  var card = g.skill_card_rect(index)
  var tier = int(entry[3])
  var accent = Color("8fe8da") if tier <= 1 else (Color("f5c772") if tier == 2 else Color("d6a0ff"))
@@ -77,3 +80,42 @@ func draw_card(g, entry: Array, index: int):
   label(g,lines[i],card,divider+(35+i*20)*ui_scale,maxi(8,int(15*ui_scale)),Color("eef7ed") if i == 0 else Color("b6d1d5"))
  var footer = "BASIC" if tier <= 1 else ("ADVANCED" if tier == 2 else "ULTIMATE")
  label(g,"%d  /  %s" % [index+1,footer],card,card.end.y-12,10,accent)
+
+func mobile_lines(text: String, width: float, size: int) -> Array[String]:
+ var result: Array[String] = []
+ var line := ""
+ for word in text.split(" "):
+  var next := word if line.is_empty() else line+" "+word
+  if not line.is_empty() and ThemeDB.fallback_font.get_string_size(next,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x>width:
+   result.append(line)
+   line=word
+  else: line=next
+ if not line.is_empty(): result.append(line)
+ return result
+
+func mobile_text(g, text: String, card: Rect2, y: float, size: int, color: Color) -> float:
+ for line in mobile_lines(text,card.size.x-20,size):
+  var width := ThemeDB.fallback_font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x
+  g.paint.draw_string(ThemeDB.fallback_font,Vector2(card.get_center().x-width/2,y),line,HORIZONTAL_ALIGNMENT_LEFT,-1,size,color)
+  y+=size*1.2
+ return y
+
+func draw_mobile_card(g, entry: Array, index: int):
+ var card: Rect2 = g.skill_card_rect(index)
+ var tier := int(entry[3])
+ var accent := Color("8fe8da") if tier<=1 else Color("f5c772") if tier==2 else Color("d6a0ff")
+ var css_width: float = g.mobile_css_width if OS.has_feature("web") else g.arena_size.x
+ var ratio: float = g.arena_size.x/maxf(1,css_width)
+ var title_size := maxi(14,roundi(13*ratio))
+ var body_size := maxi(12,roundi(11*ratio))
+ g.paint.draw_rect(card,Color("102936"))
+ g.paint.draw_rect(card,accent,false,2)
+ var y: float = mobile_text(g,entry[1],card,card.position.y+title_size+8,title_size,Color("fff4dc"))
+ var image_size := minf(card.size.x-28,card.size.y*.30)
+ var image := Rect2(Vector2(card.get_center().x-image_size/2,y+4),Vector2.ONE*image_size)
+ draw_icon(g,entry[0],image)
+ y=image.end.y+body_size+12
+ for text in EFFECTS.get(entry[0],[entry[2]]):
+  y=mobile_text(g,text,card,y,body_size,Color("ffffff"))+6
+ var footer := "BASIC" if tier<=1 else "ADVANCED" if tier==2 else "ULTIMATE"
+ mobile_text(g,footer,card,card.end.y-12,body_size,accent)
