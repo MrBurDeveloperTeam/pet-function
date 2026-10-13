@@ -15,6 +15,9 @@ func run():
 	for stage in range(1,101):
 		game.stage_level = stage
 		var scale = game.campaign.scaling()
+		var readiness = game.campaign.recommended_power()/1000.0
+		check(is_equal_approx(scale.hp,pow(readiness,0.85)*0.6),"Campaign HP reduced by 40 percent at every stage")
+		check(is_equal_approx(scale.damage,pow(readiness,0.28)*0.6),"Campaign damage reduced by 40 percent at every stage")
 		for key in previous:
 			check(scale[key] >= previous[key],"stage difficulty never decreases: "+key)
 		previous = scale
@@ -32,7 +35,16 @@ func run():
 		game.campaign.update_boss(boss,0.01)
 		check(boss.attack_cadence > cadence,"boss pressure escalates at low health")
 	check(game.campaign.recommended_power() == 12100,"stage 100 matches displayed recommendation")
-	check(previous.hp > 8 and previous.damage < 2.1,"late-game durability grows without excessive one-hit damage")
+	check(previous.hp > 4.8 and previous.damage < 2.1,"late-game durability grows without excessive one-hit damage")
+	game.infinite_mode = true
+	for wave in [1,10,100,101,300,301,1000]:
+		game.campaign.infinite_wave = wave
+		var w = maxi(0,wave-1)
+		var health = 1+mini(w,100)*0.02+clampi(w-100,0,200)*0.01+maxi(0,w-300)*0.005
+		var builds = game.progression.routes(true).size()
+		var scale = game.campaign.scaling()
+		check(is_equal_approx(scale.hp,health*(1+builds*0.06)*0.6),"Endless HP reduced by 40 percent across scaling boundaries")
+		check(is_equal_approx(scale.damage,(1+minf(w*0.002,1.5))*0.6),"Endless damage reduced by 40 percent")
 	game.progression.skills.clear()
 	var normal = game.player_shot_interval()
 	for skills in [["laser"],["ring_laser"],["laser","ring_laser"]]:

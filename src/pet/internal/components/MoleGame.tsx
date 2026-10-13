@@ -295,6 +295,7 @@ const MoleGameContent = ({ onClose, onReward, stats }: MoleGameProps) => {
         onClick={() => setTutorialStep(0)}
         style={{
           position: 'absolute',
+          boxSizing: 'border-box',
           left: '1.5rem',
           top: '7rem',
           zIndex: 60,
@@ -430,11 +431,11 @@ const MoleGameTutorial = ({ step, targetBounds, onBack, onNext, onSkip, mobile =
         </div>
         <h2 style={{ margin: 0, color: '#2f1b10', fontSize: mobile ? '.9rem' : '1.25rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', textTransform: 'uppercase' }}>{item.title}</h2>
         <p style={{ margin: mobile ? '3px 0 0' : '.65rem 0 0', color: item.interactive ? '#a33b1f' : '#cf342b', fontSize: mobile ? '12px' : '1.15rem', fontWeight: 1000, lineHeight: 1.2, textAlign: 'center', letterSpacing: mobile ? 0 : '.08em' }}>{mobile ? item.detail.replace(/CLICK/g, 'TAP') : item.detail}</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.5rem', marginTop: mobile ? '.2rem' : '1rem', minHeight: mobile ? 24 : undefined }}>
-          <button type="button" onClick={onSkip} style={{ ...pixelButtonStyle, border: 0, background: 'transparent', padding: '.55rem', fontSize: '.68rem', textDecoration: 'underline' }}>Skip tutorial</button>
-          <div style={{ display: 'flex', gap: '.55rem' }}>
-            <button type="button" onClick={onBack} disabled={step === 0} style={{ ...pixelButtonStyle, background: '#fff8dc', padding: '.55rem .8rem', fontSize: '.7rem', opacity: step === 0 ? .4 : 1 }}>Back</button>
-            {!item.interactive && <button type="button" onClick={onNext} style={{ ...pixelButtonStyle, background: '#f6a83b', padding: '.55rem 1rem', fontSize: '.7rem', boxShadow: '4px 4px 0 #5a351d' }}>I understand</button>}
+        <div style={{ display: 'flex', flexWrap: mobile ? 'wrap' : undefined, alignItems: 'center', justifyContent: 'space-between', gap: mobile ? 4 : '.5rem', marginTop: mobile ? '.2rem' : '1rem', minHeight: mobile ? 24 : undefined }}>
+          <button type="button" onClick={onSkip} style={{ ...pixelButtonStyle, border: 0, background: 'transparent', padding: mobile ? '4px' : '.55rem', fontSize: mobile ? '10px' : '.68rem', textDecoration: 'underline' }}>{mobile ? 'Skip' : 'Skip tutorial'}</button>
+          <div style={{ display: 'flex', flexWrap: mobile ? 'wrap' : undefined, minWidth: 0, maxWidth: '100%', gap: mobile ? 4 : '.55rem' }}>
+            <button type="button" onClick={onBack} disabled={step === 0} style={{ ...pixelButtonStyle, borderWidth: mobile ? 2 : 3, background: '#fff8dc', padding: mobile ? '4px 6px' : '.55rem .8rem', fontSize: mobile ? '10px' : '.7rem', opacity: step === 0 ? .4 : 1 }}>Back</button>
+            {!item.interactive && <button type="button" onClick={onNext} style={{ ...pixelButtonStyle, borderWidth: mobile ? 2 : 3, background: '#f6a83b', padding: mobile ? '4px 6px' : '.55rem 1rem', fontSize: mobile ? '10px' : '.7rem', boxShadow: mobile ? '2px 2px 0 #5a351d' : '4px 4px 0 #5a351d' }}>{mobile ? 'Got it' : 'I understand'}</button>}
           </div>
         </div>
       </section>

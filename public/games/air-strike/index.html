@@ -17,7 +17,8 @@
     const panel=document.getElementById('loading'), status=document.getElementById('status'), progress=document.getElementById('progress');
     function failed(error){status.textContent='Could not load the mission: '+String(error);progress.hidden=true;const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=()=>location.reload();panel.appendChild(retry);window.parent.postMessage({source:'air-strike',type:'ERROR'},location.origin);}
     try {
-      const engine=new Engine({executable:'/games/mole-game/index',mainPack:'/games/air-strike/index.pck?v=mobile-readable-10',canvasResizePolicy:window.PetGamePerformance.canvasPolicy(2),focusCanvas:true,gdextensionLibs:[],ensureCrossOriginIsolationHeaders:false});
+      if(window.PetGamePerformance.mobile)document.getElementById('canvas').style.imageRendering='auto';
+      const engine=new Engine({executable:'/games/mole-game/index',mainPack:'/games/air-strike/index.pck?v=homing-drone-70-14',canvasResizePolicy:window.PetGamePerformance.canvasPolicy(2),focusCanvas:true,gdextensionLibs:[],ensureCrossOriginIsolationHeaders:false});
       const missing=Engine.getMissingFeatures({threads:false});
       if(missing.length)throw new Error(missing.join(', '));
       engine.startGame({canvas:document.getElementById('canvas'),onProgress:(current,total)=>{if(total>0){progress.max=total;progress.value=current;}}}).then(()=>{panel.hidden=true;panel.style.display='none';document.getElementById('canvas').focus();},failed);

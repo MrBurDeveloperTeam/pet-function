@@ -505,7 +505,8 @@ func fit_mobile_tutorial() -> void:
 	var ratio := view.y/maxf(1,css_height)
 	var width := clampf(view.x/ratio*0.48,240,340)
 	tutorial_card.scale = Vector2.ONE*ratio
-	tutorial_card.position = Vector2(-width*ratio/2,54*ratio)
+	tutorial_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	tutorial_card.position = Vector2((view.x-width*ratio)/2,54*ratio)
 	tutorial_card.custom_minimum_size = Vector2(width,0)
 	tutorial_card.size = Vector2(width,0)
 	var padding := StyleBoxEmpty.new()
@@ -527,6 +528,8 @@ func fit_mobile_tutorial() -> void:
 		skin.content_margin_left=6
 		skin.content_margin_right=6
 		tutorial_skip.add_theme_stylebox_override(state_name,skin)
+	# Recalculate height after compact styles replace the desktop minimum sizes.
+	tutorial_card.set_deferred("size",Vector2(width,0))
 
 func start_tutorial() -> void:
 	start_match()

@@ -11,10 +11,11 @@ var infinite_wave = 0
 var super_offer = false
 var hazards: Array = []
 var hazard_timer = 10.0
+const DIFFICULTY_MULTIPLIER := 0.6
 const CHAPTERS = ["CORAL PATROL","IRON ARMADA","AMBUSH","SHIELD FRONT","SUPPORT SQUADRON","ELITE STRIKE","LASER SECTOR","BULLET STORM","COMBINED ARMS","FINAL OPERATION"]
 const ROLES = ["fighter","fast","armored","tank","sniper","spread","dash","suicide","shielded","shield_support","healer","missile","summoner"]
-const AFFIXES = ["fast","armored","shield","berserk","double_shot","regeneration"]
-const MUTATIONS = ["shield","regeneration","summon","missile","laser","clone","teleport","berserk","double_projectile","armor"]
+const AFFIXES = ["fast","armored","shield","berserk","double_shot"]
+const MUTATIONS = ["shield","summon","missile","laser","clone","teleport","berserk","double_projectile","armor"]
 func reset():
 	active = false
 	waiting = 1
@@ -40,11 +41,11 @@ func scaling() -> Dictionary:
 	var t = (game.stage_level-1)/99.0
 	if not game.infinite_mode:
 		var readiness = recommended_power()/1000.0
-		return {"hp":pow(readiness,0.85),"damage":pow(readiness,0.28),"count":pow(readiness,0.28),"speed":1+0.33*t,"bullet":1+0.35*t,"fire":pow(readiness,0.18)}
+		return {"hp":pow(readiness,0.85)*DIFFICULTY_MULTIPLIER,"damage":pow(readiness,0.28)*DIFFICULTY_MULTIPLIER,"count":pow(readiness,0.28),"speed":1+0.33*t,"bullet":1+0.35*t,"fire":pow(readiness,0.18)}
 	var w = maxi(0,infinite_wave-1)
 	var health = 1+mini(w,100)*0.02+clampi(w-100,0,200)*0.01+maxi(0,w-300)*0.005
 	var builds = game.progression.routes(true).size()
-	return {"hp":health*(1+builds*0.06),"damage":1+minf(w*0.002,1.5),"count":minf(3.0,1+w*0.005)*(1+builds*0.04),"speed":minf(1.4,1+w*0.001),"bullet":minf(1.45,1+w*0.001)}
+	return {"hp":health*(1+builds*0.06)*DIFFICULTY_MULTIPLIER,"damage":(1+minf(w*0.002,1.5))*DIFFICULTY_MULTIPLIER,"count":minf(3.0,1+w*0.005)*(1+builds*0.04),"speed":minf(1.4,1+w*0.001),"bullet":minf(1.45,1+w*0.001)}
 func roles_for_stage() -> Array:
 	if game.infinite_mode: return ROLES.duplicate()
 	var c = chapter()
@@ -161,7 +162,7 @@ func prepare_boss(e: Dictionary):
 		if chapter() >= 5: e.mutations.append("summon")
 		if chapter() >= 6: e.mutations.append("laser")
 		if game.stage_level == 98: e.mutations.append("berserk")
-		var final_focus = {91:["berserk"],92:["shield"],93:["summon"],94:["missile"],95:["laser"],96:["regeneration","armor"],97:["double_projectile"],98:["laser","summon","berserk"]}
+		var final_focus = {91:["berserk"],92:["shield"],93:["summon"],94:["missile"],95:["laser"],96:["armor"],97:["double_projectile"],98:["laser","summon","berserk"]}
 		if final_focus.has(game.stage_level): e.mutations = final_focus[game.stage_level].duplicate()
 	else:
 		var pool = MUTATIONS.duplicate()
@@ -211,10 +212,6 @@ func update_enemy(e: Dictionary, delta: float):
 		e.pos.x = move_toward(e.pos.x,game.player.x,70*delta*game.ENEMY_FLIGHT_SPEED_SCALE)
 	if e.ability > 0: return
 	e.ability = 3
-	if e.role == "healer" or e.affixes.has("regeneration"):
-		for other in game.enemies:
-			if other.pos.distance_to(e.pos) < 180: other.hp = minf(other.max_hp,other.hp+other.max_hp*0.08)
-		game.add_effect(e.pos,"shield_hit",0.6,160)
 	if e.role == "shield_support":
 		for other in game.enemies:
 			if other != e and other.kind != "boss" and other.pos.distance_to(e.pos) < 170: other.shield = maxi(1,other.get("shield",0))
@@ -268,7 +265,6 @@ func update_boss(e: Dictionary, delta: float):
 	if game.enemy_shots.any(func(b): return b.get("boss",false)): return
 	e.boss_ability = 9
 	if e.mutations.has("shield"): e.shield = maxi(e.get("shield",0),1)
-	if e.mutations.has("regeneration"): e.hp = minf(e.max_hp,e.hp+e.max_hp*0.03)
 	if e.mutations.has("teleport"): e.age += PI
 	if e.mutations.has("laser"): hazard_timer = 0
 	if e.mutations.has("missile"):

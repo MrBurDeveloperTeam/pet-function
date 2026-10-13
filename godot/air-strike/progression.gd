@@ -31,7 +31,7 @@ const LIBRARY = [
  ["shield","Energy shield","One shield every 20 seconds",1,"life",[]],
  ["defense","Defense","Incoming damage -8%",1,"",[]],
  ["life","Vitality","Maximum HP +15%",1,"life",[]],
- ["drone","Combat drone","One following drone, 50% aircraft base damage",1,"",[]],
+ ["drone","Combat drone","Homing drone, aircraft damage, 70% fire rate",1,"",[]],
  ["laser","Laser weapon","Piercing laser, damage +10%",2,"laser",[]],
  ["reflect","Ricochet","Bounce once to another enemy",2,"reflect",[]],
  ["double_damage","Double damage","Critical hit adds normal damage",2,"critical",["crit_damage"]],
@@ -45,7 +45,7 @@ const LIBRARY = [
  ["reflect2","Ricochet II","Three bounces, third target 50%",3,"reflect",["reflect"]],
  ["supercrit","Super critical","Crit +50%, damage +50%, HP -15%",3,"critical",["double_damage","crit_bomb"]],
  ["double_counter","Double counter","Dodge +20%, six 85% missiles",3,"counter",["counter","drone_boost"]],
- ["vamp_drone","Vampire drone","Drone damage +10%, drain enabled",3,"vampire",["drone_boost","vampire"]],
+ ["vamp_drone","Vampire drone","Homing drone, drain enabled",3,"vampire",["drone_boost","vampire"]],
  ["dimension","Higher dimension","HP +60%, two saves, damage -20%",3,"life",["life","nuclear_shield"]],
 ]
 
@@ -198,7 +198,7 @@ func max_health() -> float:
 func drone_count() -> int:
 	return 2 if has(12) else (1 if has(10) or skill("drone") else 0)
 func drone_damage() -> float:
-	return base_damage()*0.5*(1.1 if skill("vamp_drone") else 1.0)*(0.8 if skill("dimension") else 1.0)
+	return current_damage()
 func drone_positions() -> Array:
 	var result = []
 	for i in range(drone_count()):
@@ -257,7 +257,7 @@ func update(delta: float):
 		if has(11) and drone_missile_timer <= 0:
 			missile(pos,current_damage()*0.5,"drone")
 	if drone_timer <= 0:
-		drone_timer = 0.45
+		drone_timer = game.player_shot_interval()/0.7
 	if drone_missile_timer <= 0:
 		drone_missile_timer = 5
 	if skill("shield") or skill("nuclear_shield"):

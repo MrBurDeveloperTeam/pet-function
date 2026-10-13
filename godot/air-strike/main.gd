@@ -3,6 +3,7 @@ extends Node2D
 var arena_size = Vector2(960, 540)
 var mobile_skill_cards := false
 var mobile_css_width := 960.0
+const MOBILE_VIEW_SCALE = 2.0
 var combat_rect = Rect2(0, 0, 960, 540)
 var player_bounds = Rect2(60, 60, 840, 420)
 var start_rect: Rect2
@@ -106,6 +107,7 @@ func draw_touch_joystick() -> void:
 func _ready():
 	if OS.has_feature("web"):
 		mobile_skill_cards = bool(JavaScriptBridge.eval("/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||matchMedia('(pointer:coarse)').matches"))
+	configure_mobile_scale()
 	add_child(preload("res://revive_bridge.gd").new())
 	add_child(preload("res://orientation_guard.gd").new())
 	progression.game = self
@@ -120,10 +122,9 @@ func _ready():
 		stage_level = clampi(int(JavaScriptBridge.eval("Number(new URLSearchParams(location.search).get('stage') || 1)")),1,100)
 		infinite_mode = bool(JavaScriptBridge.eval("new URLSearchParams(location.search).get('mode') === 'endless'"))
 		launch_token = str(JavaScriptBridge.eval("new URLSearchParams(location.search).get('token') || ''"))
-	font = load("res://art/Quadrit.ttf")
+	configure_text_font()
 	skill_cards.atlas = load("res://art/skill-atlas.png")
 	skill_cards.drone_icon = load("res://art/skill-combat-drone.png")
-	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var drone_art: Texture2D = load("res://art/combat-drone.png")
 	var drone_pixels = drone_art.get_image()
@@ -180,6 +181,7 @@ func _ready():
 	add_child(battle_clip)
 	for layer in ["ocean", "battle", "hud"]:
 		var node = Node2D.new()
+		if mobile_skill_cards and layer == "hud": node.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR
 		node.set_script(layer_script)
 		node.game = self
 		node.layer = layer
@@ -212,10 +214,25 @@ func redraw_layers():
 func remap_point(point: Vector2, old: Rect2, next: Rect2) -> Vector2:
 	return next.position + (point - old.position) / old.size * next.size
 
+func configure_mobile_scale() -> void:
+	if not mobile_skill_cards: return
+	# Double all game and HUD pixels together; touch coordinates use the same viewport transform.
+	get_tree().root.content_scale_size=Vector2i(480,270)
+	get_tree().root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	get_tree().root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
+
+func configure_text_font() -> void:
+	font=ThemeDB.fallback_font.duplicate() if mobile_skill_cards else load("res://art/Quadrit.ttf")
+	font.antialiasing=TextServer.FONT_ANTIALIASING_GRAY if mobile_skill_cards else TextServer.FONT_ANTIALIASING_NONE
+	if mobile_skill_cards:
+		font.multichannel_signed_distance_field=true
+		font.msdf_pixel_range=8
+		font.msdf_size=48
+
 func resize_arena(next_size: Vector2):
 	if mobile_skill_cards and OS.has_feature("web"): mobile_css_width=float(JavaScriptBridge.eval("window.innerWidth"))
 	var previous = combat_rect
-	arena_size = next_size.max(Vector2(960,540))
+	arena_size = next_size.max(Vector2(480,270) if mobile_skill_cards else Vector2(960,540))
 	combat_rect = Rect2(Vector2.ZERO,arena_size)
 	player_bounds = Rect2(combat_rect.position+Vector2(60,60),combat_rect.size-Vector2(120,120))
 	start_rect = Rect2(arena_size.x/2.0-150,arena_size.y/2.0+76,300,58)
@@ -737,6 +754,11 @@ func update_shots(delta: float):
 			endpoint = b.pos+b.vel.normalized()*arena_size.length()
 			b.beam_end = endpoint
 		else:
+			if b.get("source","") == "drone" and not b.get("missile",false):
+				var target = progression.nearest(b.pos,b.get("hits",[]))
+				if not target.is_empty():
+					var direction: Vector2 = target.pos-b.pos
+					b.vel = Vector2.from_angle(rotate_toward(b.vel.angle(),direction.angle(),8.0*delta))*b.vel.length()
 			b.pos += b.vel * delta
 			endpoint = b.pos
 		var consumed = false
@@ -980,8 +1002,9 @@ func poly(points: Array, color: Color):
 	paint.draw_colored_polygon(PackedVector2Array(points), color)
 
 func burst(pos: Vector2, count: int, kind: String):
+	if mobile_skill_cards: count=maxi(1,ceili(count*0.25))
 	for i in range(count):
-		if particles.size() >= 500:
+		if particles.size() >= (120 if mobile_skill_cards else 500):
 			break
 		var direction = Vector2.from_angle(visual_rng.randf()*TAU)
 		var life = visual_rng.randf_range(0.22,0.5) if kind == "spark" else visual_rng.randf_range(0.55,1.15)
@@ -1005,11 +1028,14 @@ func explode(pos: Vector2, radius: float, large: bool = false):
 	burst(pos,110 if large else 60,"fire")
 	burst(pos,55 if large else 28,"debris")
 	burst(pos,32 if large else 16,"smoke")
-	for i in range(12 if large else 4):
+	for i in range((3 if large else 1) if mobile_skill_cards else (12 if large else 4)):
 		var offset = Vector2.from_angle(visual_rng.randf()*TAU)*radius*visual_rng.randf_range(0.35,1.45)
 		add_effect(pos+offset,"explosion",0.65,radius*1.4,0.05+i*0.075)
 
 func glow(pos: Vector2, radius: float, color: Color, strength: float = 1.0, step: float = 1.0):
+	if mobile_skill_cards:
+		pixel_disc(pos,minf(radius,32),Color(color,strength*0.12),maxf(step,4))
+		return
 	# Discrete square clusters rather than a smooth radial bloom.
 	radius = minf(radius,64)
 	pixel_disc(pos,radius,Color(color,strength*0.04),step)

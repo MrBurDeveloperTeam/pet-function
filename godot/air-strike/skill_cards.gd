@@ -7,7 +7,7 @@ const EFFECTS = {
  "evade":["Dodge +25%"], "leech":["40% drain chance","Heal 15% of damage"],
  "shield":["1 shield / 20s"], "defense":["Damage taken -8%"],
  "life":["Max HP +15%"], "laser":["Piercing laser","Damage +10%"],
- "drone":["Drone +1","50% aircraft damage"],
+ "drone":["Homing drone","100% DMG / 70% rate"],
  "reflect":["Bounce x1"], "double_damage":["Crit: extra hit"],
  "crit_bomb":["Crit: nearby bombs","50% damage"], "counter":["Dodge: 3 missiles","75% damage"],
  "vampire":["40% drain chance","Heal 25% of damage"], "nuclear_shield":["3 shields / 20s"],
@@ -15,7 +15,7 @@ const EFFECTS = {
  "ring_laser":["360-degree laser","Laser damage +20%"], "reflect2":["Bounce x3","Last hit: 50%"],
  "supercrit":["Crit +50% / DMG +50%","Max HP -15%"],
  "double_counter":["Dodge +20%","6 missiles / 85% DMG"],
- "vamp_drone":["Drone DMG +10%","Life-draining drones"],
+ "vamp_drone":["Homing drone","Life-draining drones"],
  "dimension":["Max HP +60% / saves x2","Damage -20%"],
  "ascend_laser":["Laser damage +5%"], "ascend_crit":["Crit damage +5%"],
  "ascend_shield":["Shield cooldown -5%"], "repair":["Recover 15% HP"]
@@ -81,12 +81,12 @@ func draw_card(g, entry: Array, index: int):
  var footer = "BASIC" if tier <= 1 else ("ADVANCED" if tier == 2 else "ULTIMATE")
  label(g,"%d  /  %s" % [index+1,footer],card,card.end.y-12,10,accent)
 
-func mobile_lines(text: String, width: float, size: int) -> Array[String]:
+func mobile_lines(text: String, width: float, size: int, text_font: Font = ThemeDB.fallback_font) -> Array[String]:
  var result: Array[String] = []
  var line := ""
  for word in text.split(" "):
   var next := word if line.is_empty() else line+" "+word
-  if not line.is_empty() and ThemeDB.fallback_font.get_string_size(next,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x>width:
+  if not line.is_empty() and text_font.get_string_size(next,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x>width:
    result.append(line)
    line=word
   else: line=next
@@ -94,9 +94,9 @@ func mobile_lines(text: String, width: float, size: int) -> Array[String]:
  return result
 
 func mobile_text(g, text: String, card: Rect2, y: float, size: int, color: Color) -> float:
- for line in mobile_lines(text,card.size.x-20,size):
-  var width := ThemeDB.fallback_font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x
-  g.paint.draw_string(ThemeDB.fallback_font,Vector2(card.get_center().x-width/2,y),line,HORIZONTAL_ALIGNMENT_LEFT,-1,size,color)
+ for line in mobile_lines(text,card.size.x-20,size,g.font):
+  var width: float = g.font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x
+  g.paint.draw_string(g.font,Vector2(card.get_center().x-width/2,y),line,HORIZONTAL_ALIGNMENT_LEFT,-1,size,color)
   y+=size*1.2
  return y
 
