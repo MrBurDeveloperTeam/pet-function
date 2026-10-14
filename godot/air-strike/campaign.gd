@@ -11,7 +11,8 @@ var infinite_wave = 0
 var super_offer = false
 var hazards: Array = []
 var hazard_timer = 10.0
-const DIFFICULTY_MULTIPLIER := 0.6
+const DIFFICULTY_MULTIPLIER := 0.69
+const BOSS_HEALTH_MULTIPLIER := 0.7 / 1.15
 const CHAPTERS = ["CORAL PATROL","IRON ARMADA","AMBUSH","SHIELD FRONT","SUPPORT SQUADRON","ELITE STRIKE","LASER SECTOR","BULLET STORM","COMBINED ARMS","FINAL OPERATION"]
 const ROLES = ["fighter","fast","armored","tank","sniper","spread","dash","suicide","shielded","shield_support","healer","missile","summoner"]
 const AFFIXES = ["fast","armored","shield","berserk","double_shot"]
@@ -155,6 +156,7 @@ func prepare_boss(e: Dictionary):
 	e.damage *= 1.2
 	e.attack_cadence = 1.0+late*0.25
 	e.max_hp *= 1.5 if game.infinite_mode and infinite_wave%50 == 0 else 1.0
+	e.max_hp *= BOSS_HEALTH_MULTIPLIER
 	e.hp = e.max_hp
 	if not game.infinite_mode:
 		if chapter() >= 3: e.mutations.append("shield")
@@ -217,10 +219,31 @@ func update_enemy(e: Dictionary, delta: float):
 			if other != e and other.kind != "boss" and other.pos.distance_to(e.pos) < 170: other.shield = maxi(1,other.get("shield",0))
 	if e.role == "summoner": summon(e)
 func summon(e: Dictionary, roles: Array = ["fighter","fast"]):
-	if game.enemies.size() >= 30: return
-	for i in range(roles.size()):
-		var role: String = roles[i]
-		game.spawn_enemy("ship" if role in ["healer","shield_support"] else "fighter",e.pos+Vector2((i-1)*65,55),i,role)
+	var boss_summon: bool = e.kind=="boss"
+	var count := 10 if boss_summon else roles.size()
+	if game.enemies.size()+count>30: return
+	for i in range(count):
+		var role: String = roles[i%roles.size()]
+		var pos: Vector2 = e.pos+Vector2((i-1)*65,55)
+		if boss_summon:
+			# Reinforcements stay near the boss horizontal line and away from the player.
+			var safe_rect: Rect2 = game.combat_rect.grow(-30)
+			var found := false
+			for attempt in range(64):
+				pos=Vector2(game.rng.randf_range(safe_rect.position.x,safe_rect.end.x),game.rng.randf_range(maxf(safe_rect.position.y,e.pos.y-35),minf(safe_rect.end.y,e.pos.y+35)))
+				if pos.distance_to(game.player)<180 or pos.distance_to(e.pos)<e.radius+28: continue
+				if game.enemies.any(func(other): return other.kind!="boss" and other.pos.distance_to(pos)<42): continue
+				found=true
+				break
+			if not found:
+				# On crowded narrow screens, use a randomized off-screen entry instead.
+				pos=Vector2(game.rng.randf_range(safe_rect.position.x,safe_rect.end.x),game.combat_rect.position.y-40-i*28)
+		game.spawn_enemy("ship" if role in ["healer","shield_support"] else "fighter",pos,i,role)
+		if boss_summon:
+			var summoned: Dictionary = game.enemies.back()
+			summoned.hp*=1.7
+			summoned.max_hp=summoned.hp
+			summoned.boss_summoned=true
 func fire(e: Dictionary) -> bool:
 	if e.kind == "boss": return false
 	if game.enemy_shots.size() >= 90: return true

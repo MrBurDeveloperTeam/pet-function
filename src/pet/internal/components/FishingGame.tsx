@@ -355,12 +355,12 @@ const FishingTutorial = ({ step, onBack, onNext, onSkip, touchMode = false }: { 
     {touchMode&&<style>{`
       .fishing-mobile-lesson-copy>div:first-child{margin-bottom:6px;padding-bottom:4px;gap:6px;border-bottom-width:2px}
       .fishing-mobile-lesson-copy h2{font-size:14px;line-height:1.3}
-      .fishing-mobile-lesson-copy p{font-size:12px;line-height:1.5;margin-top:4px}
-      .fishing-mobile-lesson-copy>div:last-child{margin-top:8px}
+      .fishing-mobile-lesson-copy p{font-size:12px;line-height:1.5;margin-top:4px;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+      .fishing-mobile-lesson-copy>div:last-child{margin-top:8px;flex-shrink:0;flex-wrap:wrap}.fishing-mobile-lesson-copy>div:first-child,.fishing-mobile-lesson-copy h2{flex-shrink:0}.fishing-mobile-lesson-copy>div:last-child>div{flex-wrap:wrap;max-width:100%}
       .fishing-mobile-lesson-copy button{padding:7px 9px;min-height:32px}
       .fishing-mobile-lesson [aria-label="Fishing colour match control"],.fishing-mobile-lesson [aria-label="Fishing power selector"]{top:42%!important}
     `}</style>}
-    <section style={touchMode?{top:step===0?'22%':'auto',bottom:step===0?'auto':8,left:8,width:'calc(100% - 16px)',transform:'none',padding:10,borderWidth:3}:undefined} className={`${touchMode?'fishing-mobile-lesson-copy':''} absolute left-1/2 top-1/2 w-[min(390px,calc(100%_-_2rem))] -translate-x-1/2 -translate-y-1/2 border-4 border-[#5a3a22] bg-[#fff3bd] p-4 text-[#51341f] shadow-[7px_7px_0_rgba(40,25,15,.72)]`}>
+    <section style={touchMode?{top:step===0?'22%':'auto',bottom:step===0?'auto':8,left:8,width:'calc(100% - 16px)',boxSizing:'border-box',maxHeight:step===0?'34%':'30%',display:'flex',flexDirection:'column',transform:'none',translate:'none',padding:10,borderWidth:3}:undefined} className={`${touchMode?'fishing-mobile-lesson-copy':''} absolute border-4 border-[#5a3a22] bg-[#fff3bd] p-4 text-[#51341f] shadow-[7px_7px_0_rgba(40,25,15,.72)]`}>
       <div className="mb-3 flex items-center justify-between gap-3 border-b-4 border-dashed border-[#c0843d] pb-2">
         <strong className="text-xs font-black uppercase tracking-[0.13em]">Fishing tutorial</strong>
         <span className="border-2 border-[#5a3a22] bg-[#f6a83b] px-2 py-1 text-[10px] font-black">{step + 1} / {FISHING_TUTORIAL_STEPS.length}</span>

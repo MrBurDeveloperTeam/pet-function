@@ -46,7 +46,7 @@ test('fishing includes a persistent step-by-step highlighted tutorial', () => {
   assert.match(fishingSource, /Follow the !!! signal/);
   assert.match(fishingSource, /Hit the matching colour/);
   assert.match(fishingSource, /Pull the fish closer/);
-  assert.match(fishingSource, /Catch and collect/);
+  assert.doesNotMatch(fishingSource, /Catch and collect/);
   assert.match(fishingSource, /Every attempt changes the !!! and reshuffles the roulette/);
   assert.match(fishingSource, /pet-function:fishing-tutorial-complete-v1/);
   assert.match(fishingSource, /role="dialog" aria-modal="true" aria-label="Fishing tutorial"/);
@@ -54,7 +54,7 @@ test('fishing includes a persistent step-by-step highlighted tutorial', () => {
   assert.match(fishingSource, /const displayPhase = tutorialPreviewPhase \|\| phase/);
   assert.match(fishingSource, /tutorialStep === 1 \? 50 : pointer/);
   assert.match(fishingSource, /tutorialStep === 3 \? 'orange' : tutorialStep === 4 \? 'green' : struggleState/);
-  assert.match(fishingSource, /tutorialStep === 5 \? tutorialResult : result!/);
+  assert.doesNotMatch(fishingSource, /tutorialResult/);
   assert.match(fishingSource, /right-3 top-32/);
   assert.match(fishingSource, /0_0_0_9999px_rgba\(23,37,24,\.75\)/);
   assert.doesNotMatch(fishingSource, /z-\[70\] bg-\[#172518\]\/75/);

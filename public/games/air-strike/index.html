@@ -18,7 +18,7 @@
     function failed(error){status.textContent='Could not load the mission: '+String(error);progress.hidden=true;const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=()=>location.reload();panel.appendChild(retry);window.parent.postMessage({source:'air-strike',type:'ERROR'},location.origin);}
     try {
       if(window.PetGamePerformance.mobile)document.getElementById('canvas').style.imageRendering='auto';
-      const engine=new Engine({executable:'/games/mole-game/index',mainPack:'/games/air-strike/index.pck?v=first-frame-loading-22',fileSizes:{'/games/air-strike/index.pck?v=first-frame-loading-22':16713628,'/games/mole-game/index.wasm':39514754},canvasResizePolicy:window.PetGamePerformance.canvasPolicy(2),focusCanvas:true,gdextensionLibs:[],ensureCrossOriginIsolationHeaders:false});
+      const engine=new Engine({executable:'/games/mole-game/index',mainPack:'/games/air-strike/index.pck?v=adaptive-effects-34',fileSizes:{'/games/air-strike/index.pck?v=adaptive-effects-34':16721244,'/games/mole-game/index.wasm':39514754},canvasResizePolicy:window.PetGamePerformance.canvasPolicy(2),focusCanvas:true,gdextensionLibs:[],ensureCrossOriginIsolationHeaders:false});
       const missing=Engine.getMissingFeatures({threads:false});
       if(missing.length)throw new Error(missing.join(', '));
       engine.startGame({canvas:document.getElementById('canvas'),onProgress:(current,total)=>{if(total>0){progress.max=total;progress.value=current;window.parent.postMessage({source:'air-strike',type:'LOAD_PROGRESS',current,total},location.origin);}}}).then(()=>{panel.hidden=true;panel.style.display='none';document.getElementById('canvas').focus();},failed);

@@ -269,8 +269,7 @@ func update(delta: float):
 	if airstrike_pending:
 		airstrike_pending = false
 		airstriking = true
-		game.add_effect(game.player,"bomb",0.9,game.arena_size.x*0.9)
-		game.bomb_flash = 0.6
+		game.trigger_ultimate_visual()
 		game.play_cue("airstrike")
 		game.notice = "ULTIMATE BOMBARDMENT / 30 KILLS"
 		game.notice_time = 3
@@ -329,13 +328,16 @@ func survive() -> bool:
 		game.hp = maxf(1,max_health()*0.3)
 		game.invincible = 2
 		game.play_cue("revive")
+		game.trigger_revival_visual("TALENT REVIVAL")
 		return true
 	var saves = 2 if skill("dimension") else (1 if skill("life_evolve") else 0)
+	var triggered_unyielding = false
 	if saves_used < saves:
 		saves_used += 1
 		game.notice = "LIFE SAVE / %d LEFT" % (saves-saves_used)
 	elif has(13) and not unyielding_used:
 		unyielding_used = true
+		triggered_unyielding = true
 		game.notice = "UNYIELDING / FATAL HIT SURVIVED"
 	else:
 		return false
@@ -343,4 +345,8 @@ func survive() -> bool:
 	game.hp = 1
 	game.play_cue("revive")
 	game.invincible = 2
+	if triggered_unyielding:
+		game.trigger_unyielding_visual()
+	else:
+		game.trigger_revival_visual("LIFE SAVE")
 	return true

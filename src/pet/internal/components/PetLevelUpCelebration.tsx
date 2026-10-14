@@ -1,38 +1,50 @@
-import {useEffect,useRef} from 'react';
+import {useEffect,useRef,type CSSProperties} from 'react';
+import crest from '../../../assets/level-up-crest-v1.webp';
 
 export function PetLevelUpCelebration({level,onDone}:{level:number;onDone:()=>void}) {
  const finish=useRef(onDone);finish.current=onDone;
  useEffect(()=>{
   let context:AudioContext|undefined;
-  try {
+  try{
    context=new AudioContext();void context.resume().catch(()=>{});
-   const gain=context.createGain();gain.gain.value=.09;gain.connect(context.destination);
-   [523.25,659.25,783.99,1046.5].forEach((frequency,i)=>{
+   const master=context.createGain();master.gain.value=.07;master.connect(context.destination);
+   [261.63,329.63,392,523.25,659.25,783.99].forEach((frequency,i)=>{
     const tone=context!.createOscillator(),volume=context!.createGain();
-    const start=context!.currentTime+i*.11;
-    tone.type='sine';tone.frequency.value=frequency;
-    volume.gain.setValueAtTime(0,start);volume.gain.linearRampToValueAtTime(1,start+.015);volume.gain.exponentialRampToValueAtTime(.001,start+.45);
-    tone.connect(volume);volume.connect(gain);tone.start(start);tone.stop(start+.5);
+    const start=context!.currentTime+.08+i*.09;
+    tone.type='triangle';tone.frequency.value=frequency;
+    volume.gain.setValueAtTime(0,start);volume.gain.linearRampToValueAtTime(.5,start+.025);volume.gain.exponentialRampToValueAtTime(.001,start+1.1);
+    tone.connect(volume);volume.connect(master);tone.start(start);tone.stop(start+1.15);
    });
-  }catch{ /* Visual feedback remains available without browser audio. */ }
-  const timer=window.setTimeout(()=>finish.current(),1800);
+  }catch{/* The celebration also works when audio is unavailable. */}
+  const timer=window.setTimeout(()=>finish.current(),3800);
   return()=>{clearTimeout(timer);if(context)void context.close().catch(()=>{});};
  },[]);
- return <div className="pet-level-celebration" role="status" aria-live="polite">
+ return <div className="pet-level-celebration" role="status" aria-live="polite" aria-label={`Level up! Level ${level}`}>
   <style>{`
-   .pet-level-celebration{position:fixed;inset:0;z-index:1500;pointer-events:none;display:grid;place-items:center;overflow:hidden;isolation:isolate}
-   .pet-level-halo{position:absolute;width:min(65vw,600px);aspect-ratio:1;background:radial-gradient(circle,#f6c85d44,transparent 65%);animation:petLevelHalo 1.8s ease-out both}
-   .pet-level-rays{position:absolute;width:380px;height:380px;background:repeating-conic-gradient(from 0deg,#f7d88455 0deg 2deg,transparent 2deg 30deg);mask-image:radial-gradient(circle,transparent 28%,#000 36%,transparent 70%);animation:petLevelHalo 1.8s ease-out both}
-   .pet-level-star{position:absolute;left:50%;top:50%;width:20px;height:20px;background:#ffe791;clip-path:polygon(50% 0,61% 35%,100% 39%,71% 62%,80% 100%,50% 78%,20% 100%,29% 62%,0 39%,39% 35%);animation:petLevelStar 1.4s var(--delay) ease-out both}
-   .pet-level-message{position:relative;text-align:center;background:linear-gradient(120deg,#183e45ee,#09202aee);border:2px solid #f4cf79;padding:22px 34px;color:#fff1b6;box-shadow:0 0 45px #efcb5744,4px 4px 0 #081b24;animation:petLevelMessage 1.8s ease-out both;font-family:system-ui,sans-serif}
-   .pet-level-message span{display:block;font-weight:900;letter-spacing:.15em;font-size:clamp(20px,3vw,32px)}.pet-level-message strong{display:block;font-size:clamp(28px,4vw,46px);color:#a5f6df;margin-top:8px}
-   @keyframes petLevelMessage{0%{opacity:0;transform:scale(.6)}15%{opacity:1;transform:scale(1.08)}25%,75%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translateY(-15px) scale(.98)}}
-   @keyframes petLevelHalo{0%{opacity:0;transform:scale(.35) rotate(-10deg)}20%{opacity:1}100%{opacity:0;transform:scale(1.2) rotate(12deg)}}
-   @keyframes petLevelStar{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}15%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(130deg) scale(.5)}}
-   @media(prefers-reduced-motion:reduce){.pet-level-halo,.pet-level-rays,.pet-level-star{display:none}.pet-level-message{animation:none}}
+   .pet-level-celebration{position:fixed;inset:0;z-index:1500;pointer-events:none;display:grid;place-items:center;overflow:hidden;isolation:isolate;animation:petLevelExit 3.8s both}
+   .pet-level-shade{position:absolute;inset:0;background:radial-gradient(ellipse,#072b3366,#020b16b8);animation:petLevelShade 3.8s both}
+   .pet-level-flash{position:absolute;inset:0;background:#fff6d4;animation:petLevelFlash .65s ease-out both}
+   .pet-level-rays{position:absolute;width:min(140vw,1100px);aspect-ratio:1;background:repeating-conic-gradient(from 0deg,#ffdf8066 0deg 4deg,transparent 4deg 22deg);mask-image:radial-gradient(circle,transparent 12%,#000 25%,transparent 68%);animation:petLevelRays 3.8s ease-out both}
+   .pet-level-ring{position:absolute;width:min(55vw,450px);aspect-ratio:1;border:3px solid #ffe7a1;border-radius:50%;box-shadow:0 0 18px #f6cc63,inset 0 0 16px #a6ffea;animation:petLevelRing 1.4s var(--delay) ease-out both}
+   .pet-level-star{position:absolute;left:50%;top:50%;width:clamp(8px,2vw,20px);aspect-ratio:1;background:#fff1b0;clip-path:polygon(50% 0,60% 37%,100% 50%,60% 63%,50% 100%,40% 63%,0 50%,40% 37%);animation:petLevelStar 2.6s var(--delay) cubic-bezier(.1,.7,.2,1) both}
+   .pet-level-message{position:relative;width:min(90vw,650px,80dvh);aspect-ratio:1;animation:petLevelMessage 3.8s cubic-bezier(.2,.8,.2,1) both;text-align:center;color:#fff0bd;font-family:system-ui,sans-serif}
+   .pet-level-crest{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 10px 20px #0009)}
+   .pet-level-title{position:absolute;top:5%;left:0;right:0;font-size:clamp(22px,5vw,44px);font-weight:950;letter-spacing:.12em;color:#fff1c4;text-shadow:0 3px 0 #725020,0 0 18px #ffda78}
+   .pet-level-number{position:absolute;left:0;right:0;top:66%;font-size:clamp(36px,9vw,76px);font-weight:950;line-height:1;color:#e3fff4;text-shadow:0 3px 0 #093f43,0 0 22px #62eaca}
+   .pet-level-number small{display:block;font-size:clamp(10px,2vw,16px);letter-spacing:.25em;color:#f1d68c;margin-bottom:8px}
+   @keyframes petLevelMessage{0%{opacity:0;transform:scale(.25) translateY(60px) rotate(-7deg)}12%{opacity:1;transform:scale(1.08) translateY(0) rotate(2deg)}22%,85%{opacity:1;transform:scale(1) rotate(0)}100%{opacity:0;transform:scale(1.06) translateY(-25px)}}
+   @keyframes petLevelExit{0%,88%{opacity:1}100%{opacity:0}}
+   @keyframes petLevelShade{0%{opacity:0}12%,85%{opacity:1}100%{opacity:0}}
+   @keyframes petLevelFlash{0%{opacity:0}20%{opacity:.8}100%{opacity:0}}
+   @keyframes petLevelRays{0%{opacity:0;transform:scale(.4) rotate(-15deg)}16%{opacity:1}100%{opacity:0;transform:scale(1.15) rotate(30deg)}}
+   @keyframes petLevelRing{0%{opacity:0;transform:scale(.2)}15%{opacity:1}100%{opacity:0;transform:scale(2.4)}}
+   @keyframes petLevelStar{0%{opacity:0;transform:translate(-50%,-50%) scale(.1)}12%{opacity:1}65%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(180deg) scale(.3)}}
+   @media(pointer:coarse){.pet-level-star:nth-of-type(n+13){display:none}.pet-level-ring{box-shadow:none}.pet-level-crest{filter:none}}
+   @media(prefers-reduced-motion:reduce){.pet-level-flash,.pet-level-rays,.pet-level-star,.pet-level-ring{display:none}.pet-level-message,.pet-level-shade,.pet-level-celebration{animation:none}}
   `}</style>
-  <div className="pet-level-halo"/><div className="pet-level-rays"/>
-  {Array.from({length:16},(_,i)=><i key={i} className="pet-level-star" style={{'--x':`${Math.cos(i*Math.PI/8)*(150+i%3*35)}px`,'--y':`${Math.sin(i*Math.PI/8)*(130+i%3*35)}px`,'--delay':`${i%4*.055}s`} as React.CSSProperties}/>)}
-  <div className="pet-level-message"><span>LEVEL UP!</span><strong>LV {level}</strong></div>
+  <div className="pet-level-shade"/><div className="pet-level-flash"/><div className="pet-level-rays"/>
+  {[0,.2,.4].map(delay=><div key={delay} className="pet-level-ring" style={{'--delay':`${delay}s`} as CSSProperties}/>)}
+  {Array.from({length:24},(_,i)=><i key={i} className="pet-level-star" style={{'--x':`${Math.cos(i*Math.PI/12)*(170+i%3*70)}px`,'--y':`${Math.sin(i*Math.PI/12)*(170+i%3*70)}px`,'--delay':`${.1+i%4*.06}s`} as CSSProperties}/>)}
+  <div className="pet-level-message"><img src={crest} className="pet-level-crest" alt=""/><span className="pet-level-title">LEVEL UP!</span><strong className="pet-level-number"><small>NEW LEVEL</small>{level}</strong></div>
  </div>;
 }

@@ -212,7 +212,7 @@ function AirStrikeGameContent({onClose,userId}:{onClose:()=>void;userId?:string|
   const receive=(event:MessageEvent)=>{
    if(event.origin!==location.origin||event.source!==iframe.current?.contentWindow||event.data?.source!=='air-strike'||flight.owner!==(userId||'guest'))return;
    const data=event.data;
-   if(data.type==='READY'){clearTimeout(timer);setReady(true);setFailed(false);iframe.current?.contentWindow?.focus();}
+   if(data.type==='READY'){if(data.token!==flight.token||!Array.isArray(data.talents)||JSON.stringify(normalizeTalents(data.talents))!==JSON.stringify(normalizeTalents(flightTalents))){setFailed(true);setNotice('Aircraft talents could not be confirmed. Retry loading the mission.');return;}clearTimeout(timer);setReady(true);setFailed(false);iframe.current?.contentWindow?.focus();}
    if(data.type==='LOAD_PROGRESS'&&Number.isFinite(data.current)&&Number.isFinite(data.total)&&data.total>0)setLoadProgress(Math.max(0,Math.min(100,Math.floor(data.current/data.total*100))));
    if(data.type==='ERROR'){clearTimeout(timer);setFailed(true);}
    if(data.type==='HANGAR'||data.type==='CLOSE')setView('hangar');
@@ -235,7 +235,7 @@ function AirStrikeGameContent({onClose,userId}:{onClose:()=>void;userId?:string|
   };
   window.addEventListener('message',receive);
   return()=>{clearTimeout(timer);window.removeEventListener('message',receive);};
- },[view,retry,userId,flight]);
+ },[view,retry,userId,flight,flightTalents]);
  const launch=(stage=selectedStage,launchMode=mode)=>{
   if(launchBusy.current||arming||purchaseLock.current||(!!cloud.current&&cloudStatus!=='ready')||(!!flightCloud.current&&flightCloudStatus==='loading')||(!!aircraftCloud.current&&aircraftStatus==='loading')||(!!campaignCloud.current&&campaignStatus==='loading')||(launchMode==='endless'&&current.current.highestCleared<100))return;
   launchBusy.current=true;setMission(false);setNotice('');setArming(true);

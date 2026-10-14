@@ -368,7 +368,7 @@ const GamePageContent: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
                 </div>}
 
                 {isPixelRunner && runnerReady && <div className="pet-runner-hud pointer-events-none absolute inset-0 z-50">
-                    <style>{`@media(pointer:coarse){.pet-runner-hud .pet-runner-level{display:none}.pet-runner-hud .pet-coin-indicator{right:8px;top:12px}}`}</style>
+                    <style>{`@media(pointer:coarse){.pet-runner-hud .pet-runner-level{display:none}.snabbb-molar-experience .pet-runner-hud .pet-coin-indicator.pet-coin-indicator{right:8px!important;top:12px!important;transform:none!important;translate:none!important}}`}</style>
                     <CoinIndicator amount={stats.coins || 0} />
                     <div className="pet-runner-level pointer-events-auto"><LevelIndicator stats={stats} /></div>
                     <button type="button" onClick={() => exitGame()} aria-label="Return to Sports stadium" title="Return to Sports"

@@ -1,11 +1,21 @@
-import {useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {TALENTS,talentRequirement} from './airStrikeTalents.mjs';
 
 const CELLS=[1,0,3,0,0,10,19,2,13,16,13,16,17,8,12];
 const POINTS=Array.from({length:15},(_,i)=>({x:100+Math.floor(i/3)*220,y:Math.floor(i/3)%2===0?85+(i%3)*105:295-(i%3)*105}));
 
 export function AirStrikeTalentTree({owned,coins,buying,purchaseReady,onBuy}:{owned:number[];coins:number;buying:boolean;purchaseReady:boolean;onBuy:(id:number)=>void}){
- const [selected,setSelected]=useState<number|null>(null);
+ const [selected,setSelected]=useState<number|null>(()=>TALENTS.find(t=>!owned.includes(t.id)&&!talentRequirement(t.id,owned))?.id??TALENTS[TALENTS.length-1]?.id??null);
+ const previousOwned=useRef(owned);
+ useEffect(()=>{
+  const before=previousOwned.current;
+  previousOwned.current=owned;
+  setSelected(current=>{
+   // Advance only after ownership is confirmed; failed purchases keep selection.
+   if(current===null||before.includes(current)||!owned.includes(current))return current;
+   return TALENTS.find(t=>t.id>current&&!owned.includes(t.id)&&!talentRequirement(t.id,owned))?.id??current;
+  });
+ },[owned]);
  const talent=TALENTS.find(t=>t.id===selected),unlocked=!!talent&&owned.includes(talent.id),requirement=talent?talentRequirement(talent.id,owned):'';
  return <>
   <div className="sky-talent-map" aria-label="Permanent talent tree">

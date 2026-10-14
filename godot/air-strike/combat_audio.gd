@@ -28,6 +28,9 @@ func _ready():
 		var voice = AudioStreamPlayer.new()
 		add_child(voice)
 		voices.append(voice)
+	# Generate the expensive explosion cues while the loading screen is present.
+	for cue in ["explosion","boss_explosion","airstrike","shield","revive"]:
+		cache[cue] = synthesize(CUES[cue])
 
 func play(cue: String):
 	if not CUES.has(cue): return
