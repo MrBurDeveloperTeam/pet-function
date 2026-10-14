@@ -17,11 +17,11 @@ export function normalizeProgress(value) {
 }
 export function progressKey(userId) { return `sky-patrol:flight-progress:v1:${userId || 'guest'}`; }
 export function flightExperience(result) {
- if(!Number.isSafeInteger(result?.score)||result.score<0||result.score>1000000||!['victory','defeat'].includes(result.outcome))return 0;
+ if(result?.abandoned===true||!Number.isSafeInteger(result?.score)||result.score<0||result.score>1000000||!['victory','defeat'].includes(result.outcome))return 0;
  return Math.floor(result.score/100)+(result.outcome==='victory'?100:0);
 }
 export function awardRun(progress,result) {
- if(!Number.isSafeInteger(result?.score)||result.score<0||result.score>1000000||!['victory','defeat'].includes(result.outcome)) return progress;
+ if(result?.abandoned===true||!Number.isSafeInteger(result?.score)||result.score<0||result.score>1000000||!['victory','defeat'].includes(result.outcome)) return progress;
  const old=normalizeProgress(progress);
  return normalizeProgress({...old,xp:Math.min(8100,old.xp+flightExperience(result)),best:Math.max(old.best,result.score),runs:old.runs+1});
 }

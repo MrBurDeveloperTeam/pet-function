@@ -81,10 +81,10 @@ func routes(ultimate_only: bool = false) -> Array:
 			result.append(entry[4])
 	return result
 func eligible(entry: Array) -> bool:
-	if skill(entry[0]) or (entry[0] == "reflect2" and skill("ring_laser")):
+	if skill(entry[0]) or (entry[0] == "drone" and drone_count()>0):
 		return false
 	for required in entry[5]:
-		if not skill(required):
+		if not skill(required) and not (required == "drone" and drone_count()>0):
 			return false
 	var active = routes()
 	return game.infinite_mode or entry[4] == "" or active.has(entry[4]) or active.size() < 4
@@ -116,7 +116,7 @@ func candidate_pool(tier: int) -> Array:
 			result.append(entry)
 	return result
 func offer(initial: bool = false):
-	if not game.allow_skill_choices or routes(true).size() >= 4:
+	if not game.allow_skill_choices or (not game.infinite_mode and routes(true).size() >= 4):
 		return
 	if initial and opening_choices == 0:
 		opening_choices = 2 if has(3) else 1
@@ -179,7 +179,7 @@ func collect_energy(amount: int):
 	while energy >= energy_required():
 		energy -= energy_required()
 		skill_level += 1
-		if routes(true).size() < 4:
+		if game.infinite_mode or routes(true).size() < 4:
 			offer()
 			if game.state == "skill_choice": break
 
@@ -272,6 +272,8 @@ func update(delta: float):
 		game.add_effect(game.player,"bomb",0.9,game.arena_size.x*0.9)
 		game.bomb_flash = 0.6
 		game.play_cue("airstrike")
+		game.notice = "ULTIMATE BOMBARDMENT / 30 KILLS"
+		game.notice_time = 3
 		for i in range(game.enemies.size()-1,-1,-1):
 			if i >= game.enemies.size(): continue
 			var e = game.enemies[i]
@@ -319,19 +321,25 @@ func prevent_hit(allow_evade: bool = true) -> bool:
 func dodge_chance() -> float:
 	return (0.25 if skill("evade") else 0.0)+(0.2 if skill("double_counter") else 0.0)
 func survive() -> bool:
-	var saves = 2 if skill("dimension") else (1 if skill("life_evolve") else 0)
-	if saves_used < saves:
-		saves_used += 1
-	elif has(13) and not unyielding_used:
-		unyielding_used = true
-	elif has(14) and not revive_used:
+	# Permanent Revival is automatic and never spends the shared paid/ad quota.
+	if has(14) and not revive_used:
 		revive_used = true
+		game.notice = "TALENT REVIVAL / HP RESTORED"
+		game.notice_time = 3
 		game.hp = maxf(1,max_health()*0.3)
 		game.invincible = 2
 		game.play_cue("revive")
 		return true
+	var saves = 2 if skill("dimension") else (1 if skill("life_evolve") else 0)
+	if saves_used < saves:
+		saves_used += 1
+		game.notice = "LIFE SAVE / %d LEFT" % (saves-saves_used)
+	elif has(13) and not unyielding_used:
+		unyielding_used = true
+		game.notice = "UNYIELDING / FATAL HIT SURVIVED"
 	else:
 		return false
+	game.notice_time = 3
 	game.hp = 1
 	game.play_cue("revive")
 	game.invincible = 2

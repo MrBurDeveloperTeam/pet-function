@@ -228,7 +228,7 @@ func draw_cat() -> void:
 		var pulse: float = 0.65+sin(game.animation_time*7)*0.15
 		if game.phase_time<=3: pulse *= 0.6+sin(game.animation_time*14)*0.4
 		draw_circle(aura,83,Color(0.3,0.8,1,0.10*pulse))
-		draw_arc(aura,83,game.animation_time,game.animation_time+TAU*0.85,48,Color(0.5,0.9,1,0.65*pulse),3,true)
+		draw_arc(aura,83,game.animation_time,game.animation_time+TAU*0.85,16 if game.mobile_portrait else 48,Color(0.5,0.9,1,0.65*pulse),3,true)
 	draw_shadow(Vector2(ground.x,ground.y),110-game.runner.position.y*9,0.28)
 	if game.state=="crashed":
 		draw_hurt_cat(Vector2(p.x,p.y))
@@ -292,7 +292,7 @@ func draw_jet_exhaust(at: Vector2) -> void:
 		var nozzle := jet_nozzle(at,side)
 		var nozzle_x: float=game.runner.position.x+(nozzle.x-at.x)/VIEW.X_SCALE
 		var nozzle_height: float=game.runner.position.y+(at.y-nozzle.y)/VIEW.HEIGHT_SCALE
-		for i in range(12):
+		for i in range(4 if game.mobile_portrait else 12):
 			var phase := fposmod(game.animation_time*1.6+i/12.0+(0.17 if side>0 else 0),1.0)
 			var z := phase*7.8
 			var spread: float=side*phase*0.12+sin(phase*TAU+i)*phase*0.04
@@ -304,6 +304,7 @@ func draw_jet_exhaust(at: Vector2) -> void:
 			draw_texture_rect(texture,Rect2(Vector2(p.x,p.y)-size*0.5,size),false,Color(1,1,1,alpha))
 
 func draw_motion_dust(ground: Vector2) -> void:
+	if game.mobile_portrait: return
 	if game.state=="running" and not game.tutorial_waiting:
 		for i in range(3):
 			var phase := fmod(game.animation_time*4+i*0.3,1.0)

@@ -191,7 +191,13 @@ func verify() -> void:
 	game.runner.position.x=3
 	game.make_obstacle("bench",2,-0.1)
 	game.spawn_npc(2,-0.1)
-	assert(game.entities.size()==1 and game.entities[0].node.position.x>4.5,"NPC stands on the pavement and clears the adjacent obstacle")
+	assert(game.entities.size()==1 and game.entities[0].kind=="bench","NPC skips occupied positions instead of replacing an obstacle")
+	game.start_run(false,false)
+	game.spawn_time=1000
+	game.lane=2
+	game.runner.position.x=3
+	game.spawn_npc(2,-0.1)
+	assert(game.entities.size()==1 and game.entities[0].node.position.x>4.5,"NPC stands on a free pavement position")
 	game.make_obstacle("equipment",2,-10)
 	assert(game.entities.size()==1,"Later obstacle rows must respect the interaction clearance")
 	game._process(0.02)

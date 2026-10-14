@@ -4,6 +4,11 @@ func verify():
 	var cards = load("res://skill_cards.gd").new()
 	for arena in [Vector2(320,568),Vector2(390,844),Vector2(440,956),Vector2(844,390)]:
 		var first: Rect2 = cards.card_rect(arena,3,0,true)
+		for count in [1,2]:
+			var card: Rect2 = cards.card_rect(arena,count,0,true)
+			assert(card.size.is_equal_approx(first.size),"One and two mobile cards retain the three-card dimensions")
+			var last: Rect2 = cards.card_rect(arena,count,count-1,true)
+			assert(is_equal_approx((card.position.x+last.end.x)/2,arena.x/2),"Smaller offers remain centered")
 		var previous: Rect2 = first
 		for i in range(3):
 			var card: Rect2 = cards.card_rect(arena,3,i,true)

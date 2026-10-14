@@ -39,3 +39,11 @@ test('aircraft upgrades require confirmed pet-wallet payment, not flight XP',asy
  assert.deepEqual(await upgradeAircraft(funded,spend),funded);assert.equal(calls,count);
  assert.equal(normalizeProgress({xp:900}).aircraftTier,1);
 });
+
+// Leaving through the exit button must not credit either XP or flight progress.
+test('abandoned flight earns no experience and changes no saved progress',()=>{
+ const progress=normalizeProgress({xp:200,best:100,runs:2});
+ const result={score:50000,outcome:'defeat',abandoned:true};
+ assert.equal(flightExperience(result),0);
+ assert.deepEqual(awardRun(progress,result),progress);
+});

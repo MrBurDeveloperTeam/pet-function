@@ -4,7 +4,7 @@ export const TALENTS = [
  ['Piercing Rounds I','Bullets pierce one additional enemy. Bosses stop piercing rounds.'],['Piercing Rounds II','Bullets pierce two additional enemies. Bosses stop piercing rounds.'],
  ['Critical Power','Critical damage +20% (200% → 240%). Base critical chance: 10%.'],
  ['Missile Support','Fire a homing missile every 5 seconds for 50% of current base damage.'],
- ['Combat Drone','One drone follows you and deals 50% of current base damage.'],
+ ['Combat Drone','One homing drone: same current shot damage as your aircraft, firing at 70% of its rate.'],
  ['Drone Missiles','Drones fire homing missiles every 5 seconds for 50% of current base damage.'],
  ['Twin Drones','Two combat drones follow you.'],
  ['Unyielding','Once per stage: survive fatal damage with 1 HP and 2 seconds of invulnerability.'],

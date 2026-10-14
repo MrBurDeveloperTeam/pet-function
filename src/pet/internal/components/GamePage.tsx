@@ -367,9 +367,10 @@ const GamePageContent: React.FC<GamePageProps> = ({ gameId, onClose, onExitPet, 
                     </div>
                 </div>}
 
-                {isPixelRunner && runnerReady && <div className="pointer-events-none absolute inset-0 z-50">
+                {isPixelRunner && runnerReady && <div className="pet-runner-hud pointer-events-none absolute inset-0 z-50">
+                    <style>{`@media(pointer:coarse){.pet-runner-hud .pet-runner-level{display:none}.pet-runner-hud .pet-coin-indicator{right:8px;top:12px}}`}</style>
                     <CoinIndicator amount={stats.coins || 0} />
-                    <div className="pointer-events-auto"><LevelIndicator stats={stats} /></div>
+                    <div className="pet-runner-level pointer-events-auto"><LevelIndicator stats={stats} /></div>
                     <button type="button" onClick={() => exitGame()} aria-label="Return to Sports stadium" title="Return to Sports"
                         className="pointer-events-auto absolute left-3 top-3 transition-transform hover:-translate-x-1 sm:left-6 sm:top-6"
                         style={{ ...runnerButton, background: '#5a3a22', borderColor: '#e7b55b', color: '#ffe3a0' }}>

@@ -33,10 +33,10 @@ func run():
 	game.hp = 1
 	game.invincible = 0
 	game.hit_player()
-	check(game.hp == 1 and p.unyielding_used and not p.revive_used,"unyielding saves first fatal hit")
+	check(game.hp == 1 and p.revive_used and not p.unyielding_used and game.revive_count == 0,"talent revival saves first fatal hit without spending paid/ad quota")
 	game.invincible = 0
 	game.hit_player()
-	check(game.hp == 1 and p.revive_used,"revive separately saves next fatal hit")
+	check(game.hp == 1 and p.unyielding_used,"unyielding saves next fatal hit after talent revival")
 	game.invincible = 0
 	game.hit_player()
 	check(game.state == "ending_defeat","per-level saves cannot loop forever")
@@ -95,7 +95,7 @@ func run():
 	check(not p.eligible(vitality),"cannot enter fifth evolution route")
 	p.skills = ["ring_laser","reflect"]
 	var reflect2 = p.LIBRARY.filter(func(s): return s[0] == "reflect2")[0]
-	check(not p.eligible(reflect2),"ring laser makes ricochet II unavailable")
+	check(p.eligible(reflect2),"ring laser retains ricochet upgrade compatibility")
 	game.reset_run()
 	game.allow_skill_choices = true
 	p.offer(true)

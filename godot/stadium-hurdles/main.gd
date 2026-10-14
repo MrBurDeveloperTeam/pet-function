@@ -113,6 +113,7 @@ func view_depth_span() -> float:
 
 func configure_mobile_view(screen_size: Vector2i = Vector2i.ZERO) -> void:
 	if not mobile_portrait: return
+	Engine.max_fps=30
 	if screen_size == Vector2i.ZERO: screen_size = DisplayServer.window_get_size()
 	var height := maxi(960,roundi(720.0*screen_size.y/maxi(1,screen_size.x)))
 	get_tree().root.content_scale_size = Vector2i(720,height)
@@ -285,14 +286,17 @@ func spawn_air_diagonal(from_lane: int, to_lane: int, start_z: float) -> void:
 		make_obstacle("tooth",nearest_lane,start_z-travel_distance*phase,0.45,true,false,x)
 
 func spawn_powerup(kind: String, target_lane: int, z: float, air: bool = false, paid: bool = false) -> void:
-	# Every pickup has a clear approach, also respected by later hazard rows.
-	for i in range(entities.size()-1,-1,-1):
-		var entity: Dictionary=entities[i]
-		if absf(entity.node.position.x-(target_lane-1)*LANE_WIDTH)<1.65 and entity.get("air",false)==air and absf(entity.node.position.y-z)<10:
-			recycle_entity(entity.node)
-			entities.remove_at(i)
-	make_obstacle(kind,target_lane,z,0.8,air,paid)
-
+	# Never replace an already visible object to make room for a pickup.
+	for offset in range(3):
+		var candidate := (target_lane+offset)%3
+		var occupied := false
+		for entity in entities:
+			if absf(entity.node.position.x-(candidate-1)*LANE_WIDTH)<1.65 and entity.get("air",false)==air and absf(entity.node.position.y-z)<10:
+				occupied=true
+				break
+		if not occupied:
+			make_obstacle(kind,candidate,z,0.8,air,paid)
+			return
 func remove_opening_powerups() -> void:
 	for i in range(entities.size()-1,-1,-1):
 		if entities[i].get("paid",false):
@@ -386,15 +390,12 @@ func end_flight() -> void:
 	toast_time=1.0
 
 func spawn_npc(edge_lane: int, z: float) -> void:
-	# Leave the adjacent running lane clear, including rows spawned later.
-	for i in range(entities.size()-1,-1,-1):
-		var entity: Dictionary=entities[i]
-		if entity.lane==edge_lane and entity.kind!="npc" and absf(entity.node.position.y-z)<NPC_CLEARANCE:
-			recycle_entity(entity.node)
-			entities.remove_at(i)
+	# Skip occupied locations instead of deleting approaching obstacles.
+	for entity in entities:
+		if entity.lane==edge_lane and absf(entity.node.position.y-z)<NPC_CLEARANCE: return
+	var previous_count := entities.size()
 	make_obstacle("npc",edge_lane,z,0)
-	entities.back().node.position.x=-4.7 if edge_lane==0 else 4.7
-
+	if entities.size()>previous_count: entities.back().node.position.x=-4.7 if edge_lane==0 else 4.7
 func celebrate_high_five() -> void:
 	celebration_time=CELEBRATION_DURATION
 	jump_time=0
@@ -494,7 +495,8 @@ func request_tutorial() -> void:
 
 func _process(delta: float) -> void:
 	# Substeps prevent tunnelling without discarding time on slower frames.
-	var remaining := delta
+	var frame_delta := minf(delta,0.05) if mobile_portrait else delta
+	var remaining := frame_delta
 	while remaining>0 and state in ["running","crashed"]:
 		var dt := minf(remaining,1.0/120.0)
 		if state=="crashed":
@@ -513,7 +515,7 @@ func _process(delta: float) -> void:
 		reported_state=state
 		post_host("RUNNER_STATE",{"state":state,"tutorial":tutorial})
 	world.position=mobile_world_offset+(collision_shake(CRASH_DURATION-crash_time) if state=="crashed" else Vector2.ZERO)
-	var effect_delta := delta if state=="running" else 0.0
+	var effect_delta := frame_delta if state=="running" else 0.0
 	for i in range(sparks.size()-1,-1,-1):
 		var spark: Dictionary = sparks[i]
 		spark.life-=effect_delta

@@ -26,7 +26,8 @@ func card_rect(arena: Vector2, count: int, index: int, mobile := false) -> Rect2
  var columns = count if mobile or arena.x/arena.y >= 1.1 else mini(2,count)
  var rows = ceili(float(count)/columns)
  var gap = 14.0
- var width = minf(300.0 if mobile else 230.0,(arena.x-40-gap*(columns-1))/columns)
+ var sizing_columns = 3 if mobile else columns
+ var width = minf(300.0 if mobile else 230.0,(arena.x-40-gap*(sizing_columns-1))/sizing_columns)
  var height = minf(310.0,(arena.y-110-gap*(rows-1))/rows)
  if mobile: height = minf(arena.y-110,width*2.1)
  var row = int(index/columns)
@@ -108,8 +109,13 @@ func draw_mobile_card(g, entry: Array, index: int):
  var ratio: float = g.arena_size.x/maxf(1,css_width)
  var title_size := maxi(14,roundi(13*ratio))
  var body_size := maxi(12,roundi(11*ratio))
- g.paint.draw_rect(card,Color("102936"))
- g.paint.draw_rect(card,accent,false,2)
+ var p := card.position
+ var s := card.size
+ var cut := minf(12,s.x*.08)
+ var polygon := PackedVector2Array([p+Vector2(cut,0),p+Vector2(s.x-cut,0),p+Vector2(s.x,cut),p+Vector2(s.x,s.y-cut),p+Vector2(s.x-cut,s.y),p+Vector2(cut,s.y),p+Vector2(0,s.y-cut),p+Vector2(0,cut)])
+ g.paint.draw_colored_polygon(polygon,Color("142b38"))
+ polygon.append(polygon[0])
+ g.paint.draw_polyline(polygon,accent,2,true)
  var y: float = mobile_text(g,entry[1],card,card.position.y+title_size+8,title_size,Color("fff4dc"))
  var image_size := minf(card.size.x-28,card.size.y*.30)
  var image := Rect2(Vector2(card.get_center().x-image_size/2,y+4),Vector2.ONE*image_size)

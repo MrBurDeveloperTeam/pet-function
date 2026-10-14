@@ -198,11 +198,14 @@ func _ready():
 	if save.load("user://sky-patrol.cfg") == OK:
 		best = int(save.get_value("record", "best", 0))
 	add_child(audio)
-	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.airStrikeReady = true; window.parent.postMessage({source:'air-strike',type:'READY'}, window.location.origin)")
+
 	redraw_layers()
 	if lobby_launch:
 		reset_run()
+	if OS.has_feature("web"):
+		await RenderingServer.frame_post_draw
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.airStrikeReady = true; window.parent.postMessage({source:'air-strike',type:'READY'}, window.location.origin)")
 
 
 func redraw_layers():
@@ -555,13 +558,16 @@ func fire_player():
 	var count = (3 if progression.has(5) else (2 if progression.has(4) else 1))+(1 if progression.skill("bullet") else 0)
 	var damage: float = progression.current_damage()
 	if progression.skill("ring_laser"):
-		count = 12
+		count += 11
 	for i in range(count):
 		var offset = (i-(count-1)/2.0)*18
 		var angle = (i-(count-1)/2.0)*0.13 if count >= 3 else 0.0
 		if progression.skill("ring_laser"):
-			angle = i*TAU/12
-		shots.append(progression.projectile(player+Vector2(offset if count < 3 else 0,-30),Vector2(0,-690).rotated(angle),damage))
+			angle = i*TAU/count
+		var shot = progression.projectile(player+Vector2(offset if count < 3 else 0,-30),Vector2(0,-690).rotated(angle),damage)
+		shot.origin_offset = Vector2(offset if count < 3 else 0,0)
+		if shot.laser: shot.pos = laser_origin()+shot.origin_offset
+		shots.append(shot)
 
 func player_shot_interval() -> float:
 	var frequency = 0.75 if progression.skill("laser") or progression.skill("ring_laser") else 1.0
@@ -745,7 +751,7 @@ func update_shots(delta: float):
 		var endpoint: Vector2
 		if laser:
 			if b.get("bounce_count",0) == 0:
-				b.pos = laser_origin()
+				b.pos = laser_origin()+b.get("origin_offset",Vector2.ZERO)
 				prev = b.pos
 			if b.get("charge",0.0) > 0:
 				b.charge = maxf(0,b.charge-delta)
@@ -785,7 +791,7 @@ func update_shots(delta: float):
 				if e.hp <= 0:
 					kill_enemy(enemies.find(e))
 					if state != "playing": return
-				if e.kind != "boss" and b.get("bounces",0) > 0 and not progression.skill("ring_laser"):
+				if e.kind != "boss" and b.get("bounces",0) > 0:
 					var other = progression.nearest(e.pos,b.get("hits",[]))
 					if not other.is_empty():
 						b.bounces -= 1

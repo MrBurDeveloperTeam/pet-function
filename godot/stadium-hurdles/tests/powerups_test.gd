@@ -72,7 +72,7 @@ func verify() -> void:
 	game.make_obstacle("bench",2,-40)
 	game.spawn_powerup("magnet",2,-40)
 	game.make_obstacle("equipment",2,-43)
-	assert(game.entities.size()==1 and not game.entities[0].paid,"Random free items have a clear approach respected by later obstacles")
+	assert(game.entities.size()==3 and game.entities[1].kind=="magnet" and game.entities[1].lane!=2 and not game.entities[1].paid,"Free pickup moves to a clear lane without replacing visible obstacles")
 	fresh(game)
 	game.spawn_powerup("jetpack",1,-0.1)
 	game._process(0.02)

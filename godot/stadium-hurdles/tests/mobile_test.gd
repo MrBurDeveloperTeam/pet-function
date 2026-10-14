@@ -20,6 +20,9 @@ func verify():
 	game.set_process(false)
 	game.mobile_portrait = true
 	game.start_run()
+	var before_distance: float = game.distance
+	game._process(0.5)
+	assert(game.distance-before_distance <= game.speed*0.051,"Mobile long frames cannot jump half a second forward")
 	swipe(game,Vector2(-80,0))
 	assert(game.lane == 0,"Left swipe equals left arrow")
 	swipe(game,Vector2(80,0))

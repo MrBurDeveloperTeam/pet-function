@@ -870,6 +870,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
+    let edgeHeldSeconds=0;
+    let edgeHeldDirection=0;
     let lastFrameAt = performance.now();
     const tick = (frameAt: number) => {
       if(roomScreenBlockedRef.current){lastFrameAt=frameAt;indoorPetRaf.current=requestAnimationFrame(tick);return;}
@@ -929,6 +931,32 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           }
         }
 
+        // Only deliberate outward manual input can leave an indoor room.
+        // Auto-walk targets (furniture/bed), vertical motion and ordinary proximity never do.
+        const atExitEdge = !roomTransition && !isRoomTransitionLoading
+          && !isWalkingToBedroomBed && !isReturningFromBedroomBed
+          && indoorPetTargetXRef.current===null && indoorPetTargetYOffsetRef.current===null
+          && verticalDirection===0 && horizontalDirection!==0
+          && (horizontalDirection<0 ? nextX<=bounds.min+1 : nextX>=bounds.max-1);
+        if(atExitEdge){
+          if(edgeHeldDirection!==horizontalDirection)edgeHeldSeconds=0;
+          edgeHeldDirection=horizontalDirection;
+          edgeHeldSeconds+=elapsedSeconds;
+          if(edgeHeldSeconds>=0.2){
+            const exits=(ROOM_EXITS[currentRoom]||[]).filter(exit=>exit.direction===(horizontalDirection<0?'left':'right'));
+            const depthMid=verticalBounds?(verticalBounds.min+verticalBounds.max)/2:0;
+            const exit=exits.length>1?(nextYOffset<=depthMid?exits[0]:exits[1]):exits[0];
+            if(exit){
+              indoorMovementKeysRef.current={left:false,right:false,up:false,down:false};
+              setIndoorPetPose('idle');
+              setRoomTransition(exit);
+              setLoadingAnimationKey(key=>key+1);
+              setIsRoomTransitionLoading(true);
+              return;
+            }
+          }
+        }else{edgeHeldSeconds=0;edgeHeldDirection=0;}
+
         if (nextX !== currentX) {
           indoorPetXRef.current = nextX;
           setIndoorPetX(nextX);
@@ -950,8 +978,40 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       cancelAnimationFrame(indoorPetRaf.current);
       indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
     };
-  }, [arcadePortal, bedroomSceneScale, currentRoom, isReturningFromBedroomBed, isSleeping, isWalkingToBedroomBed, roomTransition, setIsSleeping, showBathroomMenu, showFoodMenu, showGamesMenu, showMoleGame, showShopModal,mobileCamera,mobileViewport.width,mobileViewport.height]);
+  }, [arcadePortal, bedroomSceneScale, currentRoom, isRoomTransitionLoading, isReturningFromBedroomBed, isSleeping, isWalkingToBedroomBed, roomTransition, setIsSleeping, showBathroomMenu, showFoodMenu, showGamesMenu, showMoleGame, showShopModal,mobileCamera,mobileViewport.width,mobileViewport.height]);
 
+  useEffect(() => {
+    if(currentRoom!==RoomType.TOWN_HOME || roomTransition || isRoomTransitionLoading || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu || isSleeping || arcadePortal)return;
+    let frame=0,last=performance.now(),held=0;
+    const tick=(now:number)=>{
+      const dt=Math.min((now-last)/1000,0.05);last=now;
+      const area=playAreaRef.current;
+      const keys=outsideMovementKeysRef.current;
+      if(area){
+        const rect=area.getBoundingClientRect();
+        const width=mobileCamera?mobileWorld.width:rect.width;
+        const height=mobileCamera?mobileWorld.height:rect.height;
+        const x=outsidePetPosRef.current.x/Math.max(1,width);
+        const y=outsidePetPosRef.current.y/Math.max(1,height);
+        // Only an intentional approach to the narrow doorstep enters the house.
+        const approaching=keys.up&&!keys.down&&!keys.left&&!keys.right
+          && x>=0.53&&x<=0.565&&y>=0.34&&y<=0.58
+          && outsidePointerTargetRef.current===null;
+        held=approaching?held+dt:0;
+        if(held>=0.2){
+          outsideMovementKeysRef.current={left:false,right:false,up:false,down:false};
+          outsidePointerTargetRef.current=null;
+          setRoomTransition(ROOM_DOOR_EXITS[RoomType.TOWN_HOME]!);
+          setLoadingAnimationKey(key=>key+1);
+          setIsRoomTransitionLoading(true);
+          return;
+        }
+      }
+      frame=requestAnimationFrame(tick);
+    };
+    frame=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(frame);
+  },[currentRoom,roomTransition,isRoomTransitionLoading,showShopModal,showFoodMenu,showBathroomMenu,showGamesMenu,isSleeping,arcadePortal,mobileCamera,mobileWorld.width,mobileWorld.height]);
   useEffect(() => {
     const doorExit = ROOM_DOOR_EXITS[currentRoom];
     const doorProximity = ROOM_DOOR_PROXIMITY[currentRoom];
@@ -1857,6 +1917,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             return (
               <button
                 key={activity}
+                data-pet-interaction-action={activity}
                 type="button"
                 className={`pet-stadium-activity absolute z-[12] -translate-x-1/2 -translate-y-1/2 border-0 bg-transparent p-0 outline-none ${isNearby ? 'is-nearby' : ''}`}
                 style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%`,...(mobileCamera?{pointerEvents:'auto' as const}:{}) }}
@@ -2141,7 +2202,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
               lookAt={isBallMoving ? ballPos : null}
               displayScale={getOutdoorPetScale(currentRoom)}
               showDirtyEffects={false}
-              sleepLabelClassName="-top-4 -right-2"
+              sleepLabelClassName="-top-8 -right-6"
               spriteSheetUrl={activePet.spriteSheetUrl}
               mouthPosition={activePet.mouthPosition}
               idleFrames={activePet.idleFrames}
@@ -2189,7 +2250,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                 }
                 displayScale={bedroomSceneScale * BEDROOM_PET_SCALE_MULTIPLIER}
                 sleepVisualOffsetY={0}
-                sleepLabelClassName="top-[10%] left-1/2 -translate-x-1/2 whitespace-nowrap"
+                sleepLabelClassName="-top-[5%] left-[75%] -translate-x-1/2 whitespace-nowrap"
                 spriteSheetUrl={activePet.spriteSheetUrl}
                 mouthPosition={activePet.mouthPosition}
                 idleFrames={activePet.idleFrames}
