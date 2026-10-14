@@ -577,7 +577,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     setShowGamesMenu(false);
     setActiveShop(null);
 
-    if (currentRoom === RoomType.FISHING_POND) {
+    if (currentRoom === RoomType.FISHING_POND || (currentRoom === RoomType.SPORTS_GROUND && exit.destination === RoomType.SPORTS_STADIUM)) {
       setRoomTransition(exit);
       setLoadingAnimationKey((key) => key + 1);
       setIsRoomTransitionLoading(true);
@@ -997,9 +997,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         const atDoor=currentRoom===RoomType.TOWN_HOME
           ? x>=0.53&&x<=0.565&&y>=0.34&&y<=0.58
           : currentRoom===RoomType.SPORTS_GROUND
-            ? x>=0.46&&x<=0.54&&y>=0.11&&y<=0.25
+            ? x>=0.46&&x<=0.54&&y>=0.18&&y<=0.27
             : x>=0.38&&x<=0.62&&y>=0.84&&y<=0.98;
-        const towardDoor=currentRoom===RoomType.SPORTS_STADIUM?keys.down&&!keys.up:keys.up&&!keys.down;
+        const towardDoor=currentRoom===RoomType.SPORTS_STADIUM||currentRoom===RoomType.SPORTS_GROUND?keys.down&&!keys.up:keys.up&&!keys.down;
         const approaching=atDoor&&towardDoor&&!keys.left&&!keys.right
           && outsidePointerTargetRef.current===null;
         held=approaching?held+dt:0;
@@ -1905,7 +1905,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
       <div style={mobileCamera?{...cameraWorldStyle,pointerEvents:'none'}:{display:'contents'}}><SceneCats key={currentRoom} room={currentRoom} spriteSheets={assetUrls?.spriteSheets} /></div>
 
-      <div style={mobileCamera&&OUTDOOR_ROOMS.has(currentRoom)?{...cameraWorldStyle,pointerEvents:'none'}:{display:'contents'}}>
+      <div style={mobileCamera&&OUTDOOR_ROOMS.has(currentRoom)?{...cameraWorldStyle,zIndex:25,pointerEvents:'none'}:{display:'contents'}}>
       {currentRoom === RoomType.SPORTS_STADIUM && (
         <>
           {(['football', 'hurdle'] as StadiumActivity[]).map((activity) => {
@@ -2012,8 +2012,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       })}
 
       </div>
-      <div style={mobileCamera?{...cameraWorldStyle,pointerEvents:'none'}:{display:'contents'}}>
-      <RoomInteractionOutlines
+      <div style={mobileCamera?{...cameraWorldStyle,zIndex:25,pointerEvents:'none'}:{display:'contents'}}> <RoomInteractionOutlines
         room={currentRoom}
         hidden={!!arcadePortal || !!roomTransition || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu}
         onKeyboardActivate={currentRoom === RoomType.KART_TRACK ? () => activateKartFromEntrance() : undefined}
@@ -2333,7 +2332,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
       {/* Playroom Ball */}
       {currentRoom === RoomType.PLAYROOM && !showMoleGame && (
-        <div style={mobileCamera?cameraWorldStyle:{display:'contents'}}>
+        <div style={mobileCamera?{...cameraWorldStyle,pointerEvents:'none'}:{display:'contents'}}>
         <Ball
           position={ballPos}
           isDragging={isDraggingBall}

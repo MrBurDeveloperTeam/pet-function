@@ -20,6 +20,7 @@ const Ball: React.FC<BallProps> = ({ position, isDragging, onPointerDown, imageS
             className={`absolute h-[120px] w-[120px] cursor-grab active:cursor-grabbing touch-none z-50 flex items-center justify-center select-none transition-transform ${imageSrc || icon ? '' : 'rounded-full shadow-2xl border-2 border-white/50'
                 }`}
             style={{
+                pointerEvents: 'auto',
                 left: position.x,
                 top: position.y,
                 transform: 'translate(-50%, -50%)',

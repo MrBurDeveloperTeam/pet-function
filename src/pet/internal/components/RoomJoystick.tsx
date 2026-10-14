@@ -34,10 +34,10 @@ export function RoomJoystick({onMove,disabled}:{onMove:(x:number,y:number)=>void
    petDrag.current=onPet;suppressClick.current=false;if(!onPet){e.preventDefault();e.stopPropagation();}
    if(fade.current)clearTimeout(fade.current);
    const rect=surface.getBoundingClientRect();origin.current={x:e.clientX,y:e.clientY};pointer.current=e.pointerId;
-   setCenter({x:e.clientX-rect.left,y:e.clientY-rect.top});setActive(true);setStick({x:0,y:0});move.current(0,0);
+   setCenter(onPet?null:{x:e.clientX-rect.left,y:e.clientY-rect.top});setActive(!onPet);setStick({x:0,y:0});move.current(0,0);
    if(!onPet)surface.setPointerCapture(e.pointerId);
   };
-  const drag=(e:PointerEvent)=>{if(e.pointerId===pointer.current){if(petDrag.current){if(Math.hypot(e.clientX-origin.current.x,e.clientY-origin.current.y)<9)return;petDrag.current=false;suppressClick.current=true;surface.setPointerCapture(e.pointerId);}e.preventDefault();e.stopPropagation();update(e.clientX,e.clientY);}};
+  const drag=(e:PointerEvent)=>{if(e.pointerId===pointer.current){if(petDrag.current){if(Math.hypot(e.clientX-origin.current.x,e.clientY-origin.current.y)<9)return;petDrag.current=false;suppressClick.current=true;const rect=surface.getBoundingClientRect();setCenter({x:origin.current.x-rect.left,y:origin.current.y-rect.top});setActive(true);surface.setPointerCapture(e.pointerId);}e.preventDefault();e.stopPropagation();update(e.clientX,e.clientY);}};
   const up=(e:PointerEvent)=>{if(e.pointerId===pointer.current)stop();};
   // Capture transfer from the cat bubbles a lost event; it is not a release.
   const lost=(e:PointerEvent)=>{if(e.target===surface&&e.pointerId===pointer.current&&!surface.hasPointerCapture(e.pointerId))stop();};

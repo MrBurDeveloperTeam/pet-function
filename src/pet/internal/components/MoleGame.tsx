@@ -50,6 +50,8 @@ const isMoleGameMessage = (value: unknown): value is MoleGameMessage => {
 export const PixelMoleMound = ({ onOpen }: { onOpen: () => void }) => (
   <button
     type="button"
+    data-pet-interaction-action="mole-game"
+    onPointerDown={(event) => event.stopPropagation()}
     onClick={onOpen}
     className="group absolute left-[76%] top-[62%] z-[18] h-28 w-40 -translate-x-1/2 -translate-y-1/2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#fff4bd]"
     aria-label="Enter the underground mole game"
