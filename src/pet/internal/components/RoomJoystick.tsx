@@ -27,6 +27,8 @@ export function RoomJoystick({onMove,disabled}:{onMove:(x:number,y:number)=>void
   const down=(e:PointerEvent)=>{
    if(blocked.current||pointer.current!==null||!['touch','pen'].includes(e.pointerType)||e.button!==0)return;
    const target=e.target instanceof Element?e.target:null;
+   // Drag toys own the whole gesture; never capture their pointer for movement.
+   if(target?.closest('[data-pet-joystick-exclude]')){suppressClick.current=false;return;}
    const onPet=!!target?.closest('[data-pet-joystick-ignore],[data-pet-interaction-action]');
    if(!target||(!onPet&&target.closest('button,a,input,textarea,select,[contenteditable="true"],[role="dialog"],[role="button"],[data-pet-movement-block],[data-pet-joystick-ignore]')))return;
    petDrag.current=onPet;suppressClick.current=false;if(!onPet){e.preventDefault();e.stopPropagation();}

@@ -1639,7 +1639,10 @@
 }
 
 .snabbb-molar-experience .pet-stadium-football { width: clamp(46px, 5.2vw, 82px); }
-.snabbb-molar-experience .pet-stadium-hurdle { width: clamp(58px, 6vw, 104px); }
+.snabbb-molar-experience .pet-stadium-hurdle { width: clamp(87px, 9vw, 156px); }
+@media (pointer: coarse) and (max-width: 1400px) {
+  .snabbb-molar-experience .pet-stadium-hurdle { width: 144px; max-width: none; }
+}
 
 @keyframes pet-stadium-interaction-pulse {
   0%, 100% { opacity: 0.4; }

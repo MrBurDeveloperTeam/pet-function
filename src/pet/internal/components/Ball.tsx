@@ -15,7 +15,7 @@ interface BallProps {
 const Ball: React.FC<BallProps> = ({ position, isDragging, onPointerDown, imageSrc, color, icon }) => {
     return (
         <div
-            data-pet-joystick-ignore
+            data-pet-joystick-exclude
             onPointerDown={onPointerDown}
             className={`absolute h-[120px] w-[120px] cursor-grab active:cursor-grabbing touch-none z-50 flex items-center justify-center select-none transition-transform ${imageSrc || icon ? '' : 'rounded-full shadow-2xl border-2 border-white/50'
                 }`}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { getPetOption } from '../petOptions';
 import type { PetAssetUrls, RoomType } from '../types';
 import { SCENE_CATS, sampleSceneCat } from '../sceneCats';
@@ -6,7 +6,7 @@ const standingCatsUrl = '/pet-function/pets/scene-standing-cats.png';
 
 const STANDING_CELLS = { mallow: 0, silverbelt: 1, fastrat: 2, gulu: 3, munchkin: 4, mochi: 5 };
 
-export function SceneCats({ room, spriteSheets }: {
+function SceneCatsLayer({ room, spriteSheets }: {
   room: RoomType;
   spriteSheets?: PetAssetUrls['spriteSheets'];
 }) {
@@ -85,3 +85,6 @@ export function SceneCats({ room, spriteSheets }: {
     </div>
   );
 }
+
+// Player movement does not change the independent NPC layer.
+export const SceneCats = memo(SceneCatsLayer);

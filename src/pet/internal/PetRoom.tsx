@@ -124,7 +124,7 @@ const RINSE_COMPLETE_THRESHOLD = Math.ceil(MAX_BUBBLES * 0.05);
 const OUTSIDE_PET_SCALE = 0.75;
 const STADIUM_ACTIVITY_POSITIONS: Record<StadiumActivity, { x: number; y: number }> = {
   football: { x: 0.405, y: 0.49 },
-  hurdle: { x: 0.77, y: 0.665 },
+  hurdle: { x: 0.64, y: 0.645 },
 };
 const STADIUM_ACTIVITY_GAMES: Record<StadiumActivity, string> = {
   football: 'stadium-football',
@@ -342,13 +342,17 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const playAreaRef = useRef<HTMLDivElement>(null);
   const roomRootRef = useRef<HTMLDivElement>(null);
   const [mobileViewport,setMobileViewport]=useState({active:false,width:0,height:0});
-  const [roomCamera,setRoomCamera]=useState({x:0,y:0});
   const mobileCamera=mobileViewport.active&&(OUTDOOR_ROOMS.has(currentRoom)||[RoomType.KITCHEN,RoomType.BATHROOM,RoomType.BEDROOM,RoomType.GAMES,RoomType.GARDEN].includes(currentRoom));
   useEffect(()=>{if(showMoleGame&&mobileViewport.active)ballVel.current={vx:0,vy:0};},[showMoleGame,mobileViewport.active]);
   const mobileWorld=mobileRoomSize(mobileViewport.width,mobileViewport.height);
   mobileBallBounds.current=mobileCamera&&currentRoom===RoomType.PLAYROOM?mobileWorld:null;
-  const boundedCamera=clampRoomCamera(roomCamera.x,roomCamera.y,mobileWorld,mobileViewport);
-  const cameraWorldStyle:React.CSSProperties|undefined=mobileCamera?{position:'absolute',width:mobileWorld.width,height:mobileWorld.height,left:-boundedCamera.x,top:-boundedCamera.y,flex:'none'}:undefined;
+  const cameraDepth=INDOOR_FLOOR_DEPTH[currentRoom]||(currentRoom===RoomType.GARDEN?{min:-0.22,max:0.34}:undefined);
+  const cameraX=OUTDOOR_ROOMS.has(currentRoom)?outsidePetPos.x:indoorPetX;
+  const cameraY=OUTDOOR_ROOMS.has(currentRoom)?outsidePetPos.y-mobileViewport.height*.66
+    :cameraDepth?((indoorPetYOffset/mobileWorld.height-cameraDepth.min)/(cameraDepth.max-cameraDepth.min))*(mobileWorld.height-mobileViewport.height)
+    :mobileWorld.height/2+INDOOR_PET_OFFSET_Y+indoorPetYOffset-mobileViewport.height*.66;
+  const boundedCamera=clampRoomCamera(cameraX-mobileViewport.width/2,cameraY,mobileWorld,mobileViewport);
+  const cameraWorldStyle:React.CSSProperties|undefined=mobileCamera?{position:'absolute',width:mobileWorld.width,height:mobileWorld.height,left:0,top:0,transform:`translate3d(${-boundedCamera.x}px,${-boundedCamera.y}px,0)`,flex:'none'}:undefined;
   useEffect(()=>{
     const root=roomRootRef.current;if(!root)return;
     const media=window.matchMedia('(pointer: coarse) and (max-width: 1400px)');
@@ -356,18 +360,6 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     update();const observer=new ResizeObserver(update);observer.observe(root);media.addEventListener('change',update);
     return()=>{observer.disconnect();media.removeEventListener('change',update);};
   },[]);
-  useEffect(()=>{
-    if(!mobileCamera){setRoomCamera({x:0,y:0});return;}
-    if(OUTDOOR_ROOMS.has(currentRoom)){
-      setRoomCamera(clampRoomCamera(outsidePetPos.x-mobileViewport.width/2,outsidePetPos.y-mobileViewport.height*.66,mobileWorld,mobileViewport));
-      return;
-    }
-    const pet=petRef.current?.getBoundingClientRect(),root=roomRootRef.current?.getBoundingClientRect();
-    if(!pet||!root)return;
-    const depth=INDOOR_FLOOR_DEPTH[currentRoom]||(currentRoom===RoomType.GARDEN?{min:-0.22,max:0.34}:undefined);
-    const y=depth&&!OUTDOOR_ROOMS.has(currentRoom)?((indoorPetYOffset/mobileWorld.height-depth.min)/(depth.max-depth.min))*(mobileWorld.height-mobileViewport.height):roomCamera.y+pet.top+pet.height/2-root.top-mobileViewport.height*.66;
-    setRoomCamera(previous=>clampRoomCamera(previous.x+pet.left+pet.width/2-root.left-mobileViewport.width/2,y,mobileWorld,mobileViewport));
-  },[mobileCamera,mobileViewport.width,mobileViewport.height,indoorPetX,indoorPetYOffset,outsidePetPos.x,outsidePetPos.y,currentRoom,bedroomSceneScale]);
   useEffect(()=>{
     if(mobileCamera&&currentRoom===RoomType.PLAYROOM){
       setBallPos({x:mobileWorld.width/2,y:mobileWorld.height*.8});
@@ -870,17 +862,24 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
+    let movementBounds=getIndoorPetBounds();
+    let movementDepth=getIndoorPetVerticalBounds();
+    const movementResize=new ResizeObserver(()=>{
+      movementBounds=getIndoorPetBounds();
+      movementDepth=getIndoorPetVerticalBounds();
+    });
+    if(playAreaRef.current)movementResize.observe(playAreaRef.current);
     let edgeHeldSeconds=0;
     let edgeHeldDirection=0;
     let lastFrameAt = performance.now();
     const tick = (frameAt: number) => {
       if(roomScreenBlockedRef.current){lastFrameAt=frameAt;indoorPetRaf.current=requestAnimationFrame(tick);return;}
-      const bounds = getIndoorPetBounds();
+      const bounds = movementBounds;
       const elapsedSeconds = Math.min((frameAt - lastFrameAt) / 1000, 0.05);
       lastFrameAt = frameAt;
 
       if (bounds) {
-        const verticalBounds = getIndoorPetVerticalBounds();
+        const verticalBounds = movementDepth;
         const keys = indoorMovementKeysRef.current;
         const horizontalDirection = Number(keys.right) - Number(keys.left);
         const verticalDirection = Number(keys.down) - Number(keys.up);
@@ -976,32 +975,38 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       cancelAnimationFrame(indoorPetRaf.current);
+      movementResize.disconnect();
       indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
     };
   }, [arcadePortal, bedroomSceneScale, currentRoom, isRoomTransitionLoading, isReturningFromBedroomBed, isSleeping, isWalkingToBedroomBed, roomTransition, setIsSleeping, showBathroomMenu, showFoodMenu, showGamesMenu, showMoleGame, showShopModal,mobileCamera,mobileViewport.width,mobileViewport.height]);
 
   useEffect(() => {
-    if(currentRoom!==RoomType.TOWN_HOME || roomTransition || isRoomTransitionLoading || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu || isSleeping || arcadePortal)return;
+    if(![RoomType.TOWN_HOME,RoomType.SPORTS_GROUND,RoomType.SPORTS_STADIUM].includes(currentRoom) || roomTransition || isRoomTransitionLoading || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu || isSleeping || arcadePortal)return;
     let frame=0,last=performance.now(),held=0;
     const tick=(now:number)=>{
       const dt=Math.min((now-last)/1000,0.05);last=now;
       const area=playAreaRef.current;
       const keys=outsideMovementKeysRef.current;
-      if(area){
+      if(area && !roomScreenBlockedRef.current){
         const rect=area.getBoundingClientRect();
         const width=mobileCamera?mobileWorld.width:rect.width;
         const height=mobileCamera?mobileWorld.height:rect.height;
         const x=outsidePetPosRef.current.x/Math.max(1,width);
         const y=outsidePetPosRef.current.y/Math.max(1,height);
         // Only an intentional approach to the narrow doorstep enters the house.
-        const approaching=keys.up&&!keys.down&&!keys.left&&!keys.right
-          && x>=0.53&&x<=0.565&&y>=0.34&&y<=0.58
+        const atDoor=currentRoom===RoomType.TOWN_HOME
+          ? x>=0.53&&x<=0.565&&y>=0.34&&y<=0.58
+          : currentRoom===RoomType.SPORTS_GROUND
+            ? x>=0.46&&x<=0.54&&y>=0.11&&y<=0.25
+            : x>=0.38&&x<=0.62&&y>=0.84&&y<=0.98;
+        const towardDoor=currentRoom===RoomType.SPORTS_STADIUM?keys.down&&!keys.up:keys.up&&!keys.down;
+        const approaching=atDoor&&towardDoor&&!keys.left&&!keys.right
           && outsidePointerTargetRef.current===null;
         held=approaching?held+dt:0;
         if(held>=0.2){
           outsideMovementKeysRef.current={left:false,right:false,up:false,down:false};
           outsidePointerTargetRef.current=null;
-          setRoomTransition(ROOM_DOOR_EXITS[RoomType.TOWN_HOME]!);
+          setRoomTransition(ROOM_DOOR_EXITS[currentRoom]!);
           setLoadingAnimationKey(key=>key+1);
           setIsRoomTransitionLoading(true);
           return;
@@ -1920,7 +1925,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                 data-pet-interaction-action={activity}
                 type="button"
                 className={`pet-stadium-activity absolute z-[12] -translate-x-1/2 -translate-y-1/2 border-0 bg-transparent p-0 outline-none ${isNearby ? 'is-nearby' : ''}`}
-                style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%`,...(mobileCamera?{pointerEvents:'auto' as const}:{}) }}
+                style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%`,...(!isFootball?{zIndex:24}:{}),...(mobileCamera?{pointerEvents:'auto' as const}:{}) }}
                 aria-label={isFootball ? 'Enter the football game' : 'Enter the hurdle game'}
                 title={isFootball ? 'Enter the football game' : 'Enter the hurdle game'}
                 onPointerDown={(event) => event.stopPropagation()}
@@ -2185,9 +2190,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           <div
             className="absolute z-20"
             style={{
-              left: outsidePetPos.x,
-              top: outsidePetPos.y,
-              transform: 'translate(-50%, -50%)',
+              left: 0,
+              top: 0,
+              transform: `translate3d(${outsidePetPos.x}px, ${outsidePetPos.y}px, 0) translate(-50%, -50%)`,
             }}
             data-pet-movement-block
           >
@@ -2223,9 +2228,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           <div
             className="absolute z-10 flex items-center justify-center"
             style={{
-              left: indoorPetX,
+              left: 0,
               bottom: BEDROOM_BED_BOTTOM_OFFSET * bedroomSceneScale,
-              transform: 'translateX(-50%)',
+              transform: `translate3d(${indoorPetX}px, 0, 0) translateX(-50%)`,
             }}
             data-pet-movement-block
           >
@@ -2272,8 +2277,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           <div
             className="absolute top-1/2 z-20"
             style={{
-              left: indoorPetX,
-              transform: `translate(-50%, calc(-50% + ${INDOOR_PET_OFFSET_Y + indoorPetYOffset}px))`,
+              left: 0,
+              transform: `translate3d(${indoorPetX}px, ${INDOOR_PET_OFFSET_Y + indoorPetYOffset}px, 0) translate(-50%, -50%)`,
             }}
             data-pet-movement-block
           >
