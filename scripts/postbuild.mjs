@@ -18,7 +18,7 @@
 //    `.snabbb-molar-experience` (see `src/pet/tailwind-entry.css`'s own
 //    header for why this exists instead of a hand-authored BEM
 //    conversion), and appends the scoped result to dist/styles.css.
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -47,9 +47,11 @@ for (const file of CLIENT_ENTRIES) {
 
 const cssSrc = join(root, 'src', 'styles', 'index.css');
 const cssOut = join(distDir, 'styles.css');
+const foundationCss = [cssSrc, join(root, 'src', 'styles', 'meow-presets.css')]
+  .map(file => readFileSync(file, 'utf8')).join('\n\n');
 mkdirSync(distDir, { recursive: true });
-copyFileSync(cssSrc, cssOut);
-console.log(`[postbuild] ${cssSrc} -> ${cssOut}`);
+writeFileSync(cssOut, foundationCss, 'utf8');
+console.log(`[postbuild] bundled foundation and cat sayings styles -> ${cssOut}`);
 
 // --- Scoped Tailwind utilities for the ported Virtual Pet components ---
 const tailwindEntry = join(root, 'src', 'pet', 'tailwind-entry.css');
@@ -378,7 +380,7 @@ lightLock.walkDecls(decl => {
   else decl.remove();
 });
 lightLock.walkRules(rule => { if (!rule.nodes.length) rule.remove(); });
-const foundationLock = postcss.parse(readFileSync(cssSrc, 'utf8'));
+const foundationLock = postcss.parse(foundationCss);
 foundationLock.walkAtRules(at => { if (at.name.includes('keyframes') || at.name === 'font-face') at.remove(); });
 foundationLock.walkRules(rule => {
   if (!rule.selector.includes('.snabbb-molar-experience')) { rule.remove(); return; }

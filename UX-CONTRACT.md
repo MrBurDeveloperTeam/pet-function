@@ -1,5 +1,34 @@
 # Shared pet behavior contracts
 
+## Floating companion sayings
+
+- Scope source: user's screenshot and clarification, 2026-10-16. Applies to the
+  floating cat on Superapp, Inventory, Appointment, Image Generator, Calculator,
+  Todo and E-learning pages. Pet-room NPC/shop dialogue is separate.
+- Canonical owners: useMeowDialogue.ts (account lifecycle, timing, priorities),
+  meowDialogue.mjs (states/defaults/validation), meowDialogueCloud.mjs (AIBoard
+  persistence), original AIBoard Meow Dialogue (editing), meow-presets.css (style).
+- The five existing AIBoard states and configured timing/disabled flags remain.
+  Personal text supplements built-ins; identical lines are deduplicated and the
+  random picker avoids immediate repetition. Welcome/business dialogue takes priority.
+- Settings use a named 44px link to the original AIBoard in a new tab; ordinary
+  cat clicks retain the pet-room destination. Editing uses AIBoard's original UI.
+- Saved dialogue is rendered as plain text, with no HTML interpretation.
+- Authenticated identity is checked at every operation, config queries are scoped
+  to user_id, and updates/deletes require original text and owned row identity.
+  Each new-line intent retains its UUID through uncertain retries. RLS is still
+  required server-side; actual live policies must pass the read-only schema audit.
+- Pending saves prevent duplicate actions; failures retain text and offer retry
+  or reload. A conflicting edit requires comparison with the latest saved version.
+  Success is shown only after a receipt. Account changes clear private text and
+  invalidate late responses. Sleep/hide pauses the loop and invalidates old work.
+- Read failures fall back to built-ins and expose editor Retry. Focus, visibility,
+  60-second refresh and same-origin BroadcastChannel revalidate confirmed data;
+  background reads pause while editing to preserve the draft's comparison baseline.
+- Verification: tests/meow-dialogue.test.mjs, tests/meow-dialogue-cloud.test.mjs,
+  existing seven-host dialogue/identity/bed tests, isolated browser CRUD/failure/
+  account-switch/narrow-viewport checks. See AIBOARD-DIALOGUE.md for deployment scope.
+
 ## Wardrobe
 
 - Canonical CRUD owner: usePetWardrobe.ts and PetRepository wardrobe methods.

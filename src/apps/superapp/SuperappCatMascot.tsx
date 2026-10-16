@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMeowDialogue } from '../../cat/useMeowDialogue';
+import { createMeowDialogueCloud } from '../repositories/meowDialogueCloud.mjs';
 import { SharedCatMascot, useSharedCatSleepSync, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../../cat';
 import type { CatDialoguePresentation, CatAuthStatus } from '../../cat';
 import { normalizePetId } from '../../pet/publicOptions';
@@ -400,22 +402,13 @@ export default function CatMascot({
     tryActivateDialog();
   }, [personalizedDialogueEnabled, isHidden]);
 
-  const [meowMsg, setMeowMsg] = useState<string | null>(null);
   const [petStates, setPetStates] = useState(['Normal']);
 
   // ─── Refs used inside loops to avoid stale closures / dep-array restarts ───
-  const meowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const meowInnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // FIX: track inner timer too
   const isHiddenRef = useRef(isHidden);
-  // Named distinctly from the manually-managed `isDialogActiveRef` lock above
-  // (pre-existing duplicate-declaration bug fixed while wiring Phase 1A —
-  // see implementation report): this one just mirrors `isDialogActive`
-  // state for the meow loop below so it doesn't need to restart on change.
-  const isDialogActiveMeowRef = useRef(isDialogActive); // FIX: ref so loop doesn't restart on dialog change
   const petStatesRef = useRef(['Normal']);           // FIX: ref so loop doesn't restart on state change
 
   useEffect(() => { isHiddenRef.current = isHidden; }, [isHidden]);
-  useEffect(() => { isDialogActiveMeowRef.current = isDialogActive; }, [isDialogActive]);
 
   // PHASE 9D: replicates the old local `handleGlobalClick`'s
   // `if (isHiddenRef.current) return;` click-to-move suppression, using
@@ -432,9 +425,8 @@ export default function CatMascot({
     return () => { document.body.classList.remove('pet-assistant-hidden'); };
   }, [isHidden]);
 
-  // Clear message bubble immediately when pet state changes
+  // Mood polling shares the latest computed states through this ref.
   useEffect(() => {
-    setMeowMsg(null);
     petStatesRef.current = petStates; // keep ref in sync
   }, [petStates]);
 
@@ -716,135 +708,24 @@ export default function CatMascot({
     initDialog();
   }, [disabled, personalizedDialogueEnabled]);
 
-  // ─── Meow message loop ────────────────────────────────────────────────────
-  // FIX: dep array is only [disabled] — petStates and isDialogActive are read
-  // via refs so changing them does NOT restart the loop (and cause instant meow).
-  useEffect(() => {
-    if (disabled) return;
-
-    let isSubscribed = true;
-
-    // FIX: helper that clears BOTH timers
-    const clearAllTimers = () => {
-      if (meowTimerRef.current)      { clearTimeout(meowTimerRef.current);      meowTimerRef.current = null; }
-      if (meowInnerTimerRef.current) { clearTimeout(meowInnerTimerRef.current); meowInnerTimerRef.current = null; }
-    };
-
-    const runMeowLoop = async () => {
-      try {
-        const { data: configs } = await supabase.from('aiboard_meow_configs').select('id').limit(1);
-        if (!configs || configs.length === 0) return;
-        const configId = configs[0].id;
-
-        // Read current states from ref — no stale closure
-        const primaryState = petStatesRef.current[0] || 'Normal';
-
-        const { data: timingData, error: timingError } = await supabase
-          .from('aiboard_meow_timing')
-          .select('message_duration_minutes, message_interval_minutes, disabled')
-          .eq('config_id', configId)
-          .eq('state', primaryState)
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        let activeTiming = timingData?.[0];
-
-        if (timingError || !activeTiming || activeTiming.disabled) {
-          if (primaryState !== 'Normal') {
-            console.log(`[CatMascot] No active timing for "${primaryState}", falling back to "Normal"`);
-          }
-          const { data: normalTiming, error: nError } = await supabase
-            .from('aiboard_meow_timing')
-            .select('message_duration_minutes, message_interval_minutes, disabled')
-            .eq('config_id', configId)
-            .eq('state', 'Normal')
-            .order('updated_at', { ascending: false })
-            .limit(1);
-
-          if (normalTiming?.[0] && !normalTiming[0].disabled) {
-            activeTiming = normalTiming[0];
-          } else {
-            console.warn("[CatMascot] No active or Normal timing found. Meow loop aborted.", nError);
-            return;
-          }
-        }
-
-        // Fetch messages for ALL active states via ref
-        const { data: msgsData, error: msgsError } = await supabase
-          .from('aiboard_meow_messages')
-          .select('message, state, sort_order')
-          .eq('config_id', configId)
-          .in('state', petStatesRef.current)
-          .eq('is_audio', false)
-          .order('state', { ascending: true })
-          .order('sort_order', { ascending: true });
-
-        if (msgsError) {
-          console.error(`[CatMascot] Error fetching messages:`, msgsError);
-          return;
-        }
-
-        if (!msgsData || msgsData.length === 0) {
-          console.log(`[CatMascot] No messages found for states [${petStatesRef.current.join(', ')}]`);
-          return;
-        }
-
-        const intervalMs = (activeTiming.message_interval_minutes || 0.25) * 60 * 1000;
-        const durationMs  = (activeTiming.message_duration_minutes  || 0.1)  * 60 * 1000;
-
-        console.log(`[CatMascot] Loop started: States=[${petStatesRef.current.join(', ')}], Msgs=${msgsData.length}, Interval=${intervalMs/1000}s, Duration=${durationMs/1000}s`);
-
-        let currentIndex = 0;
-
-        const loop = () => {
-          // FIX: outer timer stored in meowTimerRef
-          meowTimerRef.current = setTimeout(() => {
-            if (!isSubscribed) return;
-
-            // FIX: skip showing message while dialog is open — read via ref
-            if (isDialogActiveMeowRef.current) {
-              loop(); // wait another interval, don't show message
-              return;
-            }
-
-            const seqMsg = msgsData[currentIndex].message;
-            setMeowMsg(seqMsg);
-            currentIndex = (currentIndex + 1) % msgsData.length;
-
-            // FIX: inner timer stored in meowInnerTimerRef so cleanup can cancel it
-            meowInnerTimerRef.current = setTimeout(() => {
-              if (!isSubscribed) return;
-              setMeowMsg(null);
-              loop();
-            }, durationMs);
-          }, intervalMs);
-        };
-
-        loop();
-      } catch (err) {
-        console.error("Error setting up meow loop:", err);
-      }
-    };
-
-    runMeowLoop();
-
-    return () => {
-      isSubscribed = false;
-      clearAllTimers(); // FIX: clears both outer and inner timers
-    };
-  }, [disabled]); // FIX: only [disabled] — petStates/isDialogActive read via refs
+  // Shared ambient sayings preserve reminder priority and isolate personal presets.
+  const meowRepository = useMemo(() => createMeowDialogueCloud(supabase), [supabase]);
+  const ambientDialogue = useMeowDialogue({
+    repository: meowRepository, ownerId: catCacheOwnerId,
+    active: !disabled && !isPetSleeping && !isHidden, blocked: isDialogActive, states: petStates,
+  });
 
   // ─── Audio loop ───────────────────────────────────────────────────────────
   const audioLoopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (disabled) return;
+    if (disabled || !catCacheOwnerId) return;
 
     let isSubscribed = true;
 
     const runAudioLoop = async () => {
       try {
-        const { data: configs } = await supabase.from('aiboard_meow_configs').select('id').limit(1);
+        const { data: configs } = await supabase.from('aiboard_meow_configs').select('id').eq('user_id', catCacheOwnerId).limit(1);
         if (!configs || configs.length === 0) return;
         const configId = configs[0].id;
 
@@ -894,7 +775,7 @@ export default function CatMascot({
       isSubscribed = false;
       if (audioLoopTimerRef.current) clearTimeout(audioLoopTimerRef.current);
     };
-  }, [disabled]);
+  }, [disabled, catCacheOwnerId, supabase]);
 
   // ─── PHASE 9D: local dialogue state → shared presentation contract ────────
   // Pure derivation from the SAME local state the pre-9D JSX rendered from —
@@ -1000,7 +881,8 @@ export default function CatMascot({
       isSleeping={isPetSleeping}
       onSleepingChange={handleCatBedSleepChange}
       dialogue={dialoguePresentation}
-      meowMessage={meowMsg}
+      meowMessage={ambientDialogue.message}
+      dialoguePresets={ambientDialogue.controller}
       onCatClick={handleCatClick}
       spriteSheetUrls={CAT_SPRITE_SHEET_URLS}
       onEntryWalkComplete={handleEntryWalkComplete}

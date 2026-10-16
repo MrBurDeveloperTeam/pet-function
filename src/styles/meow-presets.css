@@ -1,0 +1,148 @@
+/* Floating companion settings use the existing light Molar palette, not room-shop pixels. */
+.snabbb-molar-experience .molar-meow-settings {
+  position: fixed;
+  z-index: 9991;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #b5d8d5;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #187970;
+  box-shadow: 0 3px 12px rgb(15 23 42 / 10%);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.snabbb-molar-experience .molar-meow-settings:hover { background: #e9f8f6; border-color: #65bcb5; }
+.snabbb-molar-experience .molar-meow-settings:active { background: #d5f0ec; }
+.snabbb-molar-experience .molar-meow-settings:focus-visible { outline: 3px solid #14b8a6; outline-offset: 3px; }
+
+/* Personal lines can be much longer than the short built-in meows. */
+.snabbb-molar-experience .molar-cat-meow-bubble { max-width: min(85vw, 340px); }
+.snabbb-molar-experience .molar-cat-meow-bubble__text { display: block; max-height: min(40dvh, 280px); overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.snabbb-molar-experience.molar-meow-editor {
+  --molar-meow-ink: #334155;
+  --molar-meow-muted: #526477;
+  --molar-meow-border: #d9e6e7;
+  --molar-meow-paper: #ffffff;
+  --molar-meow-tint: #eff9f7;
+  --molar-meow-brand: #137b71;
+  --molar-meow-danger: #a62f38;
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  width: min(680px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(820px, calc(100dvh - 32px));
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--molar-meow-border);
+  border-radius: 20px;
+  background: var(--molar-meow-paper);
+  color: var(--molar-meow-ink);
+  box-shadow: 0 24px 80px rgb(15 23 42 / 22%);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow: hidden;
+  color-scheme: light;
+}
+.snabbb-molar-experience.molar-meow-editor[open] { display: flex; flex-direction: column; }
+.snabbb-molar-experience.molar-meow-editor::backdrop { background: rgb(15 35 43 / 36%); }
+.snabbb-molar-experience.molar-meow-editor * { box-sizing: border-box; }
+.snabbb-molar-experience.molar-meow-editor h2,
+.snabbb-molar-experience.molar-meow-editor h3,
+.snabbb-molar-experience.molar-meow-editor p { margin: 0; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--molar-meow-border);
+}
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__header h2 { color: #183a3c; font-size: 22px; font-weight: 750; line-height: 1.3; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__header p { margin-top: 4px; color: var(--molar-meow-muted); font-size: 13px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__header > div { flex: 1; min-width: 0; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__mark { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; border-radius: 15px; background: #dff4ef; color: var(--molar-meow-brand); }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__icon { display: inline-grid; place-items: center; flex-shrink: 0; min-width: 44px; min-height: 44px; padding: 8px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--molar-meow-muted); cursor: pointer; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__icon:hover:not(:disabled) { color: var(--molar-meow-brand); background: var(--molar-meow-tint); }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__tabs { display: flex; flex-shrink: 0; gap: 5px; overflow-x: auto; padding: 13px 24px; border-bottom: 1px solid var(--molar-meow-border); background: #fafdfc; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex: 1 0 auto; min-height: 44px; padding: 8px 13px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--molar-meow-muted); font: inherit; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__tabs button:hover:not(:disabled) { background: #e9f3f1; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__tabs button[aria-selected="true"] { border-color: #acd8ce; background: #e1f3ed; color: #14675f; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__draft-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__scroll { flex: 1 1 auto; min-height: 0; padding: 22px 24px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__section + .molar-meow-editor__section { margin-top: 26px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__section-heading h3 { color: #294447; font-size: 16px; font-weight: 750; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__section-heading > span { color: var(--molar-meow-muted); font-size: 12px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__help { margin-top: 6px; color: var(--molar-meow-muted); font-size: 13px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__empty { margin-top: 16px; padding: 16px; border: 1px dashed #bfd4d2; border-radius: 10px; background: #fafdfc; color: var(--molar-meow-muted); font-size: 13px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__list { display: grid; gap: 10px; margin: 16px 0; padding: 0; list-style: none; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__list > li { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 10px 10px 10px 14px; border: 1px solid var(--molar-meow-border); border-radius: 11px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__saved-text { flex: 1 1 200px; min-width: 0; align-self: center; overflow-wrap: anywhere; white-space: pre-wrap; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__row-actions { display: flex; margin-left: auto; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__add-form { margin-top: 16px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__edit-form { width: 100%; }
+.snabbb-molar-experience.molar-meow-editor label { display: block; margin-bottom: 7px; color: #294447; font-size: 13px; font-weight: 700; }
+.snabbb-molar-experience.molar-meow-editor textarea { display: block; width: 100%; min-height: 112px; margin: 0; padding: 12px 13px; border: 1px solid #b9cdcf; border-radius: 10px; background: var(--molar-meow-paper); color: var(--molar-meow-ink); font: inherit; line-height: 1.6; resize: none; }
+.snabbb-molar-experience.molar-meow-editor textarea::placeholder { color: #657c87; opacity: 1; }
+.snabbb-molar-experience.molar-meow-editor textarea[aria-invalid="true"] { border-color: var(--molar-meow-danger); }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__form-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__count { display: block; margin-top: 5px; color: var(--molar-meow-muted); font-size: 12px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex-shrink: 0; min-height: 44px; padding: 9px 14px; border: 1px solid #bdced0; border-radius: 9px; background: var(--molar-meow-paper); color: var(--molar-meow-ink); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; touch-action: manipulation; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__button:hover:not(:disabled) { background: #f0f7f5; border-color: #8eb8b2; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__button--primary { min-width: 128px; border-color: var(--molar-meow-brand); background: var(--molar-meow-brand); color: #ffffff; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__button--primary:hover:not(:disabled) { border-color: #105f59; background: #105f59; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__button--danger { border-color: #dba9ac; color: var(--molar-meow-danger); }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__button--danger:hover:not(:disabled) { border-color: #ca7c84; background: #fff1f1; }
+.snabbb-molar-experience.molar-meow-editor button:active:not(:disabled) { filter: brightness(.95); }
+.snabbb-molar-experience.molar-meow-editor button:disabled { opacity: .5; cursor: default; }
+.snabbb-molar-experience.molar-meow-editor textarea:disabled { background: #f5f8f7; color: #526477; cursor: default; }
+.snabbb-molar-experience.molar-meow-editor button:focus-visible,
+.snabbb-molar-experience.molar-meow-editor textarea:focus-visible,
+.snabbb-molar-experience.molar-meow-editor [role="tabpanel"]:focus-visible { outline: 3px solid #38ad9b; outline-offset: 3px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__field-error { margin-top: 8px; color: var(--molar-meow-danger); font-size: 13px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__error { margin-bottom: 16px; padding: 12px 14px; border: 1px solid #e7bec1; border-radius: 10px; background: #fff4f3; color: #872a32; font-size: 13px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__error button { margin-top: 8px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__confirmation { margin-bottom: 20px; padding: 15px; border: 1px solid #d9c68c; border-radius: 11px; background: #fff9e8; color: #69501d; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__confirmation p { margin-top: 5px; font-size: 13px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__delete { flex-basis: 100%; padding: 12px; border-top: 1px solid var(--molar-meow-border); color: var(--molar-meow-muted); font-size: 13px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__builtins { padding-top: 20px; border-top: 1px solid var(--molar-meow-border); }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__builtins ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__builtins li { padding: 7px 10px; border-radius: 8px; background: #f0f5f4; color: #526477; font-size: 13px; overflow-wrap: anywhere; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__footer { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 14px; padding: 14px 24px; border-top: 1px solid var(--molar-meow-border); background: #fafdfc; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__footer p { min-height: 20px; color: var(--molar-meow-muted); font-size: 12px; }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__state { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 80px; color: var(--molar-meow-muted); }
+.snabbb-molar-experience.molar-meow-editor .molar-meow-editor__loader { display: inline-block; width: 18px; height: 18px; border: 2px solid #c6e9e1; border-top-color: var(--molar-meow-brand); border-radius: 50%; animation: molar-meow-loading 700ms linear infinite; }
+@keyframes molar-meow-loading { to { transform: rotate(360deg); } }
+@media (max-width: 560px) {
+  .snabbb-molar-experience.molar-meow-editor { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 15px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__header { gap: 10px; padding: 16px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__header h2 { font-size: 20px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__header p { font-size: 12px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__mark { width: 40px; height: 40px; border-radius: 12px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__tabs { padding: 9px 12px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__tabs button { padding-inline: 10px; font-size: 12px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__scroll { padding: 18px 16px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__footer { padding: 12px 16px; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__form-footer { align-items: flex-start; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__saved-text { flex-basis: 150px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snabbb-molar-experience .molar-meow-settings { transition: none !important; }
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__loader { animation: none; }
+}
+@media (forced-colors: active) {
+  .snabbb-molar-experience .molar-meow-settings,
+  .snabbb-molar-experience.molar-meow-editor,
+  .snabbb-molar-experience.molar-meow-editor .molar-meow-editor__button,
+  .snabbb-molar-experience.molar-meow-editor textarea { border-color: CanvasText; }
+}

@@ -36,6 +36,8 @@ export type CatDialoguePresentation =
     };
 
 export interface SharedCatMascotProps {
+  /** Optional authenticated preset editor; hosts retain identity and persistence. */
+  dialoguePresets?: import('./meowTypes').MeowPresetController;
   /** Admin preview content, computed by the host's dialogue editor. */
   bubbleContent?: import('react').ReactNode;
   /** Pre-login/disabled mode: suppresses the ambient meow bubble and the

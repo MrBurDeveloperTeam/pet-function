@@ -1,5 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useMeowDialogue } from '../cat/useMeowDialogue';
+import { createMeowDialogueCloud } from './repositories/meowDialogueCloud.mjs';
 
 import { normalizePetId } from '../pet/publicOptions';
 import { useSharedCatDialogueRuntime, useSharedCatSleepSync, SharedCatMascot, readSharedPetName, writeSharedPetName, getSharedPetNameStorageKey, resolveCatAuthStatus } from '../cat';
@@ -218,14 +220,7 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
     }
   };
 
-  const [meowMsg, setMeowMsg] = useState(null);
   const [petStates, setPetStates] = useState(['Normal']);
-  const meowTimerRef = useRef(null);
-
-  // Clear message bubble immediately when state changes
-  useEffect(() => {
-    setMeowMsg(null);
-  }, [petStates]);
 
   const petStatesRef = useRef(['Normal']);
 
@@ -398,114 +393,22 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
     initDialog();
   }, [disabled]);
 
-  useEffect(() => {
-    if (disabled || dialogue.kind !== 'none') return;
-
-    let isSubscribed = true;
-
-    const runMeowLoop = async () => {
-      try {
-        const { data: configs } = await supabase.from('aiboard_meow_configs').select('id').limit(1);
-        if (!configs || configs.length === 0) return;
-        const configId = configs[0].id;
-
-        const primaryState = petStates[0] || 'Normal';
-
-        const { data: timingData, error: timingError } = await supabase
-          .from('aiboard_meow_timing')
-          .select('message_duration_minutes, message_interval_minutes, disabled')
-          .eq('config_id', configId)
-          .eq('state', primaryState)
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        let activeTiming = timingData?.[0];
-
-        if (timingError || !activeTiming || activeTiming.disabled) {
-          if (primaryState !== 'Normal') {
-            console.log(`[CatMascot] No active timing for "${primaryState}" (Error: ${timingError?.message}), falling back to "Normal"`);
-          }
-          const { data: normalTiming, error: nError } = await supabase
-            .from('aiboard_meow_timing')
-            .select('message_duration_minutes, message_interval_minutes, disabled')
-            .eq('config_id', configId)
-            .eq('state', 'Normal')
-            .order('updated_at', { ascending: false })
-            .limit(1);
-
-          if (normalTiming?.[0] && !normalTiming[0].disabled) {
-            activeTiming = normalTiming[0];
-          } else {
-            console.warn("[CatMascot] No active or Normal timing found. Meow loop aborted.", nError);
-            return;
-          }
-        }
-
-        // Fetch messages for ALL active states
-        const { data: msgsData, error: msgsError } = await supabase
-          .from('aiboard_meow_messages')
-          .select('message, state, sort_order')
-          .eq('config_id', configId)
-          .in('state', petStates)
-          .eq('is_audio', false)
-          .order('state', { ascending: true })
-          .order('sort_order', { ascending: true });
-
-        if (msgsError) {
-          console.error(`[CatMascot] Error fetching messages for states [${petStates.join(', ')}]:`, msgsError);
-          return;
-        }
-
-        if (!msgsData || msgsData.length === 0) {
-          console.log(`[CatMascot] No messages found for states [${petStates.join(', ')}]`);
-          return;
-        }
-
-        const intervalMs = (activeTiming.message_interval_minutes || 0.25) * 60 * 1000;
-        const durationMs = (activeTiming.message_duration_minutes || 0.1) * 60 * 1000;
-
-        console.log(`[CatMascot] Loop started: States=[${petStates.join(', ')}], Msgs=${msgsData.length}, Interval=${intervalMs / 1000}s, Duration=${durationMs / 1000}s`);
-
-        let currentIndex = 0;
-
-        const loop = () => {
-          meowTimerRef.current = setTimeout(() => {
-            if (!isSubscribed) return;
-            const seqMsg = msgsData[currentIndex].message;
-            setMeowMsg(seqMsg);
-            currentIndex = (currentIndex + 1) % msgsData.length;
-
-            setTimeout(() => {
-              if (isSubscribed) setMeowMsg(null);
-              loop();
-            }, durationMs);
-          }, intervalMs);
-        };
-
-        loop();
-      } catch (err) {
-        console.error("Error setting up meow loop:", err);
-      }
-    };
-
-    runMeowLoop();
-
-    return () => {
-      isSubscribed = false;
-      if (meowTimerRef.current) clearTimeout(meowTimerRef.current);
-    };
-  }, [disabled, dialogue.kind, petStates]);
+  const meowRepository = useMemo(() => createMeowDialogueCloud(supabase), [supabase]);
+  const ambientDialogue = useMeowDialogue({
+    repository: meowRepository, ownerId: catCacheOwnerId,
+    active: !disabled && !isPetSleeping, blocked: dialogue.kind !== 'none', states: petStates,
+  });
 
   const audioLoopTimerRef = useRef(null);
 
   useEffect(() => {
-    if (disabled) return;
+    if (disabled || !catCacheOwnerId) return;
 
     let isSubscribed = true;
 
     const runAudioLoop = async () => {
       try {
-        const { data: configs } = await supabase.from('aiboard_meow_configs').select('id').limit(1);
+        const { data: configs } = await supabase.from('aiboard_meow_configs').select('id').eq('user_id', catCacheOwnerId).limit(1);
         if (!configs || configs.length === 0) return;
         const configId = configs[0].id;
 
@@ -555,7 +458,7 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
       isSubscribed = false;
       if (audioLoopTimerRef.current) clearTimeout(audioLoopTimerRef.current);
     };
-  }, [disabled]);
+  }, [disabled, catCacheOwnerId, supabase]);
 
   // Existing Inventory click-sound asset — SharedCatMascot's own internal
   // click handler already plays the wave/talking sprite animation and
@@ -594,7 +497,8 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
       isSleeping={isPetSleeping}
       onSleepingChange={handleCatBedSleepChange}
       dialogue={dialogue}
-      meowMessage={meowMsg}
+      meowMessage={ambientDialogue.message}
+      dialoguePresets={ambientDialogue.controller}
       onCatClick={handleCatClick}
       spriteSheetUrls={CAT_SPRITE_SHEET_URLS}
     />
