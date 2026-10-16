@@ -30,6 +30,8 @@ import { TOY_ITEMS, isFishingRewardItem } from '../constants';
 import { AiOutlineShop } from 'react-icons/ai';
 import { FoodItemVisual } from './FoodItemVisual';
 import { PixelCoinBag } from './CoinIndicator';
+import { ShoppingLayout } from './ShoppingLayout';
+import { useShopDialogue } from './ShopDialogue';
 
 interface ShopModalProps {
   isOpen: boolean;
@@ -39,8 +41,8 @@ interface ShopModalProps {
   activeBallId: string;
   coins: number;
   currentLevel: number;
-  onBuy: (item: FoodItem) => void;
-  onBuyToy: (item: FoodItem) => void;
+  onBuy: (item: FoodItem) => boolean | Promise<boolean>;
+  onBuyToy: (item: FoodItem) => boolean | Promise<boolean>;
   onSelectToy: (id: string) => void;
   isLoading?: boolean;
   shopType: 'food' | 'furniture';
@@ -77,7 +79,7 @@ const SHOP_BUTTONS = {
   buy: 'border-[3px] border-[#7b3517] bg-[#f06422] text-white shadow-[4px_4px_0_#7b3517] hover:bg-[#dc5318] active:translate-x-1 active:translate-y-1 active:shadow-none',
   select: 'border-[3px] border-[#7b3517] bg-[#ffd27a] text-[#6a351c] shadow-[4px_4px_0_#7b3517] hover:bg-[#ffc45c] active:translate-x-1 active:translate-y-1 active:shadow-none',
   active: 'cursor-default border-[3px] border-[#238f83] bg-[#bcebdc] text-[#175f58] shadow-[4px_4px_0_#175f58]',
-  disabled: 'cursor-not-allowed border-[3px] border-[#aaa18d] bg-[#ded9cc] text-[#817968]',
+  disabled: 'border-[3px] border-[#aaa18d] bg-[#ded9cc] text-[#817968]',
   locked: 'cursor-not-allowed border-[3px] border-[#817968] bg-[#c9c3b5] text-[#5e584c]',
 };
 
@@ -117,6 +119,8 @@ const ShopModal: React.FC<ShopModalProps> = ({
   shopType,
 }) => {
   const { currencyRate, buyItem } = useGameState();
+  const { say, closing, dialogueActive, requestClose } = useShopDialogue();
+  const closeShop = requestClose ?? onClose;
   const rods=Object.values(FISHING_RODS).filter(rod=>rod.id!=='beginner_rod').sort((a,b)=>a.rarityBoost-b.rarityBoost);
   const items = useMemo(() => {
     const available=catalogItems.filter(item=>!isFishingRewardItem(item.id)&&item.category!=='Beds');
@@ -160,17 +164,17 @@ const ShopModal: React.FC<ShopModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleCloseKey = (event: KeyboardEvent) => {
-      const target = event.target instanceof HTMLElement ? event.target : null;
-      const isInteractive = !!target?.closest('button, input, textarea, select, [contenteditable="true"]');
-      if (event.key === 'Escape' || (event.code === 'Space' && !isInteractive)) {
+      // A visible line owns Space, including when a purchase button has focus.
+      if (event.code === 'Space' && dialogueActive) return;
+      if (event.key === 'Escape') {
         event.preventDefault();
-        event.stopPropagation();
-        if (!event.repeat) onClose();
+        event.stopImmediatePropagation();
+        if (!event.repeat) closeShop();
       }
     };
     window.addEventListener('keydown', handleCloseKey, true);
     return () => window.removeEventListener('keydown', handleCloseKey, true);
-  }, [isOpen, onClose]);
+  }, [isOpen, closeShop, dialogueActive]);
 
   if (!isOpen) return null;
 
@@ -186,9 +190,10 @@ const ShopModal: React.FC<ShopModalProps> = ({
   // now-higher overlay while Shop is open, and this overlay's own backdrop
   // naturally intercepts all pointer interaction in front of it.
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#2b1b12]/70 p-4 backdrop-blur-[2px] animate-in fade-in duration-200">
-      <div className="flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden border-[5px] border-[#5a351f] bg-[#fff8df] shadow-[10px_10px_0_#2f1d13]">
-        <div className="relative overflow-hidden border-b-[5px] border-[#5a351f] bg-[#f39a2e] px-5 py-4 text-[#3f291b]">
+    <div className="pet-shopping-modal fixed inset-0 z-[80] flex items-center justify-center bg-[#2b1b12]/70 p-4 backdrop-blur-[2px] animate-in fade-in duration-200">
+      <ShoppingLayout>
+      <div className="pet-shopping-panel flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden border-[5px] border-[#5a351f] bg-[#fff8df] shadow-[10px_10px_0_#2f1d13]">
+        <div className="pet-shop-header relative shrink-0 overflow-hidden border-b-[5px] border-[#5a351f] bg-[#f39a2e] px-5 py-4 text-[#3f291b]">
           <div className="relative z-10 flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               {selectedCategory ? (
@@ -219,7 +224,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
                 <span className="font-black text-xl tracking-wider">{coins}</span>
               </div>
               <button
-                onClick={onClose}
+                onClick={closeShop}
                 className="flex h-11 w-11 items-center justify-center border-[3px] border-[#6b4423] bg-[#fff0ad] shadow-[3px_3px_0_#6b4423] transition-transform active:translate-x-1 active:translate-y-1 active:shadow-none"
                 aria-label="Close market"
               >
@@ -261,7 +266,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
                         </span>
                       </div>
                       <div>
-                        <div className={`text-2xl font-black uppercase tracking-wide ${style.text}`}>{cat}</div>
+                        <div className={`pet-shop-category-label text-2xl font-black uppercase tracking-wide ${style.text}`}>{cat}</div>
                       </div>
                     </div>
                   </button>
@@ -281,7 +286,11 @@ const ShopModal: React.FC<ShopModalProps> = ({
                   <img src={rod.image} alt={rod.label} className="h-32 w-full object-contain" draggable={false}/>
                   <div className="mt-3 font-black text-slate-700">{rod.label}</div>
                   <div className="my-3 text-sm font-bold text-sky-700">{['Uncommon','Rare','Epic','Legendary'][index]}</div>
-                  <button disabled={owned||coins<price} onClick={()=>{if(!owned&&coins>=price)buyItem(rod.id,price);}}
+                  <button disabled={owned||closing} onClick={()=>{
+                    if(owned||closing)return;
+                    if(coins<price){say('insufficient');return;}
+                    if(buyItem(rod.id,price))say('purchase');
+                  }}
                     className={`mt-auto px-3 py-2.5 text-sm font-black ${owned?SHOP_BUTTONS.active:coins>=price?SHOP_BUTTONS.buy:SHOP_BUTTONS.disabled}`}>
                     {owned?'Owned':<span className="inline-flex items-center gap-2"><PixelCoinBag/>{price.toLocaleString('en-US')}</span>}
                   </button>
@@ -302,7 +311,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
                 const isLocked = (item.levelReq || 1) > currentLevel;
                 const actualPrice = item.price * currencyRate;
                 const canAfford = coins >= actualPrice;
-                const isDisabled = isLocked || !canAfford;
+                const isDisabled = isLocked || closing;
 
                 return (
                   <div
@@ -354,7 +363,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
                     {isToy && isOwnedToy ? (
                       <button
                         onClick={() => !isActiveToy && onSelectToy(toyId)}
-                        disabled={isActiveToy}
+                        disabled={isActiveToy || closing}
                         className={`mt-auto px-3 py-2.5 text-sm font-black uppercase tracking-[0.08em] transition-all ${
                           isActiveToy
                             ? SHOP_BUTTONS.active
@@ -365,7 +374,11 @@ const ShopModal: React.FC<ShopModalProps> = ({
                       </button>
                     ) : (
                       <button
-                        onClick={() => !isDisabled && (isToy ? onBuyToy(item) : onBuy(item))}
+                        onClick={async () => {
+                          if (isDisabled) return;
+                          if (!canAfford) { say('insufficient'); return; }
+                          if (await (isToy ? onBuyToy(item) : onBuy(item)) === true) say('purchase');
+                        }}
                         disabled={isDisabled}
                         className={`mt-auto px-3 py-2.5 text-sm font-black uppercase tracking-[0.08em] transition-all ${
                           isLocked
@@ -390,6 +403,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
           )}
         </div>
       </div>
+      </ShoppingLayout>
     </div>
   );
 };

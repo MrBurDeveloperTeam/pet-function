@@ -56,8 +56,9 @@ cat is beside it. Bathroom leads to Bedroom, while Kitchen and Games lead Outsid
 Shopping Street owns the purchase entry points. Its first storefront opens only
 Healthy, Breakfast, Meals, Drinks, and Sweets; its second storefront opens only
 Toys, Room Decor, and Fishing Rods. Their traced door contours are clickable, while Space opens the
-nearby store when the cat is beside its entrance. The shop closes from its close
-control, Escape, or a second Space press. Do not render a persistent global Shop
+nearby store when the cat is beside its entrance. The shop close control and
+Escape first show a farewell. Space finishes the active line, then closes that
+line on the next press; dismissing a farewell also closes the shop. Do not render a persistent global Shop
 button or a Kitchen shortcut into the purchase catalog.
 Town Home, Shopping Street, and Sports Ground use a compact status-panel toggle
 at the top center. Its meter-and-chevron glyph must remain visually distinct
@@ -114,6 +115,22 @@ Preserve v0.9.6 shadows, blur and z-index; no host-global styling changes.
 Existing component classes are the shape token source.
 
 ## Components
+
+ShoppingLayout.tsx reserves the left side for the selected cat's cashier artwork
+and shifts every Shopping Street catalog to the right. The six three-frame WebP
+sprites live in public/pet-function/shopkeepers; first blink is approximately
+half a second after opening, then every 2.4 seconds. Reduced motion keeps the
+open-eye frame. Narrow screens place the compact cashier above the catalog.
+ShopDialogue.tsx owns the welcome, insufficient-coins, purchase and farewell
+feedback. It reuses NpcDialogue's cream paper, brown border and pixel controls
+from src/styles/index.css; no extra portrait or displayed name is added.
+The shared useTypewriterDialogue controller reveals one grapheme every 28ms,
+handles Space to skip/close, and dismisses three seconds after the full line.
+The small dialogue above the cashier keeps purchase controls reachable.
+Outdoor NPCs share this timing; their four authored game-entrance invitations
+remain unchanged. Bedroom's My Wardrobe retains its existing centered layout
+without a shopkeeper or shop greetings. It always lists purchased clothes and
+jewelry only; catalog filter and Browse items controls appear only in shops.
 
 Wardrobe shops use PixelShopDialog.tsx (viewport-bounded portal, focus trap,
 Escape dismissal, inert siblings, focus restoration) and WardrobeShop.tsx.

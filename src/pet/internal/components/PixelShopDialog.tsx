@@ -2,15 +2,19 @@ import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { PixelCoinBag } from './CoinIndicator';
+import { ShoppingLayout } from './ShoppingLayout';
+import { useShopDialogue } from './ShopDialogue';
 
 /** Wardrobe variant of the existing pixel shop shell, with modal focus ownership. */
-export function PixelShopDialog({ title, subtitle, coins, onClose, children }: {
-  title: string; subtitle: string; coins: number; onClose: () => void; children: React.ReactNode;
+export function PixelShopDialog({ title, subtitle, coins, onClose, children, shopkeeper = false }: {
+  title: string; subtitle: string; coins: number; onClose: () => void; children: React.ReactNode; shopkeeper?: boolean;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const titleId = useId();
-  const onCloseRef = useRef(onClose); onCloseRef.current = onClose;
+  const { requestClose } = useShopDialogue();
+  const closeDialog = shopkeeper ? requestClose ?? onClose : onClose;
+  const onCloseRef = useRef(closeDialog); onCloseRef.current = closeDialog;
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const siblings = Array.from((root.current?.parentElement ?? document.body).children).filter((element): element is HTMLElement => element instanceof HTMLElement && element !== root.current);
@@ -35,14 +39,15 @@ export function PixelShopDialog({ title, subtitle, coins, onClose, children }: {
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, []);
-  return createPortal(<div ref={root} className="snabbb-molar-experience pet-wardrobe-modal" data-theme="light">
-    <section role="dialog" aria-modal="true" aria-labelledby={titleId} className="pet-wardrobe-dialog">
+  const dialog = <section role="dialog" aria-modal="true" aria-labelledby={titleId} className={`pet-wardrobe-dialog${shopkeeper ? ' pet-shopping-panel' : ''}`}>
       <header className="pet-wardrobe-header">
         <div><h2 id={titleId}>{title}</h2><p>{subtitle}</p></div>
         <span className="pet-wardrobe-wallet"><PixelCoinBag/>{coins.toLocaleString()}</span>
-        <button ref={close} type="button" className="pet-wardrobe-icon" onClick={onClose} aria-label="Close wardrobe"><X size={24}/></button>
+        <button ref={close} type="button" className="pet-wardrobe-icon" onClick={closeDialog} aria-label="Close wardrobe"><X size={24}/></button>
       </header>
       {children}
-    </section>
+    </section>;
+  return createPortal(<div ref={root} className={`snabbb-molar-experience pet-wardrobe-modal${shopkeeper ? ' pet-shopping-modal' : ''}`} data-theme="light">
+    {shopkeeper ? <ShoppingLayout>{dialog}</ShoppingLayout> : dialog}
   </div>, document.fullscreenElement ?? document.body);
 }

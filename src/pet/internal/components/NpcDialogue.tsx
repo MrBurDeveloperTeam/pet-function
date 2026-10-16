@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { getPetOption, type PetId } from '../petOptions';
 import type { PetAssetUrls } from '../types';
+import { useTypewriterDialogue } from './useTypewriterDialogue';
 
 export function NpcDialogue({ petId, spriteSheets, text, onClose }: {
   petId: PetId;
@@ -9,7 +10,9 @@ export function NpcDialogue({ petId, spriteSheets, text, onClose }: {
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const advanceRef = useRef<HTMLButtonElement>(null);
   const pet = getPetOption(petId, spriteSheets);
+  const { visibleText, complete, advance } = useTypewriterDialogue({ text, onClose });
 
   useEffect(() => {
     const previousFocus = document.activeElement;
@@ -28,18 +31,23 @@ export function NpcDialogue({ petId, spriteSheets, text, onClose }: {
       onClick={event => event.stopPropagation()}
       onKeyDown={event => {
         if (event.key === 'Tab') {
-          // Keep keyboard navigation inside the two conversation controls.
           event.preventDefault();
-          closeRef.current?.focus();
+          const next = document.activeElement === closeRef.current ? advanceRef.current : closeRef.current;
+          next?.focus();
         }
       }}>
       <div className="pet-npc-dialogue-portrait" aria-hidden="true">
         <div className="pet-npc-dialogue-cat" style={{ backgroundImage: `url("${pet.spriteSheetUrl}")` }} />
       </div>
       <div className="pet-npc-dialogue-panel">
-        <p className="pet-npc-dialogue-text" aria-live="polite" aria-atomic="true">{text}</p>
+        <p className="pet-npc-dialogue-text">
+          <span aria-hidden="true">{visibleText}</span>
+          <span className="sr-only" aria-live="polite" aria-atomic="true">{text}</span>
+        </p>
         <div className="pet-npc-dialogue-controls">
-          <span className="pet-npc-dialogue-key-hint" aria-hidden="true">Click outside to close</span>
+          <span className="pet-npc-dialogue-key-hint" aria-hidden="true">Space · {complete ? 'Close' : 'Skip'}<span>Click outside to close</span></span>
+          <button ref={advanceRef} type="button" className="pet-dialogue-advance"
+            aria-label={complete ? 'Close dialogue' : 'Show full dialogue'} onClick={advance}>{complete ? 'Close' : 'Skip'}</button>
         </div>
       </div>
       <button ref={closeRef} type="button" className="pet-npc-dialogue-close"

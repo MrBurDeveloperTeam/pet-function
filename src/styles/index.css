@@ -2197,3 +2197,70 @@
 @media(max-width:400px) { .pet-wardrobe-header { padding:10px; gap:7px; } .pet-wardrobe-wallet { font-size:12px; padding:6px; } .pet-wardrobe-catalog { padding:12px; } .pet-wardrobe-card { padding:7px; } }
 
 .pet-wardrobe-jewelry-icon { width:132px; height:90px; object-fit:contain; image-rendering:pixelated; }
+
+/* Shopping Street: the selected cat greets shoppers beside every shelf. */
+.pet-shopping-modal { padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.pet-shopping-layout { display:grid; grid-template-columns:clamp(180px,22vw,320px) minmax(0,1040px); align-items:center; gap:clamp(12px,2vw,32px); width:min(100%,1392px); min-width:0; margin-inline:auto; }
+.pet-shopping-panel { width:100%; min-width:0; max-width:1040px; }
+.pet-wardrobe-dialog.pet-shopping-panel { max-height:85dvh; }
+.pet-shopkeeper { align-self:end; width:100%; margin:0 0 clamp(20px,5vh,60px); pointer-events:none; user-select:none; filter:drop-shadow(0 8px 4px rgb(22 16 10 / .3)); }
+.pet-shopkeeper-sprite { width:100%; aspect-ratio:1; background-repeat:no-repeat; background-size:300% 100%; background-position:0 0; image-rendering:pixelated; animation:pet-shopkeeper-blink 2.4s steps(1,end) -1.65s infinite; }
+@keyframes pet-shopkeeper-blink {
+  0%,86%,96%,100% { background-position:0 0; }
+  88%,94% { background-position:50% 0; }
+  90%,92% { background-position:100% 0; }
+}
+@media (min-width:721px) {
+  .pet-shopping-panel .pet-wardrobe-layout { grid-template-columns:clamp(190px,20vw,270px) minmax(0,1fr); }
+}
+@media (min-width:721px) and (max-width:1000px) {
+  .pet-shopping-layout { grid-template-columns:150px minmax(0,1fr); gap:12px; }
+  .pet-shopping-panel .pet-wardrobe-header { gap:8px; padding:12px; }
+  .pet-shopping-panel .pet-wardrobe-catalog { padding:12px; }
+  .pet-shopping-panel .pet-wardrobe-filters { gap:6px; }
+  .pet-shopping-panel .pet-wardrobe-grid { gap:8px; }
+}
+@media (max-width:720px) {
+  .pet-shopping-layout { display:flex; flex-direction:column; align-items:stretch; gap:0; }
+  .pet-shopkeeper { align-self:flex-start; width:104px; margin:0 0 -4px 4px; }
+  .pet-shopping-panel, .pet-wardrobe-dialog.pet-shopping-panel { max-height:calc(100dvh - 132px); }
+  .pet-shop-header { padding:12px; }
+  .pet-shop-header > div { gap:8px; }
+  .pet-shop-header > div > div { gap:8px; }
+  .pet-shop-header h2 { font-size:18px; }
+  .pet-shop-header p { font-size:11px; }
+  .pet-shop-header > div > div:last-child > div { padding:6px; gap:4px; }
+  .pet-shop-header > div > div:last-child span { font-size:14px; }
+  .pet-shop-header > div > div:first-child > div:first-child:not(:last-child) { display:none; }
+  .pet-shop-category-label { font-size:clamp(14px,4.3vw,20px); overflow-wrap:anywhere; }
+}
+@media (max-height:520px) and (min-width:600px) {
+  .pet-shopping-layout { display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px; }
+  .pet-shopkeeper { align-self:end; width:100%; margin:0 0 12px; }
+  .pet-shopping-panel, .pet-wardrobe-dialog.pet-shopping-panel { max-height:calc(100dvh - 32px); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .pet-shopkeeper-sprite { animation:none; }
+}
+
+/* Both outdoor NPCs and shopkeepers use the same paper panel and controls. */
+.snabbb-molar-experience .pet-dialogue-advance { min-width:44px; min-height:32px; padding:4px 10px; border:2px solid #684427; background:#ffd47c; color:#51341f; box-shadow:2px 2px 0 #684427; font:inherit; font-size:12px; cursor:pointer; touch-action:manipulation; }
+.snabbb-molar-experience .pet-dialogue-advance:hover { background:#ffe7a4; }
+.snabbb-molar-experience .pet-dialogue-advance:focus-visible { outline:3px solid #168c80; outline-offset:3px; }
+.pet-shopkeeper { position:relative; }
+.snabbb-molar-experience .pet-shopkeeper-dialogue { position:absolute; left:0; bottom:calc(100% - 36px); width:100%; min-height:160px; padding:18px 16px 12px; pointer-events:auto; user-select:text; z-index:2; }
+.snabbb-molar-experience .pet-shopkeeper-dialogue .pet-npc-dialogue-text { padding:0; font-size:clamp(15px,1.35vw,20px); line-height:1.4; }
+.snabbb-molar-experience .pet-shopkeeper-dialogue .pet-npc-dialogue-controls { flex-wrap:wrap; gap:8px; margin-top:10px; }
+.snabbb-molar-experience .pet-shopkeeper-dialogue .pet-npc-dialogue-key-hint { font-size:11px; }
+@media (min-width:721px) and (max-width:1000px), (max-height:520px) and (min-width:600px) {
+  .snabbb-molar-experience .pet-shopkeeper-dialogue { min-height:150px; padding:12px 10px; }
+  .snabbb-molar-experience .pet-shopkeeper-dialogue .pet-npc-dialogue-text { font-size:14px; }
+  .snabbb-molar-experience .pet-shopkeeper-dialogue .pet-npc-dialogue-key-hint { display:none; }
+}
+@media (max-width:720px) and (min-height:521px), (max-width:599px) {
+  .snabbb-molar-experience .pet-shopkeeper-dialogue { left:112px; top:0; bottom:auto; width:calc(100vw - 160px); min-height:100px; padding:9px 10px; border-width:3px; }
+  .snabbb-molar-experience .pet-shopkeeper-dialogue .pet-npc-dialogue-text { font-size:13px; line-height:1.35; }
+  .snabbb-molar-experience .pet-shopkeeper-dialogue .pet-npc-dialogue-controls { gap:5px; margin-top:5px; }
+  .snabbb-molar-experience .pet-shopkeeper-dialogue .pet-npc-dialogue-key-hint { display:none; }
+  .snabbb-molar-experience .pet-shopkeeper-dialogue .pet-dialogue-advance { min-height:28px; padding:2px 8px; font-size:11px; }
+}

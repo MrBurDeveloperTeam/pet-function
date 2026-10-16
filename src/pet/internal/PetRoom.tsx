@@ -21,6 +21,7 @@ import DragLayer from './components/DragLayer';
 import Ball from './components/Ball';
 import ShopModal from './components/ShopModal';
 import { WardrobeShop } from './components/WardrobeShop';
+import { ShopDialogueProvider } from './components/ShopDialogue';
 import { useGameState } from '../runtime/SharedPetRuntime';
 import { useBallPhysics } from './hooks/useBallPhysics';
 import LevelIndicator from './components/LevelIndicator';
@@ -2476,6 +2477,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
       {/* Modals */}
       {npcDialogue.conversation && <NpcDialogue key={npcDialogue.conversation.cat.id} petId={npcDialogue.conversation.cat.pet} spriteSheets={assetUrls?.spriteSheets} text={npcDialogue.conversation.text} onClose={npcDialogue.close} />}
+      <ShopDialogueProvider key={activeShop ?? 'closed'} enabled={activeShop !== null && activeShop !== 'wardrobe'} onClose={() => setActiveShop(null)}>
       {(activeShop === 'jewelry' || activeShop === 'clothes' || activeShop === 'wardrobe') && <WardrobeShop key={activeShop} mode={activeShop} onClose={() => setActiveShop(null)}/>}
       <ShopModal
         isOpen={activeShop === 'food' || activeShop === 'furniture'}
@@ -2496,15 +2498,18 @@ export const PetRoom: React.FC<PetRoomProps> = ({
           const toyId = toy?.id || item.id;
           if ((inventory[toyId] || inventory[item.id] || 0) > 0) {
             setActiveBallId(toyId);
-            return;
+            return false;
           }
           if (buyItem(toyId, item.price * currencyRate)) {
             setActiveBallId(toyId);
+            return true;
           }
+          return false;
         }}
         onSelectToy={(id) => setActiveBallId(id)}
         isLoading={isFoodLoading}
       />
+      </ShopDialogueProvider>
 
     </div>
   );

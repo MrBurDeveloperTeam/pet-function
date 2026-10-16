@@ -79,7 +79,9 @@ export function useNpcConversations({ room, roomRef, petRef, disabled, onStart }
       const target = event.target instanceof Element ? event.target : null;
       if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (conversation) {
-        if (event.code === 'Space' || event.key === 'Escape') {
+        // The dialogue's typewriter captures Space to finish or close one line.
+        if (event.code === 'Space') return;
+        if (event.key === 'Escape') {
           event.preventDefault();
           event.stopImmediatePropagation();
           if (event.repeat) return;

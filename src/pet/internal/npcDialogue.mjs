@@ -1,7 +1,7 @@
 // Moods describe the line of dialogue, not the player's needs or current weather.
 export const NPC_DIALOGUE_POOLS = Object.freeze({
   happy: Object.freeze([
-    "Oh, it's you! My tail always does a little dance when a friend visits.",
+    "Oh, it's you! My tail always does a little dance when a friend visits. 🐾",
     "A warm patch of sunshine and a good friend would make a perfect afternoon.",
     "I practiced passing the football. Sharing the ball feels better than chasing it alone!",
     "Even a tiny fish makes a lovely fishing story. I like hearing yours.",
@@ -24,7 +24,7 @@ export const NPC_DIALOGUE_POOLS = Object.freeze({
   ]),
   calm: Object.freeze([
     "There's no hurry. We can enjoy this little pause together.",
-    "Watching the pond helps my thoughts settle, one ripple at a time.",
+    "Watching the pond helps my thoughts settle, one ripple at a time. 🌿",
     "Before a football match, I like to take one slow breath.",
     "A steady pace can make a tricky race feel a little easier.",
     "Sometimes I picture clouds drifting past. My worries can drift along too.",
@@ -45,7 +45,7 @@ export const NPC_DIALOGUE_POOLS = Object.freeze({
     "You don't need to have something clever to say. I'm glad you're here.",
   ]),
   excited: Object.freeze([
-    "A football match! My paws are already imagining the first sprint!",
+    "A football match! My paws are already imagining the first sprint! ⚽",
     "What if your next catch is a fish you've never seen? Ooh, the possibilities!",
     "I love that tiny moment before a race starts. Everything feels possible!",
     "One hurdle, then another! I get excited just thinking about the rhythm!",
@@ -86,13 +86,13 @@ export const NPC_DIALOGUE_POOLS = Object.freeze({
     "I was hoping a friend would stop by. Thank you for noticing me.",
     "A soft place to curl up sounds better than another game right now.",
     "I feel a little left out when everyone runs ahead. I like being invited along.",
-    "I'm not cheerful yet, but talking to you is a good start.",
+    "I'm not cheerful yet, but talking to you is a good start. 💙",
   ]),
   grumpy: Object.freeze([
     "My tail is doing the annoyed swish. Please give it a little room.",
     "A football that rolls away the moment I reach it is very rude.",
     "I know races have corners. I still reserve the right to grumble about them.",
-    "That hurdle looked smaller before I tried to jump it. Suspicious.",
+    "That hurdle looked smaller before I tried to jump it. Suspicious. 😾",
     "An empty food bowl is a serious design flaw in any afternoon.",
     "If the wind messes up my fur, I'll be filing a complaint with the nearest tree.",
     "I can be friendly and mildly irritated at the same time. Observe.",
@@ -112,7 +112,7 @@ export const NPC_DIALOGUE_POOLS = Object.freeze({
   ]),
   sleepy: Object.freeze([
     "I was going to say something brilliant, but a yawn got there first.",
-    "A soft bed is winning the race for my attention.",
+    "A soft bed is winning the race for my attention. 💤",
     "I could watch a football roll past and cheer very quietly from here.",
     "Fishing sounds restful. Just don't let my daydreams tug the line.",
     "I counted three hurdles, then somehow started counting pillows.",
@@ -145,7 +145,7 @@ export const NPC_DIALOGUE_POOLS = Object.freeze({
     "An empty bowl makes such a lonely little sound when I inspect it.",
     "I want to savor my food slowly. My stomach has a different proposal.",
     "A good meal after a match sounds like the finest victory celebration.",
-    "My whiskers are alert for snack-related conversation.",
+    "My whiskers are alert for snack-related conversation. 🐟",
     "If it rains, a cozy indoor meal would suit me perfectly.",
     "I can wait patiently. Please don't ask my tail to confirm that.",
     "I was thinking about lap times, then accidentally thought about lunchtime.",
@@ -159,7 +159,7 @@ export const NPC_DIALOGUE_POOLS = Object.freeze({
     "What makes a perfect football pass: timing, direction, or knowing your teammate?",
     "I wonder whether the fastest racing route always feels like the fastest one.",
     "How do you decide when to jump a hurdle? I keep watching everyone's paws.",
-    "If clouds had flavors, would the fluffy ones taste different?",
+    "If clouds had flavors, would the fluffy ones taste different? ☁️",
     "Why does a snack taste better after I've spent ages thinking about it?",
     "Do you prefer exploring a new path or finding something new on a familiar one?",
     "I wonder how many different fish are still waiting to surprise us.",
