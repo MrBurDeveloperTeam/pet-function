@@ -149,3 +149,11 @@ export const normalizePetId = (value?: string | null): PetId => {
 export const getPetOption = (value?: string | null): PetOption => {
   return PET_OPTIONS.find((pet) => pet.id === normalizePetId(value)) || PET_OPTIONS[0];
 };
+export { WARDROBE_ITEMS, WARDROBE_PET_IDS, WARDROBE_BY_ID, emptyWardrobe, validateWardrobe, equipWardrobe } from './internal/wardrobe.mjs';
+export type { WardrobeState, WardrobeSlot, CatOutfit } from './internal/wardrobe.mjs';
+
+export { CABINET_ITEMS, CABINET_BY_ID, emptyCabinets, validateCabinets, selectCabinet } from './internal/cabinets.mjs';
+export type {CabinetState,CabinetRoom} from './internal/cabinets.mjs';
+
+export {DECOR_ITEMS,DECOR_BY_ID,decorKey,emptyDecor,validateDecor,selectDecor} from './internal/roomDecor.mjs';
+export type {DecorState,DecorItem} from './internal/roomDecor.mjs';

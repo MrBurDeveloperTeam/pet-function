@@ -1,5 +1,11 @@
 # @mrburdeveloperteam/pet-function
 
+Large images and games are automatically published as versioned resource packs
+in this repository's GitHub Releases. The core package stays small; hosts restore
+the matching resources during development/build. All source content is still
+edited in this repository. See [RESOURCE-DELIVERY.md](RESOURCE-DELIVERY.md) for
+publishing, private-repository credentials, and local/offline development.
+
 **Status: skeleton/foundation only.** This package does not yet contain
 product UI and does not yet replace any of the seven Snabbb apps' existing
 Cat Mascot / Molar AI / Virtual Pet implementations. It establishes the

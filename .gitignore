@@ -1,5 +1,8 @@
 node_modules/
 dist/
+/output/
+/.resource-packs/
+/resource-manifest.json
 *.tsbuildinfo
 /*.tgz
 /release-*.local.log

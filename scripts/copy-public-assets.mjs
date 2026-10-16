@@ -10,10 +10,11 @@
 // older sibling-checkout dev script, still used for local multi-repo
 // development — see REPOSITORY-SETUP.md), this never rebuilds from
 // source: dist/ ships pre-built via `npm publish`.
-import { existsSync, readdirSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readdirSync, mkdirSync, copyFileSync } from 'node:fs';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyPublicResources } from './verify-public-resources.mjs';
+import { ensurePublicResources } from './sync-resource-packs.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const host = resolve(process.argv[2] || process.cwd());
@@ -25,10 +26,7 @@ function files(dir) {
   });
 }
 
-const publicDir = join(root, 'public');
-if (!existsSync(publicDir)) {
-  throw new Error('[pet-function] no public/ directory in the installed package at ' + root);
-}
+const publicDir = await ensurePublicResources(root);
 
 for (const source of files(publicDir)) {
   const name = relative(publicDir, source);
@@ -37,5 +35,5 @@ for (const source of files(publicDir)) {
   mkdirSync(dirname(target), { recursive: true });
   copyFileSync(source, target);
 }
-verifyPublicResources(root, host);
+verifyPublicResources(root, host, publicDir);
 console.log('[pet-function] public resources copied into ' + relative(process.cwd(), host));

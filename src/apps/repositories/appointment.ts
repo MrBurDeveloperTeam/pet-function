@@ -1,3 +1,6 @@
+import {createDecorCloud} from './decorCloud.mjs';
+import { createCabinetCloud } from './cabinetCloud.mjs';
+import { createWardrobeCloud } from './wardrobeCloud.mjs';
 // Preserved appointment database mapping. The host injects its authenticated client.
 import type { PetDatabaseClient } from '../databaseClient';
 import type { PetRepository } from '../../contracts';
@@ -39,6 +42,9 @@ type InventoryPetRow = {
 
 export function createAppointmentsPetRepository(supabase: PetDatabaseClient): PetRepository {
   return {
+  ...createWardrobeCloud(supabase),
+  ...createCabinetCloud(supabase),
+  ...createDecorCloud(supabase),
   async loadSnapshot(userId: string): Promise<PetSaveSnapshot | null> {
     void userId;
     const { data, error } = await supabase

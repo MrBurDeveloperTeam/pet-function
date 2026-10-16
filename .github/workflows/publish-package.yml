@@ -7,8 +7,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
+
+concurrency:
+  group: pet-function-release
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -22,11 +26,81 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: '@mrburdeveloperteam'
 
-      - run: npm ci
+      - name: Verify release tag matches this checkout
+        id: release
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync, appendFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const {version} = JSON.parse(readFileSync('package.json', 'utf8'));
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) throw new Error('Invalid release version');
+          const tag = `v${version}`;
+          if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== tag) throw new Error('Tag and package version differ');
+          try { execFileSync('git', ['rev-parse', `${tag}^{commit}`], {stdio:'ignore'}); }
+          catch { execFileSync('git', ['fetch', '--depth=1', 'origin', `refs/tags/${tag}:refs/tags/${tag}`], {stdio:'inherit'}); }
+          const target = execFileSync('git', ['rev-parse', `${tag}^{commit}`], {encoding:'utf8'}).trim();
+          const head = execFileSync('git', ['rev-parse', 'HEAD'], {encoding:'utf8'}).trim();
+          if (target !== head) throw new Error('Publish only the checkout of the matching version tag');
+          appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\n`);
+          NODE
+
+      - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm run build
+      - run: npm run resources:check
+      - name: Test independent resource delivery
+        run: node --test tests/resource-pack-builder.test.mjs tests/resource-pack-sync.test.mjs tests/resource-host-integration.test.mjs tests/resource-release-catalog.test.mjs tests/bundled-assets.test.mjs tests/package-size.test.mjs
+      - name: Reuse published resource metadata on release retries
+        id: resources
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft > release-state.json 2>/dev/null; then
+            IS_DRAFT=$(node -p "JSON.parse(require('fs').readFileSync('release-state.json','utf8')).isDraft")
+          else
+            IS_DRAFT=true
+          fi
+          if [ "$IS_DRAFT" = "false" ]; then
+            mkdir release-existing
+            gh release download "$RELEASE_TAG" --pattern resource-manifest.json --pattern '*.jsonl.gz.part*' --dir release-existing
+            node scripts/compare-resource-catalogs.mjs resource-manifest.json release-existing/resource-manifest.json
+            node scripts/check-resource-packs.mjs --assets-dir release-existing --manifest release-existing/resource-manifest.json
+            cp release-existing/resource-manifest.json resource-manifest.json
+            echo 'published=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'published=false' >> "$GITHUB_OUTPUT"
+          fi
       - run: npm pack --ignore-scripts --json > package-manifest.json
       - run: node scripts/check-package-size.mjs package-manifest.json
-      - run: npm publish --ignore-scripts
+
+      - name: Publish versioned resources to this repository's Release
+        if: steps.resources.outputs.published != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --generate-notes
+          fi
+          mapfile -t RESOURCE_ASSETS < <(node --input-type=module -e 'import{readFileSync}from"node:fs";const m=JSON.parse(readFileSync("resource-manifest.json","utf8"));for(const p of m.packs)for(const part of p.parts)console.log(".resource-packs/"+part.name)')
+          gh release upload "$RELEASE_TAG" resource-manifest.json "${RESOURCE_ASSETS[@]}" --clobber
+          gh release edit "$RELEASE_TAG" --draft=false
+
+      - name: Publish core package, or verify an already published version
+        run: |
+          PACKAGE=$(node -p "const p=require('./package.json');p.name+'@'+p.version")
+          if npm view "$PACKAGE" dist.integrity --json > published-integrity.json 2>/dev/null; then
+            mkdir published-core current-core-contents published-core-contents
+            npm pack "$PACKAGE" --ignore-scripts --pack-destination published-core --json > published-core-manifest.json
+            CURRENT=$(node -p "JSON.parse(require('fs').readFileSync('package-manifest.json','utf8'))[0].filename")
+            PUBLISHED=$(node -p "JSON.parse(require('fs').readFileSync('published-core-manifest.json','utf8'))[0].filename")
+            tar -xzf "$CURRENT" -C current-core-contents
+            tar -xzf "published-core/$PUBLISHED" -C published-core-contents
+            diff -r --no-dereference current-core-contents published-core-contents
+            echo 'Existing core package content verified; publication skipped.'
+          else
+            npm publish --ignore-scripts
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { FISH_SPECIES } from '../src/pet/internal/fishingSpecies.mjs';
 
 const fishingSource = readFileSync(new URL('../src/pet/internal/components/FishingGame.tsx', import.meta.url), 'utf8');
 const roomSource = readFileSync(new URL('../src/pet/internal/PetRoom.tsx', import.meta.url), 'utf8');
@@ -118,9 +119,9 @@ test('a successful catch grants coins and the selected feedable fish species', (
   assert.match(runtimeSource, /grantItem: \(itemId: string, quantity\?: number\) => void/);
   for (const fishId of ['pond_fish', 'perch', 'catfish', 'rainbow_trout', 'koi_fish', 'golden_fish']) {
     assert.match(constantsSource, new RegExp(`id: '${fishId}'`));
-    assert.match(fishingSource, new RegExp(`${fishId}:`));
+    assert.ok(FISH_SPECIES[fishId]);
   }
-  assert.match(fishingSource, /FISH_POOLS/);
+  assert.match(fishingSource, /chooseFishingSpecies\(band, FISHING_RODS\[rodId\].rarityBoost\)/);
   assert.match(fishingSource, /onCatch\(next\.fish\.id, next\.coins, next\.xp\)/);
 });
 
@@ -144,7 +145,7 @@ test('fishing scene renders a rear-facing cat and fishing rod on the lower dock'
     assert.match(fishingSource, new RegExp(`${rodId}:`));
   }
   assert.match(fishingSource, /rarityBoost: 2\.2/);
-  assert.match(fishingSource, /1 \+ fish\.rarity \* boost/);
+  assert.match(fishingSource, /chooseFishingSpecies\(band, FISHING_RODS\[rodId\].rarityBoost\)/);
   assert.match(fishingSource, /equippedRodId = 'beginner_rod'/);
   assert.match(fishingSource, /Selected cat sitting with its back to the screen and holding the equipped fishing rod/);
   assert.match(fishingSource, /z-10 h-\[150%\]/);

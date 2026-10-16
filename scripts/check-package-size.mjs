@@ -14,18 +14,27 @@ export function parsePackOutput(output) {
 }
 export function checkPackage(pack) {
 const limit = 268435456;
+const coreBudget = 64 * 1024 * 1024;
 if (!pack || !Number.isFinite(pack.size) || pack.size < 0 || !Array.isArray(pack.files)) throw new Error('Invalid npm pack manifest');
 if (pack.size > limit) throw new Error(`Package is ${pack.size} bytes; GitHub Packages limit is ${limit}`);
+if (pack.size > coreBudget) throw new Error(`Core package exceeds the 64 MiB budget (${pack.size} bytes). Publish large resources as Release assets.`);
 const files = new Set(pack.files.map(file => file.path));
-for (const game of ['mole-game','cat-kart','stadium-football','stadium-hurdles','air-strike']) {
-  for (const name of ['index.html','index.pck']) {
-    if (!files.has(`public/games/${game}/${name}`)) throw new Error(`Missing ${game}/${name}`);
-  }
+for (const name of ['resource-manifest.json','dist/index.js','dist/styles.css','scripts/sync-resource-packs.mjs','scripts/vite-games.mjs']) {
+  if (!files.has(name)) throw new Error(`Missing core resource: ${name}`);
 }
-for (const name of ['index.js','index.wasm']) {
-  if (!files.has(`public/games/mole-game/${name}`)) throw new Error(`Missing shared Godot ${name}`);
+const coreArt = new Set([
+  ...['mallow','silverbelt','fastrat','gulu','munchkin','mochi'].map(cat => `public/pet-function/pets/${cat}-spritesheet.webp`),
+  'public/pet-function/ai/ai_logo.png',
+  ...['grey_bed','red_bed','purple_bed','poop','shower','soap'].map(name => `public/pet-function/pet/${name}.png`),
+]);
+for (const path of coreArt) {
+  if (!files.has(path)) throw new Error(`Missing core artwork: ${path}`);
 }
-console.log(`Package verified: ${(pack.size/1e6).toFixed(1)} MB; limit ${(limit/1e6).toFixed(1)} MB`);
+for (const path of files) {
+  if (path.startsWith('public/') && !coreArt.has(path)) throw new Error(`Bulk resource must be a Release asset: ${path}`);
+  if (path.startsWith('.resource-packs/')) throw new Error('Release resource packs must not be nested in the npm package');
+}
+console.log(`Core package verified: ${(pack.size/1048576).toFixed(2)} MiB; budget ${coreBudget/1048576} MiB; registry limit ${limit/1048576} MiB`);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   checkPackage(parsePackOutput(readFileSync(process.argv[2], 'utf8')));

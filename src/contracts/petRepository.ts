@@ -1,3 +1,4 @@
+import type { DecorState } from '../pet/internal/roomDecor.mjs';
 /**
  * Framework/database-neutral persistence boundary for the Pet domain.
  *
@@ -26,8 +27,21 @@
  * `PetRoom.getBedItem` do today.
  */
 import type { FoodItem, PetInventoryItem, PetSaveSnapshot } from './pet';
+import type { WardrobeState, WardrobeSlot } from '../pet/internal/wardrobe.mjs';
+import type { CabinetState, CabinetRoom } from '../pet/internal/cabinets.mjs';
 
 export interface PetRepository {
+  loadDecor?(userId:string):Promise<DecorState>;
+  purchaseDecorItem?(userId:string,itemId:string):Promise<{decor:DecorState;coins:number}>;
+  selectDecorItem?(userId:string,slot:string,itemId:string|null):Promise<DecorState>;
+  loadCabinets?(userId:string):Promise<CabinetState>;
+  purchaseCabinetItem?(userId:string,itemId:string):Promise<{cabinets:CabinetState;coins:number}>;
+  selectCabinetItem?(userId:string,room:CabinetRoom,itemId:string|null):Promise<CabinetState>;
+  /** Account-owned cosmetics; purchases charge the existing wallet atomically.
+   * Equipped slots are stored per cat and may only refer to owned items. */
+  loadWardrobe?(userId: string): Promise<WardrobeState>;
+  purchaseWardrobeItem?(userId: string, itemId: string): Promise<{ wardrobe: WardrobeState; coins: number }>;
+  equipWardrobeItem?(userId: string, petId: string, slot: WardrobeSlot, itemId: string | null): Promise<WardrobeState>;
   /** Returns `null` when no snapshot row exists yet for this user (first
    *  login) — the runtime seeds fresh starter stats in that case, exactly
    *  as Content Studio's `!petData && !petErr` branch does today. */

@@ -1557,7 +1557,29 @@
 .snabbb-molar-experience .pet-scene-cat {
   position: absolute;
   transform: translate(-50%, -94%);
-  pointer-events: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: normal;
+  text-align: initial;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.snabbb-molar-experience .pet-scene-cat:focus-visible {
+  outline: 2px dashed #fff3b0;
+  outline-offset: 3px;
+}
+
+.snabbb-molar-experience .pet-scene-cat:disabled {
+  cursor: default;
 }
 
 .snabbb-molar-experience .pet-scene-cat-sprite {
@@ -1569,6 +1591,7 @@
   background-repeat: no-repeat;
   image-rendering: pixelated;
   transform-origin: top left;
+  pointer-events: none;
 }
 
 .snabbb-molar-experience .pet-scene-cat-dialogue {
@@ -1618,6 +1641,179 @@
 .snabbb-molar-experience .pet-scene-cat-sit .pet-scene-cat-shadow {
   height: 5%;
   background: #34271420;
+}
+
+.snabbb-molar-experience .pet-scene-cat-talk-hint {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translate(-50%, 3px);
+  width: max-content;
+  padding: 4px 7px;
+  border: 2px solid #684427;
+  background: #fff3c4;
+  color: #51341f;
+  box-shadow: 2px 2px 0 #34271470;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms ease, transform 100ms ease;
+  z-index: 2;
+}
+.snabbb-molar-experience .pet-scene-cat:enabled:hover .pet-scene-cat-talk-hint,
+.snabbb-molar-experience .pet-scene-cat:enabled:focus-visible .pet-scene-cat-talk-hint,
+.snabbb-molar-experience .pet-scene-cat:enabled[data-nearby='true'] .pet-scene-cat-talk-hint {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.snabbb-molar-experience .pet-scene-cat[data-talking='true'] .pet-scene-cat-talk-hint {
+  visibility: hidden;
+}
+
+/* Conversation belongs to the room viewport, outside the scrolling world. */
+.snabbb-molar-experience .pet-npc-dialogue {
+  position: absolute;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 65;
+  display: flex;
+  align-items: flex-end;
+  width: min(940px, calc(100% - 48px));
+  min-height: 188px;
+  transform: translateX(-50%);
+  color: #51341f;
+  isolation: isolate;
+}
+.snabbb-molar-experience .pet-npc-dialogue-portrait {
+  position: relative;
+  flex: 0 0 172px;
+  height: 208px;
+  margin-right: -12px;
+  pointer-events: none;
+  z-index: 1;
+}
+.snabbb-molar-experience .pet-npc-dialogue-cat {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 192px;
+  height: 208px;
+  background-size: 1536px 2080px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  image-rendering: pixelated;
+  filter: drop-shadow(3px 3px 0 #51341f85);
+  transform: scale(1.05);
+  transform-origin: bottom left;
+}
+.snabbb-molar-experience .pet-npc-dialogue-panel {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 180px;
+  padding: 26px 30px 14px 34px;
+  border: 4px solid #684427;
+  background: #fff3c4;
+  box-shadow: inset 0 0 0 3px #e6bf72, 6px 6px 0 #34271485;
+}
+.snabbb-molar-experience .pet-npc-dialogue-text {
+  margin: 0;
+  padding-right: 15px;
+  color: #51341f;
+  font-size: clamp(17px, 1.65vw, 23px);
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.snabbb-molar-experience .pet-npc-dialogue-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 12px;
+}
+.snabbb-molar-experience .pet-npc-dialogue-key-hint {
+  color: #806143;
+  font-size: 12px;
+  font-weight: 600;
+}
+.snabbb-molar-experience .pet-npc-dialogue-key-hint > span {
+  margin-left: 16px;
+}
+.snabbb-molar-experience .pet-npc-dialogue-close {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 42px;
+  height: 36px;
+  padding: 0;
+  border: 2px solid #684427;
+  border-radius: 0;
+  background: #ffd47c;
+  color: #51341f;
+  box-shadow: 2px 2px 0 #684427;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.snabbb-molar-experience .pet-npc-dialogue-close {
+  position: absolute;
+  right: 10px;
+  top: 40px;
+  width: 29px;
+  height: 29px;
+  font-size: 25px;
+}
+.snabbb-molar-experience .pet-npc-dialogue-close:hover {
+  background: #ffe7a4;
+}
+.snabbb-molar-experience .pet-npc-dialogue-close:focus-visible {
+  outline: 3px solid #168c80;
+  outline-offset: 3px;
+}
+.snabbb-molar-experience .pet-npc-dialogue-close:active {
+  box-shadow: none;
+  translate: 2px 2px;
+}
+@media (pointer: coarse) {
+  .snabbb-molar-experience .pet-scene-cat-key-hint,
+  .snabbb-molar-experience .pet-npc-dialogue-key-hint { display: none; }
+}
+@media (max-width: 600px) {
+  .snabbb-molar-experience .pet-npc-dialogue {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: calc(100% - 22px);
+    min-height: 144px;
+  }
+  .snabbb-molar-experience .pet-npc-dialogue-portrait {
+    flex-basis: 94px;
+    height: 145px;
+    margin-right: -8px;
+  }
+  .snabbb-molar-experience .pet-npc-dialogue-cat { transform: scale(.64); left: -10px; }
+  .snabbb-molar-experience .pet-npc-dialogue-panel { min-height: 138px; padding: 16px 18px 9px 20px; border-width: 3px; }
+  .snabbb-molar-experience .pet-npc-dialogue-text { padding-right: 13px; font-size: 15px; line-height: 1.4; }
+  .snabbb-molar-experience .pet-npc-dialogue-close { top: 17px; right: 7px; width: 25px; height: 25px; font-size: 22px; }
+  .snabbb-molar-experience .pet-npc-dialogue-controls { gap: 8px; margin-top: 8px; }
+  .snabbb-molar-experience .pet-npc-dialogue-key-hint { font-size: 10px; }
+  .snabbb-molar-experience .pet-npc-dialogue-key-hint > span { margin-left: 9px; }
+}
+@media (max-height: 480px) and (min-width: 601px) {
+  .snabbb-molar-experience .pet-npc-dialogue { bottom: 12px; min-height: 130px; width: min(780px, calc(100% - 36px)); }
+  .snabbb-molar-experience .pet-npc-dialogue-portrait { flex-basis: 126px; height: 148px; }
+  .snabbb-molar-experience .pet-npc-dialogue-cat { transform: scale(.74); }
+  .snabbb-molar-experience .pet-npc-dialogue-panel { min-height: 126px; padding: 18px 26px 9px; }
+  .snabbb-molar-experience .pet-npc-dialogue-text { font-size: 17px; line-height: 1.35; }
+  .snabbb-molar-experience .pet-npc-dialogue-close { top: 32px; }
+  .snabbb-molar-experience .pet-npc-dialogue-controls { margin-top: 6px; }
 }
 
 @keyframes pet-kart-outline-pulse {
@@ -1961,3 +2157,43 @@
 }
 
 .pet-revive-player {position:absolute;inset:0;pointer-events:none;}
+/* Pixel wardrobe: the existing shop palette, with a viewport-bounded preview. */
+.pet-wardrobe-modal { --wardrobe-ink:#5a351f; --wardrobe-paper:#fff8df; --wardrobe-accent:#f39a2e; position:fixed; inset:0; z-index:1100; display:flex; align-items:center; justify-content:center; padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); background:rgb(43 27 18 / .75); color:#3f291b; box-sizing:border-box; }
+.pet-wardrobe-modal * { box-sizing:border-box; }
+.pet-wardrobe-dialog { display:flex; flex-direction:column; width:min(100%,1040px); max-height:calc(100dvh - 32px); border:5px solid var(--wardrobe-ink); background:var(--wardrobe-paper); box-shadow:8px 8px 0 #2f1d13; font-family:inherit; font-weight:700; overflow:hidden; }
+.pet-wardrobe-header { display:grid; grid-template-columns:minmax(0,1fr) auto 44px; align-items:center; gap:12px; padding:16px; background:var(--wardrobe-accent); border-bottom:4px solid var(--wardrobe-ink); }
+.pet-wardrobe-header h2 { margin:0; font-size:clamp(18px,2.5vw,28px); font-weight:900; line-height:1.2; }
+.pet-wardrobe-header p { margin:5px 0 0; font-size:12px; }
+.pet-wardrobe-wallet { display:flex; align-items:center; gap:7px; padding:8px; background:#fff0ad; border:3px solid var(--wardrobe-ink); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.pet-wardrobe-modal button { cursor:pointer; font:inherit; min-height:44px; transition:filter .12s; }
+.pet-wardrobe-modal button:hover:not(:disabled) { filter:brightness(1.08); }
+.pet-wardrobe-modal button:focus-visible { outline:3px solid #238f83; outline-offset:3px; }
+.pet-wardrobe-modal button:disabled { cursor:not-allowed; opacity:.6; }
+.pet-wardrobe-icon { display:flex; align-items:center; justify-content:center; width:44px; border:3px solid var(--wardrobe-ink); background:#fff0ad; color:inherit; }
+.pet-wardrobe-scroll { min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+.pet-wardrobe-layout { display:grid; grid-template-columns:minmax(0,1fr); }
+.pet-wardrobe-preview { padding:16px; background:#f4e4b4; text-align:center; }
+.pet-wardrobe-eyebrow { margin:0; font-size:11px; letter-spacing:.06em; color:#6a4630; }
+.pet-wardrobe-stage { height:195px; display:flex; align-items:center; justify-content:center; background:repeating-linear-gradient(0deg,transparent 0 25px,rgb(90 53 31 / .05) 25px 27px); }
+.pet-wardrobe-preview h3 { margin:0 0 10px; font-size:20px; }
+.pet-wardrobe-modal button[aria-pressed=true] { border-color:#238f83; background:#d6eddf; }
+.pet-wardrobe-link { border:0; background:transparent; text-decoration:underline; color:#5a351f; }
+.pet-wardrobe-catalog { min-width:0; padding:16px; }
+.pet-wardrobe-filters { display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; margin-bottom:14px; }
+.pet-wardrobe-choices { display:flex; gap:6px; }
+.pet-wardrobe-choices button,.pet-wardrobe-owned-filter,.pet-wardrobe-empty button,.pet-wardrobe-error button { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:6px 10px; border:2px solid #ad8659; background:#fff0ad; color:var(--wardrobe-ink); font-size:12px; }
+.pet-wardrobe-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.pet-wardrobe-card { min-width:0; border:3px solid #9c7959; padding:10px; background:#fffdf2; box-shadow:3px 3px 0 #d2b18a; }
+.pet-wardrobe-try { display:flex; flex-direction:column; align-items:center; width:100%; padding:4px; border:2px solid transparent; background:#f5eacb; color:#765434; font-size:11px!important; }
+.pet-wardrobe-try svg { width:100%; height:82px; }
+.pet-wardrobe-card h3 { margin:12px 0 5px; min-height:40px; line-height:1.3; font-size:14px; }
+.pet-wardrobe-item-status { display:flex; align-items:center; justify-content:center; gap:4px; min-height:20px; margin:0 0 10px; font-size:11px; color:#705438; }
+.pet-wardrobe-action { width:100%; min-height:44px; border:3px solid #7b3517; background:#f06422; color:white; box-shadow:3px 3px 0 #7b3517; padding:6px 4px; font-size:12px!important; }
+.pet-wardrobe-action-owned { background:#ffd27a; color:#6a351c; }
+.pet-wardrobe-error { border:2px solid #a04c37; padding:12px; margin-bottom:12px; background:#ffe9d9; font-size:13px; }
+.pet-wardrobe-error p { margin:0 0 8px; }
+.pet-wardrobe-empty { padding:24px 0; text-align:center; font-size:14px; }
+@media(min-width:720px) { .pet-wardrobe-layout { grid-template-columns:310px minmax(0,1fr); } .pet-wardrobe-preview { border-right:3px solid #cba875; } .pet-wardrobe-stage { height:235px; } .pet-wardrobe-card h3 { min-height:22px; } }
+@media(max-width:400px) { .pet-wardrobe-header { padding:10px; gap:7px; } .pet-wardrobe-wallet { font-size:12px; padding:6px; } .pet-wardrobe-catalog { padding:12px; } .pet-wardrobe-card { padding:7px; } }
+
+.pet-wardrobe-jewelry-icon { width:132px; height:90px; object-fit:contain; image-rendering:pixelated; }

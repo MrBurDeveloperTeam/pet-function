@@ -1,11 +1,14 @@
 import { RoomType } from '../types';
 import { KART_CIRCUIT_OUTLINE } from '../kartInteraction';
 // Traced in the rooms-wide artwork coordinate system; slice matches object-fit: cover.
-type RoomInteractionAction = 'food' | 'bath' | 'games' | 'air-strike' | 'door' | 'food-shop' | 'furniture-shop' | 'fishing' | 'karting';
+type RoomInteractionAction = 'wardrobe' | 'food' | 'bath' | 'games' | 'air-strike' | 'door' | 'food-shop' | 'furniture-shop' | 'jewelry-shop' | 'clothing-shop' | 'fishing' | 'karting';
 
 const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label: string; d: string; interactive?: boolean }[]>> = {
   [RoomType.KART_TRACK]: [
     { action: 'karting', label: 'Open the karting game', d: KART_CIRCUIT_OUTLINE },
+  ],
+  [RoomType.BEDROOM]: [
+    { action: 'wardrobe', label: 'Open my wardrobe', d: 'M307 127 H555 L581 136 V451 L558 470 H540 V457 H332 V471 H314 V144 H307 Z' },
   ],
   [RoomType.KITCHEN]: [
     { action: 'food', label: 'Open food inventory', d: 'M365 177 H521 L535 185 L543 201 V495 L533 510 H528 V523 H506 V513 H378 V523 H358 V510 L349 500 V194 L355 183 Z' },
@@ -29,7 +32,11 @@ const outlines: Partial<Record<RoomType, { action: RoomInteractionAction; label:
   ],
   [RoomType.SHOPPING_STREET]: [
     { action: 'food-shop', label: 'Open the food shop', d: 'M592 406 V316 C592 290 607 277 624 277 C642 277 657 291 657 316 V406 Z' },
-    { action: 'furniture-shop', label: 'Open the furniture shop', d: 'M899 405 V275 H962 V405 Z' },
+    { action: 'furniture-shop', label: 'Open the furniture shop', d: 'M887 405 V287 H884 V276 H907 V274 H934 V276 H954 V287 H950 V355 L944 370 V406 L941 411 H891 V406 Z' },
+    { action: 'jewelry-shop', label: 'Open the jewelry shop', d: 'M1168 405 V315 C1168 289 1181 276 1199 276 C1217 276 1232 290 1232 315 V405 Z' },
+    // The clothing doorway has a shallow stone lintel, unlike the rounded
+    // jewelry-shop arch. Trace its own jambs and threshold in the artwork.
+    { action: 'clothing-shop', label: 'Open the clothing shop', d: 'M1438 405 V300 H1434 V287 L1439 283 L1462 279 V277 H1477 V279 L1500 284 L1503 288 V300 H1498 V355 L1492 366 V406 L1489 410 H1447 V406 Z' },
   ],
   [RoomType.SPORTS_GROUND]: [
     {
@@ -56,7 +63,7 @@ export function RoomInteractionOutlines({ room, hidden, onActivate, onKeyboardAc
   if (hidden || !outlines[room]) return null;
   return (
     <svg viewBox="0 0 1862 845" preserveAspectRatio="xMidYMid slice"
-      className="pet-interaction-outlines" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 15, pointerEvents: 'none' }}>
+      className="pet-interaction-outlines" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: room === RoomType.BEDROOM ? 4 : 15, pointerEvents: 'none' }}>
       {outlines[room]!.map(({ action, label, d, interactive = true }) => interactive ? (
 
         <path key={label} d={d} className="pet-interaction-outline" role="button"

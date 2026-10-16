@@ -1,8 +1,9 @@
 // Host delivery for both a sibling checkout and a Git-installed dependency.
-import { existsSync, readdirSync, mkdirSync, copyFileSync, readFileSync } from 'node:fs';
+import { readdirSync, mkdirSync, copyFileSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyPublicResources } from './verify-public-resources.mjs';
+import { ensurePublicResources } from './sync-resource-packs.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const host = resolve(process.argv[2] || process.cwd());
@@ -11,15 +12,15 @@ try { hostPkgName = JSON.parse(readFileSync(join(host, 'package.json'), 'utf8'))
 if (hostPkgName !== 'dental-learn') {
   throw new Error('pet-function pilot may only prepare the E-learning host (package.json name "dental-learn"): ' + host + (hostPkgName ? ' (found "' + hostPkgName + '")' : ''));
 }
-if (!existsSync(join(root, 'public'))) throw new Error('pet-function public resources are missing: ' + root);
+const publicDir = await ensurePublicResources(root);
 function files(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const path = join(dir, entry.name);
     return entry.isDirectory() ? files(path) : [path];
   });
 }
-for (const source of files(join(root, 'public'))) {
-  const name = relative(join(root, 'public'), source);
+for (const source of files(publicDir)) {
+  const name = relative(publicDir, source);
   const parts = name.split(/[\\/]/);
   if (parts[0] === 'games' || parts[0] === 'pets') continue;
   if (parts[0] === 'images' && parts.at(-1) !== 'cat-meow.mp3') continue;
@@ -27,5 +28,5 @@ for (const source of files(join(root, 'public'))) {
   mkdirSync(dirname(target), { recursive: true });
   copyFileSync(source, target);
 }
-verifyPublicResources(root, host);
+verifyPublicResources(root, host, publicDir);
 console.log('[pet-function] resources ready for E-learning from ' + root);

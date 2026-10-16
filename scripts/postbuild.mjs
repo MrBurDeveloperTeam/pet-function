@@ -24,9 +24,12 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import postcss from 'postcss';
 import prefixSelector from 'postcss-prefix-selector';
+import { dedupeBundledAssets } from './dedupe-bundled-assets.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const distDir = join(root, 'dist');
+const deduped = dedupeBundledAssets(root);
+console.log(`[postbuild] reused ${deduped.files} public assets; removed ${deduped.bytes} duplicate bytes`);
 
 const CLIENT_ENTRIES = ['index.js', 'cat.js', 'ai.js', 'pet.js', 'inventory.js', 'appointment.js', 'image-generator.js', 'calculator.js', 'todo.js', 'elearning.js', 'superapp.js'];
 const DIRECTIVE = '"use client";\n';

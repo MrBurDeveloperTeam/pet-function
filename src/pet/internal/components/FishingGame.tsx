@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { PetId } from '../petOptions';
 import { MobileLandscapeGate, useMobileLandscapePaused } from './MobileLandscapeGate';
 import { fishingTapAction, type FishingTouchPoint } from '../fishingTouch.mjs';
+import { chooseFishingSpecies, type FishingSpecies } from '../fishingSpecies.mjs';
 
 function useFishingTimeout(active: boolean, paused: boolean, cycle: number, delay: () => number, onElapsed: () => void) {
   const budget = useRef<{ cycle: number; remaining: number } | null>(null);
@@ -34,7 +35,6 @@ const FISHING_TUTORIAL_STEPS = [
   { title: 'Pull the fish closer', detail: 'A correct hit flashes gold stars and pulls the fish 15m closer. A miss lets it escape 5m farther.', target: 'control' },
 ] as const;
 export type FishingRodId = 'beginner_rod' | 'forest_rod' | 'carbon_rod' | 'crystal_rod' | 'legendary_rod';
-interface FishingSpecies { id: string; label: string; image: string; rarity: number }
 interface FishingResult { caught: boolean; coins: number; xp: number; band: FishingBand; fish: FishingSpecies | null }
 interface FishingGameProps { petId: PetId; equippedRodId?: FishingRodId; onCatch: (fishId: string, coins: number, xp: number) => void; onClose: () => void }
 
@@ -46,20 +46,6 @@ export const FISHING_RODS: Record<FishingRodId, { id: FishingRodId; label: strin
   legendary_rod: { id: 'legendary_rod', label: 'Legendary Rod', image: '/pet-function/fishing/legendary-fishing-rod.png', rarityBoost: 2.2 },
 };
 
-const FISH_SPECIES: Record<string, FishingSpecies> = {
-  pond_fish: { id: 'pond_fish', label: 'Pond Fish', image: '/pet-function/items/pond-fish-pixel.png', rarity: 0 },
-  perch: { id: 'perch', label: 'Perch', image: '/pet-function/items/perch-pixel.png', rarity: 0 },
-  catfish: { id: 'catfish', label: 'Catfish', image: '/pet-function/items/catfish-pixel.png', rarity: 1 },
-  rainbow_trout: { id: 'rainbow_trout', label: 'Rainbow Trout', image: '/pet-function/items/rainbow-trout-pixel.png', rarity: 2 },
-  koi_fish: { id: 'koi_fish', label: 'Koi Fish', image: '/pet-function/items/koi-fish-pixel.png', rarity: 3 },
-  golden_fish: { id: 'golden_fish', label: 'Golden Fish', image: '/pet-function/items/golden-fish-pixel.png', rarity: 4 },
-};
-const FISH_POOLS: Record<FishingBand, FishingSpecies[]> = {
-  white: [FISH_SPECIES.pond_fish, FISH_SPECIES.perch],
-  green: [FISH_SPECIES.pond_fish, FISH_SPECIES.perch, FISH_SPECIES.catfish],
-  orange: [FISH_SPECIES.rainbow_trout, FISH_SPECIES.koi_fish],
-  red: [FISH_SPECIES.koi_fish, FISH_SPECIES.golden_fish],
-};
 const FISHING_BANDS: { band: FishingBand; start: number; end: number }[] = [
   { band: 'white', start: 0, end: 20 }, { band: 'green', start: 20, end: 34 },
   { band: 'orange', start: 34, end: 44 }, { band: 'red', start: 44, end: 56 },
@@ -72,17 +58,8 @@ const FISHING_CAT_BACK_IMAGES: Record<PetId, string> = {
   munchkin: '/pet-function/fishing/munchkin-fishing-back.png', mochi: '/pet-function/fishing/mochi-fishing-back.png',
 };
 const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
-const randomFish = (band: FishingBand, rodId: FishingRodId) => {
-  const pool = FISH_POOLS[band];
-  const boost = FISHING_RODS[rodId].rarityBoost;
-  const weights = pool.map(fish => 1 + fish.rarity * boost);
-  let roll = Math.random() * weights.reduce((total, weight) => total + weight, 0);
-  for (let index = 0; index < pool.length; index += 1) {
-    roll -= weights[index];
-    if (roll <= 0) return pool[index];
-  }
-  return pool[pool.length - 1];
-};
+const randomFish = (band: FishingBand, rodId: FishingRodId) =>
+  chooseFishingSpecies(band, FISHING_RODS[rodId].rarityBoost);
 const resolveBand = (value: number) => FISHING_BANDS.find(({ start, end }) => value >= start && value < end)?.band || 'white';
 const randomStruggleState = (avoid?: FishStruggleState): FishStruggleState => {
   const states: FishStruggleState[] = ['green', 'orange', 'red'];

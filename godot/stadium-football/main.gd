@@ -319,6 +319,8 @@ func build_ui() -> void:
 	announcement.position = Vector2(-320,-70)
 	announcement.size = Vector2(640,110)
 	announcement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	announcement.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	announcement.add_theme_color_override("font_outline_color",Color("192924"))
 	announcement.add_theme_color_override("font_shadow_color",Color("192924"))
 	announcement.add_theme_constant_override("shadow_offset_x",3)
 	announcement.add_theme_constant_override("shadow_offset_y",3)
@@ -629,17 +631,23 @@ func advance_tutorial() -> void:
 	game.score=[0,0]
 	prepare_tutorial_step()
 
-func draw_tutorial_focus() -> void:
-	if tutorial_step<0: return
+func tutorial_focus_rect() -> Rect2:
 	var target: int = game.controlled
 	if tutorial_step==2: target=1
 	if tutorial_step==4 and tutorial_success_step<0: target=3
-	var point := camera.unproject_position(pitch_position(game.cats[target].pos))-Vector2(0,28)
-	var hole := Rect2(point-Vector2(80,65),Vector2(160,130))
+	# Use the rendered frame above the pitch anchor, at the same scale as the cat.
+	# Camera projection includes viewport size and framebuffer pixel density.
+	var scale := get_viewport().get_visible_rect().size.x / camera.size * cat_sprites[target].pixel_size
+	var hole := cat_screen_rect(target).grow(18.0*scale)
 	if tutorial_success_step==3:
 		var ball_point := camera.unproject_position(ball_node.position)
 		hole=hole.expand(ball_point-Vector2(35,35)).expand(ball_point+Vector2(35,35))
-	if tutorial_step==1: hole=Rect2(15,ui.size.y/2-115,62,230)
+	if tutorial_step==1: hole=energy_hud.get_global_rect().grow(7)
+	return hole
+
+func draw_tutorial_focus() -> void:
+	if tutorial_step<0: return
+	var hole := tutorial_focus_rect()
 	var shade := Color(0.02,0.08,0.06,0.48)
 	tutorial_overlay.draw_rect(Rect2(0,0,ui.size.x,maxf(0,hole.position.y)),shade)
 	tutorial_overlay.draw_rect(Rect2(0,hole.end.y,ui.size.x,maxf(0,ui.size.y-hole.end.y)),shade)
@@ -836,8 +844,7 @@ func start_match() -> void:
 	bridge({"type":"FOOTBALL_STARTED","matchId":match_id})
 	play_tone(680,0.15)
 
-func pass_body_interval(i: int, from: Vector3, to: Vector3, limit: float) -> Vector2:
-	# Match the visible sprite body, including its offset above the pitch anchor.
+func cat_frame_bounds(i: int) -> Rect2:
 	var atlas: AtlasTexture = cat_atlases[i]
 	var key := Vector3i(0 if i<3 else 1,int(atlas.region.position.x),int(atlas.region.position.y))
 	if not body_bounds_cache.has(key):
@@ -845,7 +852,25 @@ func pass_body_interval(i: int, from: Vector3, to: Vector3, limit: float) -> Vec
 		var sheet: Image = body_sheet_images[key.x]
 		var frame_image := sheet.get_region(Rect2i(atlas.region))
 		body_bounds_cache[key] = Rect2(frame_image.get_used_rect())
-	var used: Rect2 = body_bounds_cache[key]
+	return body_bounds_cache[key]
+
+func cat_screen_rect(i: int) -> Rect2:
+	var sprite := cat_sprites[i]
+	var used := cat_frame_bounds(i)
+	var frame_position := used.position - cat_atlases[i].region.size*0.5 + Vector2(sprite.offset.x,-sprite.offset.y)
+	# Sprite3D billboards face the camera. Project all four visible-frame corners
+	# from the actual visual node so kick offsets and viewport resizing stay in sync.
+	var right := camera.global_basis.x*sprite.pixel_size
+	var down := -camera.global_basis.y*sprite.pixel_size
+	var first := camera.unproject_position(sprite.global_position + right*frame_position.x + down*frame_position.y)
+	var rect := Rect2(first,Vector2.ZERO)
+	for corner in [frame_position+Vector2(used.size.x,0),frame_position+used.size,frame_position+Vector2(0,used.size.y)]:
+		rect = rect.expand(camera.unproject_position(sprite.global_position + right*corner.x + down*corner.y))
+	return rect
+
+func pass_body_interval(i: int, from: Vector3, to: Vector3, limit: float) -> Vector2:
+	# Match the visible sprite body, including its offset above the pitch anchor.
+	var used := cat_frame_bounds(i)
 	var scale := get_viewport().get_visible_rect().size.x / camera.size * cat_sprites[i].pixel_size
 	var body := Rect2((used.position-Vector2(96,104)-cat_sprites[i].offset)*scale,used.size*scale).grow(10.5)
 	var before: Vector2 = game.previous_cat_positions[i] if game.previous_cat_positions.size()==6 else game.cats[i].pos
@@ -1022,9 +1047,28 @@ func update_visuals(delta: float) -> void:
 	shot_guide.visible = started and game.state=="playing" and charging_cat>=0 and game.owner==charging_cat and game.controlled==charging_cat
 	shot_guide.queue_redraw()
 	possession_label.text = TEAM_NAMES[0] + "  /  " + ("YOUR BALL  >" if game.owner==game.controlled else "ATTACK THE RIGHT GOAL  >")
-	announcement.text = str(ceili(game.phase_time)) if started and game.state == "countdown" else ("HOME GOAL!" if game.goal_team == 0 else "AWAY GOAL!") if game.state == "goal" else ""
+	update_announcement()
 	if not started: possession_label.text = ""
 	update_action_hint()
+
+func update_announcement() -> void:
+	var counting_down: bool = started and game.state == "countdown"
+	var view := get_viewport().get_visible_rect().size
+	if counting_down:
+		var font_size := maxi(44,roundi(view.y*0.14))
+		announcement.add_theme_font_size_override("font_size",font_size)
+		announcement.add_theme_constant_override("outline_size",maxi(3,roundi(font_size*0.06)))
+		announcement.size = Vector2(view.x*0.8,view.y*0.2)
+		announcement.position = Vector2(view.x*0.5,view.y*0.32)-announcement.size*0.5
+		announcement.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		announcement.text = str(ceili(game.phase_time))
+	else:
+		announcement.add_theme_font_size_override("font_size",44)
+		announcement.add_theme_constant_override("outline_size",0)
+		announcement.size = Vector2(640,110)
+		announcement.position = view*0.5+Vector2(-320,-70)
+		announcement.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		announcement.text = ("HOME GOAL!" if game.goal_team == 0 else "AWAY GOAL!") if game.state == "goal" else ""
 
 func result_portrait(team: int) -> VBoxContainer:
 	var column := VBoxContainer.new()

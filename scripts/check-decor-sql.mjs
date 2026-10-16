@@ -1,0 +1,31 @@
+// Local PostgreSQL/WASM only. No remote connection.
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+import {DECOR_ITEMS,decorKey} from '../src/pet/internal/roomDecor.mjs';
+const {PGlite}=await import(pathToFileURL(process.argv[2]).href);
+const db=new PGlite();
+const alice='00000000-0000-4000-8000-000000000001',bob='00000000-0000-4000-8000-000000000002';
+await db.exec(`create role authenticated;create role anon;create role service_role;create schema auth;create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid;$$;
+grant usage on schema auth to authenticated,anon;create table public.inventory_pet(user_id uuid primary key,pet_name text,coins integer not null);
+insert into auth.users values('${alice}'),('${bob}');insert into public.inventory_pet values('${alice}','mallow',50000),('${bob}','gulu',100);`);
+const sql=readFileSync(new URL('../database/pet_room_decor.sql',import.meta.url),'utf8');await db.exec(sql);await db.exec(sql);
+const login=id=>db.exec(`reset role;select set_config('request.jwt.claim.sub','${id}',false);set role authenticated;`);
+const get=async()=>(await db.query('select public.pet_decor_get() as state')).rows[0].state;
+const buy=async id=>(await db.query('select public.pet_decor_purchase($1) as receipt',[id])).rows[0].receipt;
+await login(alice);assert.deepEqual(await get(),{owned:[],selected:{}});
+let coins=50000;
+for(const i of DECOR_ITEMS){coins-=i.price;assert.equal((await buy(i.id)).coins,coins);assert.equal((await buy(i.id)).coins,coins);await db.query('select public.pet_decor_select($1,$2)',[decorKey(i),i.id]);}
+assert.equal(Object.keys((await get()).selected).length,12);
+await db.query("select public.pet_decor_select('BEDROOM:rug',null)");assert.equal(Object.keys((await get()).selected).length,11);
+assert.equal((await get()).selected['BEDROOM:bed'],'bedroom_bed');
+await assert.rejects(()=>db.query("select public.pet_decor_select('BEDROOM:bed','games_rug')"),/Buy this item/);
+await assert.rejects(()=>db.query("select public.pet_decor_select('invalid',null)"),/Invalid/);
+await assert.rejects(()=>db.query("delete from public.pet_decor_owned"),/permission denied/);
+await login(bob);assert.deepEqual(await get(),{owned:[],selected:{}});assert.equal((await db.query('select * from public.pet_decor_owned')).rows.length,0);
+await assert.rejects(()=>buy('games_rug'),/Insufficient/);
+await login(alice);assert.equal((await get()).owned.length,12);
+await db.exec('reset role;set role anon');await assert.rejects(get,/permission denied/);
+await login('');await assert.rejects(get,/Authentication/);await db.close();
+console.log('PASS: repeatable SQL, 12 prices, idempotent wallet purchases, independent slots, removal, RLS, anonymous rejection. No remote database accessed.');

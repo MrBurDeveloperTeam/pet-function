@@ -1,3 +1,6 @@
+import {createDecorCloud} from './decorCloud.mjs';
+import { createCabinetCloud } from './cabinetCloud.mjs';
+import { createWardrobeCloud } from './wardrobeCloud.mjs';
 // Preserved superapp database mapping. The host injects its authenticated client.
 import type { PetDatabaseClient } from '../databaseClient';
 import type { PetRepository } from '../../contracts';
@@ -54,6 +57,9 @@ type InventoryPetRow = {
 
 export function createAppGalleryPetRepository(supabase: PetDatabaseClient): PetRepository {
   return {
+  ...createWardrobeCloud(supabase),
+  ...createCabinetCloud(supabase),
+  ...createDecorCloud(supabase),
   ...createAirStrikeTalentCloud(supabase),
   ...createAirStrikeCampaignCloud(supabase),
   ...createAirStrikeAircraftCloud(supabase),

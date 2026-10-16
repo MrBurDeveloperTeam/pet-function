@@ -1,5 +1,6 @@
 import React from 'react';
 import type { FoodItem } from '../types';
+import { FISH_SPECIES } from '../fishingSpecies.mjs';
 
 const itemAssetUrl = (fileName: string) => `/pet-function/items/${fileName}`;
 const bananaPixelUrl = itemAssetUrl('banana-pixel.png');
@@ -165,7 +166,7 @@ const FOOD_PIXEL_IMAGES: Record<string, string> = {
 };
 
 export const resolveItemPixelImage = (item: Pick<FoodItem, 'id' | 'label'>) =>
-  FOOD_PIXEL_IMAGES[item.id.toLowerCase()] ?? FOOD_PIXEL_IMAGES[item.label.toLowerCase()];
+  FISH_SPECIES[item.id.toLowerCase()]?.image ?? FOOD_PIXEL_IMAGES[item.id.toLowerCase()] ?? FOOD_PIXEL_IMAGES[item.label.toLowerCase()];
 
 export const FoodItemVisual: React.FC<FoodItemVisualProps> = ({
   item,

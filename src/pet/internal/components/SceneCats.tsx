@@ -1,16 +1,22 @@
 import { memo, useEffect, useRef } from 'react';
 import { getPetOption } from '../petOptions';
 import type { PetAssetUrls, RoomType } from '../types';
-import { SCENE_CATS, sampleSceneCat } from '../sceneCats';
+import { SCENE_CATS, sampleSceneCat, type SceneCat } from '../sceneCats';
 const standingCatsUrl = '/pet-function/pets/scene-standing-cats.png';
 
 const STANDING_CELLS = { mallow: 0, silverbelt: 1, fastrat: 2, gulu: 3, munchkin: 4, mochi: 5 };
 
-function SceneCatsLayer({ room, spriteSheets }: {
+function SceneCatsLayer({ room, spriteSheets, onTalk, activeCatId, nearbyCatId, disabled }: {
   room: RoomType;
   spriteSheets?: PetAssetUrls['spriteSheets'];
+  onTalk?: (cat: SceneCat) => void;
+  activeCatId?: string | null;
+  nearbyCatId?: string | null;
+  disabled?: boolean;
 }) {
   const layerRef = useRef<HTMLDivElement>(null);
+  const activeCatRef = useRef(activeCatId);
+  activeCatRef.current = activeCatId;
   const cats = SCENE_CATS[room] ?? [];
 
   useEffect(() => {
@@ -31,12 +37,18 @@ function SceneCatsLayer({ room, spriteSheets }: {
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(layer);
+    // Each route owns its clock so talking freezes just that cat in place.
+    // The idle clock keeps running, including its blink, during a conversation.
+    const routeTimes = cats.map(() => 0);
     let elapsed = 0, previous = performance.now(), raf = 0;
     const tick = (now: number) => {
-      if (!document.hidden) elapsed += Math.min((now - previous) / 1000, .05);
+      const delta = document.hidden ? 0 : Math.min((now - previous) / 1000, .05);
+      elapsed += delta;
       previous = now;
       cats.forEach((cat, index) => {
-        const state = sampleSceneCat(cat, elapsed);
+        const talking = activeCatRef.current === cat.id;
+        if (!talking) routeTimes[index] += delta;
+        const state = sampleSceneCat(cat, routeTimes[index]);
         const option = options[index];
         const scale = (cat.scale ?? .45) * sceneScale;
         const node = nodes[index], sprite = sprites[index];
@@ -44,16 +56,16 @@ function SceneCatsLayer({ room, spriteSheets }: {
         node.style.top = `${top + state.y * 845 * sceneScale}px`;
         node.style.width = `${192 * scale}px`;
         node.style.height = `${208 * scale}px`;
-        // NPCs render below the player's interaction layer and never take input.
+        // Keep the existing depth order within the independent NPC layer.
         node.style.zIndex = String(Math.round(state.y * 10));
         let row = 0, frame = 0;
         if (cat.pose === 'stand') {
           const cell = STANDING_CELLS[cat.pet];
           row = Math.floor(cell / 3);
           frame = cell % 3;
-        } else if (state.walking) {
+        } else if (state.walking && !talking) {
           row = state.direction > 0 ? 1 : 2;
-          frame = Math.floor(elapsed * 8 + index * 2) % 8;
+          frame = Math.floor(routeTimes[index] * 8 + index * 2) % 8;
         } else {
           // Hold a relaxed pose; the existing idle frames supply the blink.
           const blink = (elapsed + index * .7) % 5;
@@ -61,7 +73,7 @@ function SceneCatsLayer({ room, spriteSheets }: {
         }
         sprite.style.backgroundPosition = `${-192 * frame}px ${-208 * row}px`;
         sprite.style.transform = `scale(${scale})`;
-        node.dataset.motion = state.walking ? (state.direction > 0 ? 'right' : 'left') : cat.pose;
+        node.dataset.motion = state.walking && !talking ? (state.direction > 0 ? 'right' : 'left') : talking ? 'sit' : cat.pose;
       });
       raf = requestAnimationFrame(tick);
     };
@@ -73,14 +85,22 @@ function SceneCatsLayer({ room, spriteSheets }: {
   return (
     <div ref={layerRef} className="pet-scene-cats">
       {cats.map(cat => (
-        <div key={cat.id} data-scene-cat={cat.id} data-cat-kind={cat.pet}
-          data-cat-pose={cat.pose} className={`pet-scene-cat pet-scene-cat-${cat.pose}`}>
-          <div className="pet-scene-cat-shadow" />
-          {cat.dialogue && <div className="pet-scene-cat-dialogue">{cat.dialogue}</div>}
-          <div className="pet-scene-cat-sprite" style={{
+        <button key={cat.id} type="button" data-scene-cat={cat.id} data-cat-kind={cat.pet}
+          data-cat-pose={cat.pose} data-pet-movement-block
+          data-nearby={nearbyCatId === cat.id || undefined}
+          data-talking={activeCatId === cat.id || undefined}
+          disabled={disabled}
+          aria-label={`Talk to ${getPetOption(cat.pet, spriteSheets).label}`}
+          className={`pet-scene-cat pet-scene-cat-${cat.pose}`}
+          onPointerDown={event => event.stopPropagation()}
+          onClick={event => { event.stopPropagation(); onTalk?.(cat); }}>
+          <span className="pet-scene-cat-shadow" aria-hidden="true" />
+          {cat.dialogue && <span className="pet-scene-cat-dialogue">{cat.dialogue}</span>}
+          {!cat.dialogue && <span className="pet-scene-cat-talk-hint" aria-hidden="true">Talk<span className="pet-scene-cat-key-hint"> · Space</span></span>}
+          <span className="pet-scene-cat-sprite" aria-hidden="true" style={{
             backgroundImage: `url(${cat.pose === 'stand' ? standingCatsUrl : getPetOption(cat.pet, spriteSheets).spriteSheetUrl})`,
           }} />
-        </div>
+        </button>
       ))}
     </div>
   );

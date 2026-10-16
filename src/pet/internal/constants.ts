@@ -10,6 +10,7 @@ import bedRedUrl from '../../assets/pet/red_bed.png';
 import bedPurpleUrl from '../../assets/pet/purple_bed.png';
 import type { PetStats, RoomType as RoomTypeT, FoodItem, ToyItem, BedItem } from './types';
 import { RoomType } from './types';
+import { FISHING_SPECIES } from './fishingSpecies.mjs';
 
 export const INITIAL_STATS: PetStats = {
   hunger: 100,
@@ -47,6 +48,13 @@ export const FISHING_REWARD_ITEMS: FoodItem[] = [
   { id: 'rainbow_trout', icon: '🐠', label: 'Rainbow Trout', hunger: 25, xp: 12, happiness: 5, price: 0, category: 'Healthy', levelReq: 1 },
   { id: 'koi_fish', icon: '🐟', label: 'Koi Fish', hunger: 26, xp: 14, happiness: 6, price: 0, category: 'Healthy', levelReq: 1 },
   { id: 'golden_fish', icon: '🐠', label: 'Golden Fish', hunger: 30, xp: 18, happiness: 10, price: 0, category: 'Healthy', levelReq: 1 },
+  ...FISHING_SPECIES.filter(fish => !['pond_fish', 'perch', 'catfish', 'rainbow_trout', 'koi_fish', 'golden_fish'].includes(fish.id)).map(fish => ({
+    id: fish.id, label: fish.label, icon: '🐟',
+    hunger: [18, 22, 25, 26, 30][fish.rarity],
+    xp: [8, 10, 12, 14, 18][fish.rarity],
+    happiness: [3, 4, 5, 6, 10][fish.rarity],
+    price: 0, category: 'Healthy', levelReq: 1,
+  })),
 ];
 
 // Kept in the food registry for fridge rendering and feeding, never for sale.

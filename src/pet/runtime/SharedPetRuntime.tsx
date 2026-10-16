@@ -1,5 +1,8 @@
+import { usePetDecor, type PetDecor } from './usePetDecor';
 'use client';
+import { usePetCabinets, type PetCabinets } from './usePetCabinets';
 import {PetLevelUpCelebration} from '../internal/components/PetLevelUpCelebration';
+import { usePetWardrobe, type PetWardrobe } from './usePetWardrobe';
 import {advancePetXP} from '../internal/petExperience.mjs';
 
 /**
@@ -139,6 +142,9 @@ interface GameStateContextType {
     isPlaying: boolean;
     setIsPlaying: (is: boolean) => void;
     inventory: Record<string, number>;
+    wardrobe: PetWardrobe;
+    cabinets: PetCabinets;
+    decor: PetDecor;
     buyItem: (itemId: string, price: number) => boolean;
     consumeItem: (itemId: string) => void;
     /** Grants an earned item without charging coins, for shared mini-game rewards. */
@@ -211,6 +217,9 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
     assetUrls,
 }) => {
     const [stats, setStats] = useState<PetStats>(INITIAL_STATS);
+    const decor = usePetDecor(userId, repository, coins => setStats(previous => ({ ...previous, coins })));
+    const cabinets = usePetCabinets(userId, repository, coins => setStats(previous => ({ ...previous, coins })));
+    const wardrobe = usePetWardrobe(userId, repository, coins => setStats(previous => ({ ...previous, coins })));
     const [levelCelebration,setLevelCelebration] = useState<{level:number;id:number}|null>(null);
     const levelCelebrationId=useRef(0);
     useEffect(()=>setLevelCelebration(null),[userId]);
@@ -1149,6 +1158,9 @@ export const SharedPetProvider: React.FC<SharedPetProviderProps> = ({
             isPlaying, setIsPlaying,
             inventory,
             buyItem,
+            wardrobe,
+            cabinets,
+            decor,
             consumeItem,
             grantItem,
             addXP,

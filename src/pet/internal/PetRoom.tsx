@@ -1,3 +1,5 @@
+import {DECOR_BY_ID,decorRoomUrl} from './roomDecor.mjs';
+import {cabinetRoomUrl,type CabinetRoom} from './cabinets.mjs';
 import {mobileRoomSize,clampRoomCamera} from './mobileRoomCamera.mjs';
 import {RoomJoystick} from './components/RoomJoystick';
 import {useMobilePetScreenMode} from './components/MobilePetScreenMode';
@@ -8,7 +10,7 @@ import {useMobilePetScreenMode} from './components/MobilePetScreenMode';
  * Every constant, decay/reward number, drag/physics/soap/bathroom mechanic,
  * and layout is otherwise unchanged.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArcadePortalTransition } from './components/ArcadePortalTransition';
 import { RoomType, FoodItem, Bubble, ToolType, ExtraGame } from './types';
 import { ROOM_THEMES, TOY_ITEMS } from './constants';
@@ -18,6 +20,7 @@ import { FoodMenu, BathroomMenu, GamesMenu } from './components/RoomMenus';
 import DragLayer from './components/DragLayer';
 import Ball from './components/Ball';
 import ShopModal from './components/ShopModal';
+import { WardrobeShop } from './components/WardrobeShop';
 import { useGameState } from '../runtime/SharedPetRuntime';
 import { useBallPhysics } from './hooks/useBallPhysics';
 import LevelIndicator from './components/LevelIndicator';
@@ -27,8 +30,10 @@ import { ROOM_BACKGROUNDS } from './roomBackgrounds';
 import { SCENE_CATS } from './sceneCats';
 import { RoomInteractionOutlines } from './components/RoomInteractionOutlines';
 import { SceneCats } from './components/SceneCats';
+import { NpcDialogue } from './components/NpcDialogue';
+import { useNpcConversations } from './components/useNpcConversations';
 import { KART_GAME_ID, isNearKartEntrance } from './kartInteraction';
-import { FishingGame } from './components/FishingGame';
+import { FishingGame, FISHING_RODS } from './components/FishingGame';
 import { MoleGame, PixelMoleMound } from './components/MoleGame';
 import { resolveItemPixelImage } from './components/FoodItemVisual';
 import { constrainOutdoorPosition, getOutdoorWalkPath, OUTDOOR_INITIAL_PLACEMENT, OUTDOOR_ROOMS } from './outdoorNavigation';
@@ -269,7 +274,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     isSleeping, setIsSleeping,
     isEating, setIsEating,
     isPlaying, setIsPlaying,
-    inventory, buyItem, consumeItem, grantItem,
+    inventory, buyItem, consumeItem, grantItem, wardrobe, cabinets, decor,
     addXP, addCoins, activeBallId, setActiveBallId, activeBedId, setActiveBedId,
     foodItems, isFoodLoading, currencyRate, assetUrls
   } = useGameState();
@@ -297,7 +302,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   // --- Local UI State ---
   const [showFoodMenu, setShowFoodMenu] = useState(false);
   const [showBathroomMenu, setShowBathroomMenu] = useState(false);
-  const [activeShop, setActiveShop] = useState<'food' | 'furniture' | null>(null);
+  const [activeShop, setActiveShop] = useState<'food' | 'furniture' | 'jewelry' | 'clothes' | 'wardrobe' | null>(null);
   const showShopModal = activeShop !== null;
   const [showGamesMenu, setShowGamesMenu] = useState(false);
   const [arcadePortal,setArcadePortal] = useState<HTMLDivElement|null>(null);
@@ -400,6 +405,26 @@ export const PetRoom: React.FC<PetRoomProps> = ({
   const isDraggingBallRef = useRef(isDraggingBall);
   const activeSoapType = useRef<'soap' | null>(null);
   const soapConsumedOnRinse = useRef(false);
+
+  const stopForNpcConversation = useCallback(() => {
+    outsideMovementKeysRef.current = { left: false, right: false, up: false, down: false };
+    indoorMovementKeysRef.current = { left: false, right: false, up: false, down: false };
+    outsidePointerTargetRef.current = null;
+    outsideBallTargetRef.current = null;
+    outsideExitPathRef.current = [];
+    outsideExitTravelRef.current = false;
+    indoorPetTargetXRef.current = null;
+    indoorPetTargetYOffsetRef.current = null;
+    setOutsidePetPose('idle');
+    setIndoorPetPose('idle');
+    setPointerState(previous => ({ ...previous, isDown: false }));
+  }, []);
+  const npcConversationDisabled = roomScreenMode.blocked || !!roomTransition || isRoomTransitionLoading || isSleeping || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu || showMoleGame || !!arcadePortal;
+  const npcDialogue = useNpcConversations({
+    room: currentRoom, roomRef: roomRootRef, petRef,
+    disabled: npcConversationDisabled, onStart: stopForNpcConversation,
+  });
+  roomScreenBlockedRef.current = roomScreenMode.blocked || !!npcDialogue.conversation;
 
   useEffect(() => {
     if (currentRoom !== RoomType.BEDROOM) {
@@ -568,6 +593,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
 
   const startRoomTransition = (exit: RoomExit) => {
     if (roomTransition || isRoomTransitionLoading) return;
+    npcDialogue.close();
     // A room exit must not wait on a movement loop paused by sleep or a menu.
     setIsSleeping(false);
     setIsWalkingToBedroomBed(false);
@@ -755,12 +781,21 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     ])];
     const load = async () => {
       try {
-        await Promise.all(images.map(src => new Promise<void>((resolve, reject) => {
+        const cabinet = cabinets.state.selected[destination as CabinetRoom];
+        const optionalSkins = [...(cabinet ? [cabinetRoomUrl(cabinet)] : []), ...Object.values(decor.state.selected).filter(id => DECOR_BY_ID[id]?.room === destination).map(decorRoomUrl)];
+        const skinReady = Promise.all(optionalSkins.map(src => new Promise<void>(resolve => {
+          const image = new Image();
+          // A missing optional skin must never block room navigation.
+          image.onload = () => { void image.decode().catch(() => {}).then(() => resolve()); };
+          image.onerror = () => resolve();
+          image.src = src;
+        })));
+        await Promise.all([skinReady, ...images.map(src => new Promise<void>((resolve, reject) => {
           const image = new Image();
           image.onload = () => { image.decode().then(() => resolve(), reject); };
           image.onerror = reject;
           image.src = src;
-        })));
+        }))]);
         if (cancelled) return;
         const routePlacement = OUTDOOR_ROUTE_ENTRY_PLACEMENT[currentRoom]?.[destination];
         outdoorEntryPlacementRef.current = routePlacement ? { room: destination, placement: routePlacement } : null;
@@ -775,7 +810,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     };
     void load();
     return () => { cancelled = true; window.clearTimeout(retry); };
-  }, [isRoomTransitionLoading, roomTransition, currentRoom, setCurrentRoom, activePet.spriteSheetUrl, assetUrls?.spriteSheets]);
+  }, [isRoomTransitionLoading, roomTransition, currentRoom, setCurrentRoom, activePet.spriteSheetUrl, assetUrls?.spriteSheets, cabinets.state.selected, decor.state.selected]);
 
   useEffect(() => {
     if (!roomTransition || !isRoomTransitionLoading || currentRoom !== roomTransition.destination) return;
@@ -1276,6 +1311,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
     const pointerTarget = e.target instanceof Node ? e.target : null;
 
     if (
+      npcDialogue.conversation ||
       showShopModal ||
       isSleeping ||
       isWalkingToBedroomBed ||
@@ -1654,7 +1690,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             ? 'food'
             : Math.abs(x - 0.503) <= 0.07
               ? 'furniture'
-              : null;
+              : Math.abs(x - 0.645) <= 0.06
+                ? 'jewelry'
+                : Math.abs(x - 0.804) <= 0.06 ? 'clothes' : null;
           if (nearbyShop) {
             event.preventDefault();
             event.stopPropagation();
@@ -1864,6 +1902,12 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       className={`relative flex h-[100dvh] min-h-0 w-full flex-col items-center justify-between overflow-hidden py-[clamp(8px,2dvh,24px)] transition-colors duration-700 ease-in-out ${roomConfig.bg}`}
       style={{ isolation: 'isolate', ...(mobileCamera?{touchAction:'none'}:{}), ...(mobileViewport.active && currentRoom === RoomType.FISHING_POND ? {paddingTop:0,paddingBottom:0} : {}) }}
       onClickCapture={(event) => {
+        if (npcDialogue.conversation && !(event.target instanceof Element && event.target.closest('.pet-npc-dialogue'))) {
+          event.preventDefault();
+          event.stopPropagation();
+          npcDialogue.close();
+          return;
+        }
         if (isRoomTransitionLoading) {
           event.preventDefault();
           event.stopPropagation();
@@ -1903,7 +1947,24 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         }}
       />
 
-      <div style={mobileCamera?{...cameraWorldStyle,pointerEvents:'none'}:{display:'contents'}}><SceneCats key={currentRoom} room={currentRoom} spriteSheets={assetUrls?.spriteSheets} /></div>
+      {Object.values(decor.state.selected).filter(id=>DECOR_BY_ID[id]?.room===currentRoom).map(id=><img
+        key={id+':'+decor.version} data-room-decor={id} src={decorRoomUrl(id)}
+        alt="" aria-hidden="true" draggable={false}
+        onError={event=>{event.currentTarget.style.visibility='hidden';}}
+        onLoad={event=>{event.currentTarget.style.visibility='visible';}}
+        style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'center center',imageRendering:'pixelated',pointerEvents:'none',zIndex:-1,...(cameraWorldStyle||{}),...(mobileCamera?{maxWidth:'none',maxHeight:'none',right:'auto',bottom:'auto'}:{})}}
+      />)}
+      {cabinets.state.selected[currentRoom as CabinetRoom] && <img
+        key={`${cabinets.state.selected[currentRoom as CabinetRoom]}:${cabinets.version}`}
+        data-cabinet-skin={currentRoom}
+        src={cabinetRoomUrl(cabinets.state.selected[currentRoom as CabinetRoom]!)}
+        alt="" aria-hidden="true" draggable={false}
+        onError={event=>{event.currentTarget.style.visibility='hidden';}}
+        onLoad={event=>{event.currentTarget.style.visibility='visible';}}
+        style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'center center',imageRendering:'pixelated',pointerEvents:'none',zIndex:-1,...(cameraWorldStyle||{}),...(mobileCamera?{maxWidth:'none',maxHeight:'none',right:'auto',bottom:'auto'}:{})}}
+      />}
+
+      <div style={mobileCamera?{...cameraWorldStyle,zIndex:24,pointerEvents:'none'}:{display:'contents'}}><SceneCats key={currentRoom} room={currentRoom} spriteSheets={assetUrls?.spriteSheets} onTalk={npcDialogue.talk} activeCatId={npcDialogue.conversation?.cat.id} nearbyCatId={npcDialogue.nearbyCatId} disabled={npcConversationDisabled} /></div>
 
       <div style={mobileCamera&&OUTDOOR_ROOMS.has(currentRoom)?{...cameraWorldStyle,zIndex:25,pointerEvents:'none'}:{display:'contents'}}>
       {currentRoom === RoomType.SPORTS_STADIUM && (
@@ -2012,7 +2073,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       })}
 
       </div>
-      <div style={mobileCamera?{...cameraWorldStyle,zIndex:25,pointerEvents:'none'}:{display:'contents'}}> <RoomInteractionOutlines
+      <div style={mobileCamera?{...cameraWorldStyle,zIndex:currentRoom === RoomType.BEDROOM ? 4 : 25,pointerEvents:'none'}:{display:'contents'}}> <RoomInteractionOutlines
         room={currentRoom}
         hidden={!!arcadePortal || !!roomTransition || showShopModal || showFoodMenu || showBathroomMenu || showGamesMenu}
         onKeyboardActivate={currentRoom === RoomType.KART_TRACK ? () => activateKartFromEntrance() : undefined}
@@ -2023,12 +2084,15 @@ export const PetRoom: React.FC<PetRoomProps> = ({
             if (doorExit) startRoomTransition(doorExit);
             return;
           }
+          if (action === 'wardrobe') setActiveShop('wardrobe');
           if (action === 'food') setShowFoodMenu(true);
           if (action === 'bath') setShowBathroomMenu(true);
           if (action === 'games') setShowGamesMenu(true);
           if (action === 'air-strike') enterAirStrike();
           if (action === 'food-shop') setActiveShop('food');
           if (action === 'furniture-shop') setActiveShop('furniture');
+          if (action === 'jewelry-shop') setActiveShop('jewelry');
+          if (action === 'clothing-shop') setActiveShop('clothes');
           if (action === 'fishing') startRoomTransition(TOWN_HOME_FISHING_EXIT);
         }}
       />
@@ -2177,6 +2241,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       <div ref={playAreaRef} style={mobileViewport.active && currentRoom === RoomType.FISHING_POND ? {position:'absolute',inset:0,width:'100%',height:'100%'} : cameraWorldStyle} className="relative flex min-h-0 w-full flex-1 items-center justify-center">
         {currentRoom === RoomType.FISHING_POND ? (
           <FishingGame
+            equippedRodId={Object.values(FISHING_RODS).filter(rod=>(inventory[rod.id]||0)>0).sort((a,b)=>b.rarityBoost-a.rarityBoost)[0]?.id || 'beginner_rod'}
             petId={activePet.id}
             onClose={() => startRoomTransition({ direction: 'left', destination: RoomType.TOWN_HOME, label: 'Return home' })}
             onCatch={(fishId, coins, xp) => {
@@ -2207,6 +2272,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
               displayScale={getOutdoorPetScale(currentRoom)}
               showDirtyEffects={false}
               sleepLabelClassName="-top-8 -right-6"
+              petId={activePet.id}
+              outfit={wardrobe.state.outfits[activePet.id]}
               spriteSheetUrl={activePet.spriteSheetUrl}
               mouthPosition={activePet.mouthPosition}
               idleFrames={activePet.idleFrames}
@@ -2255,7 +2322,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({
                 displayScale={bedroomSceneScale * BEDROOM_PET_SCALE_MULTIPLIER}
                 sleepVisualOffsetY={0}
                 sleepLabelClassName="-top-[5%] left-[75%] -translate-x-1/2 whitespace-nowrap"
-                spriteSheetUrl={activePet.spriteSheetUrl}
+                petId={activePet.id}
+              outfit={wardrobe.state.outfits[activePet.id]}
+              spriteSheetUrl={activePet.spriteSheetUrl}
                 mouthPosition={activePet.mouthPosition}
                 idleFrames={activePet.idleFrames}
                 idleDuration={activePet.idleDuration}
@@ -2291,6 +2360,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({
               bubbles={bubbles}
               lookAt={pointerState.isDown ? { x: pointerState.x, y: pointerState.y } : null}
               displayScale={INDOOR_PET_SCALE}
+              petId={activePet.id}
+              outfit={wardrobe.state.outfits[activePet.id]}
               spriteSheetUrl={activePet.spriteSheetUrl}
               mouthPosition={activePet.mouthPosition}
               idleFrames={activePet.idleFrames}
@@ -2343,7 +2414,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({
         /></div>
       )}
 
-      {mobileCamera&&<RoomJoystick key={`${currentRoom}-${mobileViewport.width}-${mobileViewport.height}`} disabled={roomScreenMode.blocked||!!arcadePortal||!!roomTransition||isSleeping||showShopModal||showFoodMenu||showBathroomMenu||showGamesMenu||showMoleGame||isWalkingToBedroomBed||isReturningFromBedroomBed} onMove={(x,y)=>{
+      {mobileCamera&&<RoomJoystick key={`${currentRoom}-${mobileViewport.width}-${mobileViewport.height}`} disabled={roomScreenMode.blocked||!!npcDialogue.conversation||!!arcadePortal||!!roomTransition||isSleeping||showShopModal||showFoodMenu||showBathroomMenu||showGamesMenu||showMoleGame||isWalkingToBedroomBed||isReturningFromBedroomBed} onMove={(x,y)=>{
         const keys={left:x<-.2,right:x>.2,up:y<-.2,down:y>.2};
         if(OUTDOOR_ROOMS.has(currentRoom)){
           outsideMovementKeysRef.current=keys;
@@ -2404,10 +2475,12 @@ export const PetRoom: React.FC<PetRoomProps> = ({
       />
 
       {/* Modals */}
+      {npcDialogue.conversation && <NpcDialogue key={npcDialogue.conversation.cat.id} petId={npcDialogue.conversation.cat.pet} spriteSheets={assetUrls?.spriteSheets} text={npcDialogue.conversation.text} onClose={npcDialogue.close} />}
+      {(activeShop === 'jewelry' || activeShop === 'clothes' || activeShop === 'wardrobe') && <WardrobeShop key={activeShop} mode={activeShop} onClose={() => setActiveShop(null)}/>}
       <ShopModal
-        isOpen={showShopModal}
+        isOpen={activeShop === 'food' || activeShop === 'furniture'}
         onClose={() => setActiveShop(null)}
-        shopType={activeShop || 'food'}
+        shopType={activeShop === 'furniture' ? 'furniture' : 'food'}
         items={foodItems}
         inventory={inventory}
         activeBallId={activeBallId}

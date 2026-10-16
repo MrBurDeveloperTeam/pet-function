@@ -1,6 +1,6 @@
 {
   "name": "@mrburdeveloperteam/pet-function",
-  "version": "0.9.67",
+  "version": "0.10.0",
   "description": "Shared Cat Mascot, Molar AI chatbox, and Virtual Pet UI/runtime for the Snabbb app suite. Skeleton/foundation phase — see README.",
   "repository": {
     "type": "git",
@@ -79,16 +79,35 @@
       "types": "./dist/resources.d.ts",
       "import": "./dist/resources.js"
     },
+    "./resource-sync": "./scripts/sync-resource-packs.mjs",
+    "./resource-manifest.json": "./resource-manifest.json",
     "./vite-games": "./scripts/vite-games.mjs"
   },
   "files": [
     "dist",
-    "public",
-    "scripts"
+    "scripts",
+    "RESOURCE-DELIVERY.md",
+    "resource-manifest.json",
+    "public/pet-function/pets/mallow-spritesheet.webp",
+    "public/pet-function/pets/silverbelt-spritesheet.webp",
+    "public/pet-function/pets/fastrat-spritesheet.webp",
+    "public/pet-function/pets/gulu-spritesheet.webp",
+    "public/pet-function/pets/munchkin-spritesheet.webp",
+    "public/pet-function/pets/mochi-spritesheet.webp",
+    "public/pet-function/ai/ai_logo.png",
+    "public/pet-function/pet/grey_bed.png",
+    "public/pet-function/pet/red_bed.png",
+    "public/pet-function/pet/purple_bed.png",
+    "public/pet-function/pet/poop.png",
+    "public/pet-function/pet/shower.png",
+    "public/pet-function/pet/soap.png"
   ],
   "scripts": {
-    "build": "tsup && node scripts/postbuild.mjs",
+    "build": "tsup && node scripts/postbuild.mjs && node scripts/build-resource-packs.mjs",
     "prepare": "npm run build",
+    "resources:pack": "node scripts/build-resource-packs.mjs",
+    "resources:sync": "node scripts/sync-resource-packs.mjs",
+    "resources:check": "node scripts/check-resource-packs.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs"
   },

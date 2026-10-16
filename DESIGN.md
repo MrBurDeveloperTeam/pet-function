@@ -55,7 +55,7 @@ room objects. Click activates the door directly; Space activates it only while t
 cat is beside it. Bathroom leads to Bedroom, while Kitchen and Games lead Outside.
 Shopping Street owns the purchase entry points. Its first storefront opens only
 Healthy, Breakfast, Meals, Drinks, and Sweets; its second storefront opens only
-Toys and Beds. Their traced door contours are clickable, while Space opens the
+Toys, Room Decor, and Fishing Rods. Their traced door contours are clickable, while Space opens the
 nearby store when the cat is beside its entrance. The shop closes from its close
 control, Escape, or a second Space press. Do not render a persistent global Shop
 button or a Kitchen shortcut into the purchase catalog.
@@ -115,6 +115,29 @@ Existing component classes are the shape token source.
 
 ## Components
 
+Wardrobe shops use PixelShopDialog.tsx (viewport-bounded portal, focus trap,
+Escape dismissal, inert siblings, focus restoration) and WardrobeShop.tsx.
+The wardrobe variant reuses the pixel shop ink #5a351f, paper #fff8df,
+header #f39a2e and turquoise focus/selection #238f83; src/styles/index.css
+owns their --wardrobe-* mapping (Model B). Its body owns scrolling; header
+and save status stay reachable. The portal sits at 1100 above the pet window's
+1000 and mounts inside the fullscreen element when one is active.
+Wardrobe purchases use the existing pet coin wallet, confirmed server receipts,
+and independent per-cat body/neck slots. Try-on never mutates a saved outfit.
+Pet.tsx renders all worn layers on the same 8x10 animation grid and restarts
+the shared layer group when equipment changes so their animation phases agree.
+Sky Sailor, Forest Vest and Royal Cape each use a complete imagegen-authored
+cat atlas for all six cats, matching the Rose Knit 1536x2080 / 61-frame layout.
+Their independent neck layers are pose-fitted to each garment atlas. Runtime
+assets live in public/pet-function/wardrobe/clothing-v1; packing validation
+fixtures live in tests/fixtures/art. Generated source images, prompts and
+visual review captures are authoring artifacts, excluded from the package.
+WardrobeClothingIcon.tsx owns the catalog's stepped pixel SVG artwork. Sky
+Sailor shows its ivory short sleeves, blue piped sailor collar and necktie;
+Forest Vest uses a sleeveless cut, brass buttons and leaf stitching; Royal
+Cape uses a draped shoulder silhouette, gold trim and star embroidery. These
+share Rose Knit's visual scale and pixel edges while reflecting the worn art.
+
 SharedCatMascot owns visual display; shared app dialogue controllers own content.
 SharedCatMascot also owns the global cat-bed control. It follows the visible
 Tutorial trigger when present and otherwise the SNAI trigger. Activating it
@@ -135,6 +158,20 @@ SNAI services, adapters, welcome content, UI and fixed light styling are shared.
 Server endpoints remain deployed per app; frontend sharing never bundles secrets.
 
 ## Do's and Don'ts
+
+Room cosmetics use independent original-canvas overlays, never whole-room theme swaps.
+Shopping > Room Decor shows complete Games/Bathroom/Bedroom/Kitchen background
+thumbnails. Enter a room to choose a furniture category, then browse its skins.
+Each room has curtains, a rug, and one special slot (console/toilet/bed/fridge).
+The cream panels, orange header, brown pixel borders and teal selected filters reuse
+the existing store visual language. Cabinets are a category inside each room and
+retain their existing ownership and selection storage. The standalone Cabinets
+and legacy pet Beds shelves are removed from Shopping. Bedroom's new bed skin
+remains available under Room Decor > Bedroom > Beds. Navigation resets the list
+scroll position so the next room/category starts at the top.
+Generated assets retain 1862×845 coordinates; masks must be disjoint across slots,
+including cabinets. Cosmetic layers have no pointer events or gameplay actions.
+Region validation fixtures live in tests/fixtures/art/room-decor.json.
 
 - Edit shared source/resources here; rebuild hosts after changes.
 - Never add paid import services or move secrets into the shared package.

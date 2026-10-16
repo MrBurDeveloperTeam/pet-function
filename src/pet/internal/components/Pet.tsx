@@ -5,10 +5,14 @@
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { PetStats, Bubble } from '../types';
 import { CAT_SPRITE_SHEET_URLS } from '../../../resources';
+import { type CatOutfit } from '../wardrobe.mjs';
+import { usePetAppearance } from './usePetAppearance';
 
 export type PetPose = 'idle' | 'run-left' | 'run-right';
 
 interface PetProps {
+  petId?: string;
+  outfit?: CatOutfit;
   stats: PetStats;
   isSleeping: boolean;
   isEating: boolean;
@@ -68,6 +72,8 @@ const BUBBLE_AREA_LEFT = 18;
 const BUBBLE_AREA_WIDTH = 64;
 
 const Pet = forwardRef<HTMLDivElement, PetProps>(({
+  petId = 'mallow',
+  outfit,
   stats,
   isSleeping,
   isEating,
@@ -185,9 +191,6 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
   const sleepOffsetY = sleepVisualOffsetY * sleepProgress;
   const filter = 'none';
   const motionScale = isSleepVisual ? 0.95 : isHoveredWithFood ? 1.05 : 1;
-  const spriteBackgroundPosition = sleepFrame !== null
-    ? `-${sleepFrame * FRAME_WIDTH}px -${SLEEP_ROW * FRAME_HEIGHT}px`
-    : `0 -${sprite.row * FRAME_HEIGHT}px`;
   const isClickSprite = (isClickReacting || isEating) && !isSleeping && sleepFrame === null;
   const clickFrameDistance = FRAME_WIDTH * Math.max(0, sprite.frames - 1);
   const spriteAnimation = sleepFrame !== null
@@ -197,11 +200,15 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
       : isClickSprite
       ? `mallow-vpet-click ${sprite.duration} steps(${sprite.frames - 1}, end) 1 forwards`
       : `mallow-vpet-sprite ${sprite.duration} steps(${sprite.frames}) infinite`;
+  const appearance = usePetAppearance(petId, outfit, spriteSheetUrl);
+  const spriteLayers = appearance.layers;
+
 
   return (
     <div
       ref={ref}
       data-pet-joystick-ignore
+      data-pet-appearance-status={appearance.status}
       className="relative cursor-pointer select-none"
       style={{
         width: FRAME_WIDTH * displayScale,
@@ -220,19 +227,24 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
         }}
       >
         <div className={`absolute inset-0 ${isSleepVisual ? 'mallow-sleep-breathe-layer' : ''}`}>
-          <div
+          {/* Independent textures share one CSS background-position animation.
+              The first background is nearest the viewer, so reverse the stack.
+              This also works on browsers without CSS @property support. */}
+          <div key={spriteLayers.join('|')}
+            data-pet-layer-count={spriteLayers.length}
             className="mallow-virtual-pet absolute left-1/2 top-1/2"
             style={{
               width: FRAME_WIDTH,
               height: FRAME_HEIGHT,
-              backgroundImage: `url(${spriteSheetUrl})`,
+              backgroundImage: [...spriteLayers].reverse().map(url => `url("${url}")`).join(', '),
               backgroundRepeat: 'no-repeat',
-              backgroundPosition: spriteBackgroundPosition,
+              backgroundPosition: `${sleepFrame !== null ? -sleepFrame * FRAME_WIDTH : 0}px -${(sleepFrame !== null ? SLEEP_ROW : sprite.row) * FRAME_HEIGHT}px`,
               backgroundSize: `${FRAME_WIDTH * SHEET_COLUMNS}px ${FRAME_HEIGHT * SHEET_ROWS}px`,
               imageRendering: 'pixelated',
               transform: `translate(-50%, -50%) scale(${displayScale})`,
               transformOrigin: 'center',
               filter,
+              '--sprite-frame-distance': `-${FRAME_WIDTH * sprite.frames}px`,
               '--click-frame-distance': `-${clickFrameDistance}px`,
               animation: spriteAnimation,
             } as React.CSSProperties}
@@ -344,16 +356,16 @@ const Pet = forwardRef<HTMLDivElement, PetProps>(({
       <style>{`
         @keyframes mallow-vpet-sprite {
           from {
-            background-position-x: 0;
+            background-position-x: 0px;
           }
           to {
-            background-position-x: -${FRAME_WIDTH * sprite.frames}px;
+            background-position-x: var(--sprite-frame-distance);
           }
         }
 
         @keyframes mallow-vpet-click {
           from {
-            background-position-x: 0;
+            background-position-x: 0px;
           }
           to {
             background-position-x: var(--click-frame-distance);

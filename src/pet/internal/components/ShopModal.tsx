@@ -1,3 +1,7 @@
+import {RoomDecorCatalog} from './RoomDecorCatalog';
+import {CABINET_ITEMS} from '../cabinets.mjs';
+import {DECOR_ITEMS} from '../roomDecor.mjs';
+import { FISHING_RODS } from './FishingGame';
 /**
  * Ported verbatim from Content Studio's `src/VirtualPet/components/ShopModal.tsx`,
  * with `useGameState` now imported from this package's own shared pet
@@ -6,8 +10,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Apple,
+  Archive,
   ArrowLeft,
-  BedDouble,
   Candy,
   Coffee,
   CupSoda,
@@ -18,15 +22,12 @@ import {
   Smile,
   Utensils,
   X,
-  Zap,
   type LucideIcon,
 } from 'lucide-react';
 import { FoodItem } from '../types';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import { TOY_ITEMS, isFishingRewardItem } from '../constants';
 import { AiOutlineShop } from 'react-icons/ai';
-import { BedImage } from './BedImage';
-import { resolveBedImage } from '../bedImages';
 import { FoodItemVisual } from './FoodItemVisual';
 import { PixelCoinBag } from './CoinIndicator';
 
@@ -52,7 +53,6 @@ const CATEGORY_STYLES: Record<string, { bg: string; border: string; text: string
   Drinks: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', accent: 'bg-sky-100' },
   Sweets: { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700', accent: 'bg-pink-100' },
   Toys: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-700', accent: 'bg-slate-100' },
-  Beds: { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', accent: 'bg-indigo-100' },
   Default: { bg: 'bg-stone-50', border: 'border-stone-200', text: 'text-stone-700', accent: 'bg-stone-100' },
 };
 
@@ -63,14 +63,14 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Drinks: CupSoda,
   Sweets: Candy,
   Toys: Gamepad2,
-  Beds: BedDouble,
+  'Room Decor': Archive,
   Default: ShoppingBag,
 };
 
-const CATEGORY_ORDER = ['Healthy', 'Breakfast', 'Meals', 'Drinks', 'Sweets', 'Toys', 'Beds'];
+const CATEGORY_ORDER = ['Healthy', 'Breakfast', 'Meals', 'Drinks', 'Sweets', 'Toys', 'Room Decor', 'Fishing Rods'];
 const SHOP_CATEGORIES = {
   food: ['Healthy', 'Breakfast', 'Meals', 'Drinks', 'Sweets'],
-  furniture: ['Toys', 'Beds'],
+  furniture: ['Toys', 'Room Decor', 'Fishing Rods'],
 } as const;
 
 const SHOP_BUTTONS = {
@@ -116,8 +116,14 @@ const ShopModal: React.FC<ShopModalProps> = ({
   isLoading = false,
   shopType,
 }) => {
-  const { currencyRate, assetUrls } = useGameState();
-  const items = useMemo(() => catalogItems.filter(item => !isFishingRewardItem(item.id)), [catalogItems]);
+  const { currencyRate, buyItem } = useGameState();
+  const rods=Object.values(FISHING_RODS).filter(rod=>rod.id!=='beginner_rod').sort((a,b)=>a.rarityBoost-b.rarityBoost);
+  const items = useMemo(() => {
+    const available=catalogItems.filter(item=>!isFishingRewardItem(item.id)&&item.category!=='Beds');
+    // Local/offline catalogs may omit toys; keep their shelf usable.
+    if(!available.some(item=>item.category==='Toys')) available.push(...TOY_ITEMS.map(toy=>({...toy,category:'Toys',hunger:0,xp:0})));
+    return available;
+  }, [catalogItems]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const formatPrice = (baseUSD: number) => {
@@ -128,6 +134,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
   const categories = useMemo(() => {
     const available = new Set(items.map(item => item.category));
     available.delete('Soap');
+    available.add('Fishing Rods'); available.add('Room Decor');
     const allowed = new Set<string>(SHOP_CATEGORIES[shopType]);
     return [
       ...CATEGORY_ORDER.filter(category => available.has(category) && allowed.has(category)),
@@ -138,8 +145,6 @@ const ShopModal: React.FC<ShopModalProps> = ({
     if (!selectedCategory) return [];
     return items.filter(item => item.category === selectedCategory);
   }, [items, selectedCategory]);
-
-  const bedItems = useMemo(() => items.filter((item) => item.category === 'Beds'), [items]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -204,7 +209,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
                   {selectedCategory || (shopType === 'food' ? 'Food Shop' : 'Furniture Shop')}
                 </h2>
                 <p className="text-sm font-bold text-orange-950/70">
-                  {selectedCategory ? `${selectedCategory === 'Beds' ? bedItems.length : filteredItems.length} items available` : 'Pick a shelf, then buy supplies'}
+                  {selectedCategory === 'Room Decor' ? 'Choose a room, then choose its furniture' : selectedCategory ? `${selectedCategory === 'Fishing Rods' ? rods.length : filteredItems.length} items available` : 'Pick a shelf, then buy supplies'}
                 </p>
               </div>
             </div>
@@ -224,7 +229,7 @@ const ShopModal: React.FC<ShopModalProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-[#fff8e8] p-5 no-scrollbar">
+        <div key={selectedCategory || 'categories'} className="flex-1 overflow-y-auto bg-[#fff8e8] p-5 no-scrollbar">
           {isLoading && (
             <div className="flex h-full flex-col items-center justify-center gap-4">
               <div className="h-12 w-12 border-4 border-[#d6b47a] border-t-[#7b3517] animate-spin" />
@@ -236,9 +241,9 @@ const ShopModal: React.FC<ShopModalProps> = ({
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
               {categories.map((cat) => {
                 const style = CATEGORY_STYLES[cat] || CATEGORY_STYLES.Default;
-                const categoryItems = cat === 'Beds' ? [] : items.filter(item => item.category === cat);
+                const categoryItems = items.filter(item => item.category === cat);
                 const Icon = CATEGORY_ICONS[cat] || CATEGORY_ICONS.Default;
-                const itemCount = cat === 'Beds' ? bedItems.length : categoryItems.length;
+                const itemCount = cat === 'Room Decor' ? DECOR_ITEMS.length + CABINET_ITEMS.length : cat === 'Fishing Rods' ? rods.length : categoryItems.length;
                 return (
                   <button
                     key={cat}
@@ -265,63 +270,27 @@ const ShopModal: React.FC<ShopModalProps> = ({
             </div>
           )}
 
-          {!isLoading && selectedCategory === 'Beds' && (
+          {!isLoading && selectedCategory === 'Room Decor' && <RoomDecorCatalog coins={coins}/> }
+
+          {!isLoading && selectedCategory === 'Fishing Rods' && (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {bedItems.map((bed) => {
-                const ownedCount = inventory[bed.id] || 0;
-                const isLocked = (bed.levelReq || 1) > currentLevel;
-                const actualPrice = bed.price * currencyRate;
-                const canAfford = coins >= actualPrice;
-                const isDisabled = isLocked || !canAfford;
-                return (
-                  <div
-                    key={bed.id}
-                    className={`relative flex min-h-56 flex-col border-[3px] ${selectedStyle.border} bg-white p-4 text-center shadow-[5px_5px_0_#76523a] transition-transform ${isLocked ? 'opacity-65 grayscale' : 'hover:-translate-y-1'}`}
-                  >
-                    {ownedCount > 0 && !isLocked && (
-                      <div className="absolute right-3 top-3 z-10 border-2 border-emerald-800 bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white shadow-[2px_2px_0_#166534]">
-                        x{ownedCount}
-                      </div>
-                    )}
-                    {isLocked && (
-                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/55">
-                        <div className="flex items-center gap-1 border-2 border-slate-950 bg-slate-800 px-3 py-1 text-xs font-black text-white shadow-[3px_3px_0_#334155]">
-                          <Lock className="h-3.5 w-3.5" strokeWidth={3} />
-                          Lvl {bed.levelReq}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-2 flex h-20 items-center justify-center">
-                      <BedImage src={resolveBedImage(bed.id, bed.imageSrc, assetUrls?.beds)} alt="" draggable={false} className="h-20 w-28 object-contain drop-shadow-md" />
-                    </div>
-                    <div className="mt-3 truncate text-base font-black text-slate-700">{bed.label}</div>
-
-                    <div className="my-3 flex min-h-8 flex-wrap items-center justify-center gap-2">
-                      <span className="inline-flex items-center gap-1 border-2 border-indigo-300 bg-indigo-50 px-2 py-1 text-xs font-black text-indigo-700">
-                        <Zap className="h-3.5 w-3.5" strokeWidth={3} />
-                        +{bed.energyGain || 1}% sleep
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => !isDisabled && onBuy(bed)}
-                      disabled={isDisabled}
-                      className={`mt-auto px-3 py-2.5 text-sm font-black uppercase tracking-[0.08em] transition-all ${isLocked ? SHOP_BUTTONS.locked : canAfford ? SHOP_BUTTONS.buy : SHOP_BUTTONS.disabled}`}
-                    >
-                      {isLocked ? 'Locked' : (
-                        <span className="inline-flex items-center justify-center gap-2" aria-label={`${formatPrice(bed.price)} coins`}>
-                          <PixelCoinBag />
-                          <span>{formatPrice(bed.price)}</span>
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                );
+              {rods.map((rod,index)=>{
+                const price=(index+1)*1000;
+                const owned=(inventory[rod.id]||0)>0;
+                return <div key={rod.id} className="flex flex-col border-[3px] border-sky-200 bg-white p-4 text-center shadow-[5px_5px_0_#76523a]">
+                  <img src={rod.image} alt={rod.label} className="h-32 w-full object-contain" draggable={false}/>
+                  <div className="mt-3 font-black text-slate-700">{rod.label}</div>
+                  <div className="my-3 text-sm font-bold text-sky-700">{['Uncommon','Rare','Epic','Legendary'][index]}</div>
+                  <button disabled={owned||coins<price} onClick={()=>{if(!owned&&coins>=price)buyItem(rod.id,price);}}
+                    className={`mt-auto px-3 py-2.5 text-sm font-black ${owned?SHOP_BUTTONS.active:coins>=price?SHOP_BUTTONS.buy:SHOP_BUTTONS.disabled}`}>
+                    {owned?'Owned':<span className="inline-flex items-center gap-2"><PixelCoinBag/>{price.toLocaleString('en-US')}</span>}
+                  </button>
+                </div>;
               })}
             </div>
           )}
-          {!isLoading && selectedCategory && selectedCategory !== 'Beds' && (
+
+          {!isLoading && selectedCategory && selectedCategory !== 'Room Decor' && selectedCategory !== 'Fishing Rods' && (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {filteredItems.map((item) => {
                 const toy = findToyByShopItem(item);
