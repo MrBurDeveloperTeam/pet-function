@@ -6,9 +6,9 @@ not AI-Dashboard. Its Meow Dialogue configuration is reused by all seven
 pet-function mascot adapters. No language model, additional AI API key or new
 database table is introduced. Existing table permissions need the manual repair below.
 
-Players use the original AIBoard's **Meow Dialogue** page. The floating cat's
-settings link opens the supplied original deployment in a new tab. No replacement
-editor is mounted in the mini apps. Add text under Normal, Hungry, Unhappy, Dirty or Low Energy. Existing
+Dialogue is edited on the original AIBoard's **Meow Dialogue** page. The mini apps
+render no settings/filter button, AIBoard link or replacement editor beside the cat.
+Add text under Normal, Hungry, Unhappy, Dirty or Low Energy. Existing
 automatic lines remain available. The same authenticated Supabase user and
 project must be used by AIBoard and each host; different account IDs cannot share
 private presets. AIBoard audio and host business reminders keep their own flows.
@@ -52,7 +52,7 @@ local SQL verification; the separate user-provided result confirms remote applic
 
 ## Changes that must ship together
 
-1. Publish pet-function 0.12.0 / v0.12.0 with its new shared mascot logic and stylesheet.
+1. Publish pet-function 0.12.1 / v0.12.1 with its new shared mascot logic and stylesheet.
 2. Update all seven host apps to that package revision using their normal release
    process. Snabb's opt-in local alias can preview the sibling package meanwhile.
 3. Ship the companion local aiboard changes: selective row persistence, guarded

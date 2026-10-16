@@ -22,7 +22,8 @@ under src/apps in this package; hosts provide current clients, data and routes.
 ## Colors
 
 Runtime ownership: src/styles/index.css, src/pet/tailwind-entry.css and game CSS.
-src/styles/meow-presets.css owns the floating companion's sayings settings/editor.
+src/styles/meow-presets.css owns long ambient text wrapping and legacy editor styles;
+the mini apps mount no settings entry or editor beside the floating companion.
 Postbuild concatenates that source into the foundation and generated light paint lock.
 scripts/postbuild.mjs compiles and scopes the pet utilities. Do not hand-edit dist.
 
@@ -158,9 +159,9 @@ Cape uses a draped shoulder silhouette, gold trim and star embroidery. These
 share Rose Knit's visual scale and pixel edges while reflecting the worn art.
 
 SharedCatMascot owns visual display; shared app dialogue controllers own content.
-Its account-scoped settings link opens the original deployed AIBoard in a new tab.
-All editing stays in the original Meow Dialogue interface. Left-clicking
-the cat still opens the pet room. No replacement editor is mounted.
+All editing stays in the original AIBoard Meow Dialogue interface. No settings/filter
+button, AIBoard link or replacement editor appears beside the floating cat.
+Left-clicking the cat still opens the pet room.
 useMeowDialogue owns ambient text timing and account invalidation for all seven
 mini-app adapters. Business reminders and welcome sequences retain priority.
 The cloud adapter reads only the current account's AIBoard configuration, adds

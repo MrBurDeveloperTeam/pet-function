@@ -11,8 +11,8 @@
 - The five existing AIBoard states and configured timing/disabled flags remain.
   Personal text supplements built-ins; identical lines are deduplicated and the
   random picker avoids immediate repetition. Welcome/business dialogue takes priority.
-- Settings use a named 44px link to the original AIBoard in a new tab; ordinary
-  cat clicks retain the pet-room destination. Editing uses AIBoard's original UI.
+- No settings/filter button or AIBoard entry appears beside the cat. Ordinary cat
+  clicks retain the pet-room destination. Editing uses the original AIBoard page.
 - Saved dialogue is rendered as plain text, with no HTML interpretation.
 - Authenticated identity is checked at every operation, config queries are scoped
   to user_id, and updates/deletes require original text and owned row identity.

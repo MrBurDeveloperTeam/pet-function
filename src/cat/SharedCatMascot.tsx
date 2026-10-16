@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Settings2, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { CatSprite } from './internal/CatSprite';
 import { CAT_ENTRY_WALK_DURATION_MS } from './internal/timing';
 import type { SharedCatMascotProps } from './presentation';
@@ -60,7 +60,6 @@ export function SharedCatMascot({
   spriteSheetUrls,
   onEntryWalkComplete,
   bubbleContent,
-  dialoguePresets,
 }: SharedCatMascotProps) {
   const [catPos, setCatPos] = useState({ x: -10, y: 85 });
   const [isWalking, setIsWalking] = useState(false);
@@ -79,7 +78,6 @@ export function SharedCatMascot({
   const lastMoveStartTime = useRef(0);
   const lastMoveDuration = useRef(0.8);
   const lastMoveTarget = useRef({ x: -10, y: 85 });
-  const canEditSayings = !disabled && Boolean(dialoguePresets?.ownerId);
 
   const getInterpolatedPos = useCallback(() => {
     const elapsed = (Date.now() - lastMoveStartTime.current) / 1000;
@@ -321,30 +319,6 @@ export function SharedCatMascot({
 
   return (
     <div className="snabbb-molar-experience" data-molar-theme="light">
-    {canEditSayings && (
-      <a
-        href="https://aiboard-git-main-mrburdeveloperteams-projects.vercel.app/"
-        target="_blank"
-        rel="noopener noreferrer"
-        data-cat="true"
-        data-mascot-ignore="true"
-        className="molar-meow-settings"
-        style={isCatBedActive ? {
-          right: catBedPosition.right + CAT_BED_SIZE + 4,
-          bottom: catBedPosition.bottom + 10,
-        } : {
-          left: `clamp(8px, calc(${catPos.x}% + 42px), calc(100vw - 52px))`,
-          top: `clamp(8px, calc(${catPos.y}% - 52px), calc(100dvh - 52px))`,
-          transition: `left ${walkDuration}s linear, top ${walkDuration}s linear`,
-        }}
-        aria-label="Open original AIBoard (new tab)"
-        title="AIBoard · Meow Dialogue"
-        onClick={(event) => {
-          event.stopPropagation();
-        }}
-        onDoubleClick={(event) => event.stopPropagation()}
-      ><Settings2 size={19} aria-hidden="true" /></a>
-    )}
     <button
       ref={catBedRef}
       type="button"
