@@ -19,6 +19,13 @@ shared core and calculator/public/games are the canonical baseline authorized
 by the user. Mini-app-specific dialogue/data selection and SNAI routing live
 under src/apps in this package; hosts provide current clients, data and routes.
 
+## Kart Racing availability
+
+Kart Racing is desktop-only. Its game entry shows a native modal on mobile
+before loading any engine assets, in both portrait and landscape. The cream
+and dark teal notice uses the existing game palette and a Back to kart track
+action. Desktop players keep the existing loader and controls.
+
 ## Colors
 
 Runtime ownership: src/styles/index.css, src/pet/tailwind-entry.css and game CSS.

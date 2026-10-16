@@ -31,7 +31,7 @@ test('desktop retains native density and long-frame timing',()=>{
 });
 test('every Godot shell opts into the shared mobile budget',()=>{
   for(const game of ['air-strike','cat-kart','stadium-football','stadium-hurdles','mole-game']){
-    const html=readFileSync(new URL(`../public/games/${game}/index.html`,import.meta.url),'utf8');
+    const html=readFileSync(new URL(`../public/games/${game}/${game === 'cat-kart' ? 'entry.js' : 'index.html'}`,import.meta.url),'utf8');
     assert.match(html,/mobile-performance\.js/);assert.match(html,/canvasPolicy\(2\)/);
     assert.ok(html.indexOf('mobile-performance.js')<html.indexOf('new Engine('));
   }

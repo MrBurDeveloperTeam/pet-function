@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kart mobile gate · isolated preview</title></head>
+<body><p>Loading local preview…</p><script type="module">
+// QA only: use the actual game shell and entry with an injected phone navigator.
+// No auth, database, game engine or asset pack is initialized in this preview.
+const [html, entry] = await Promise.all([
+  fetch('/games/cat-kart/index.html').then(response => response.text()),
+  fetch('/games/cat-kart/entry.js').then(response => response.text()),
+]);
+const phone = { userAgent: 'Mozilla Android', platform: 'Linux arm', maxTouchPoints: 5 };
+const closePreview = { postMessage(data) {
+  if (data.source === 'cat-kart' && data.type === 'KART_CLOSE') {
+    document.getElementById('desktop-only').close();
+    document.body.textContent = 'Returned to kart track · local preview';
+  }
+} };
+document.body.innerHTML = html.match(/<body>([\s\S]*)<\/body>/)[1].replace(/<script[\s\S]*?<\/script>/g, '');
+document.head.insertAdjacentHTML('beforeend', html.match(/<style>[\s\S]*?<\/style>/)[0]);
+new Function('navigator', 'window', 'parent', 'location', 'document', entry)(phone, window, closePreview, location, document);
+</script></body></html>

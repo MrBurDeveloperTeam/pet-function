@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameState } from '../../runtime/SharedPetRuntime';
 import { normalizePetId } from '../petOptions';
-import { MobileLandscapeGate } from './MobileLandscapeGate';
 
 export function KartGame({ onClose }: { onClose: () => void }) {
-  return <MobileLandscapeGate game="kart" title="Kart Racing" onClose={onClose}><KartGameContent onClose={onClose} /></MobileLandscapeGate>;
+  // The game entry blocks mobile before loading the engine, including direct URLs.
+  return <KartGameContent onClose={onClose} />;
 }
 
 function KartGameContent({ onClose }: { onClose: () => void }) {
