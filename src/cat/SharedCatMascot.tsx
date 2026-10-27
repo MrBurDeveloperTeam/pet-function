@@ -334,7 +334,7 @@ export function SharedCatMascot({
       aria-label={isCatBedActive ? 'Wake cat up' : 'Put cat to sleep'}
       title={isCatBedActive ? 'Wake cat up' : 'Cat bed'}
     >
-      <img src="/pet-function/pet/cat_bed_pixel.png?v=0.9.30" alt="" aria-hidden="true" draggable={false} />
+      <img src="/pet-function/pet/cat_bed_pixel.webp?v=0.9.31" alt="" aria-hidden="true" draggable={false} />
       {isCatBedSleepReady && (
         <span className="molar-cat-bed__sleeping-cat" aria-hidden="true">
           {catSprite}

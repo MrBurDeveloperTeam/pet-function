@@ -30,7 +30,7 @@ test('sleeping cat fits inside the bed without blocking its wake button', () => 
   assert.match(css, /\.molar-cat-bed__sleeping-cat \.molar-cat-sprite[\s\S]*?pointer-events: none/);
   assert.match(css, /\.molar-cat-bed[\s\S]*?width: 4rem;[\s\S]*?height: 4rem;[\s\S]*?background: transparent/);
   assert.match(css, /\.molar-cat-sprite \{[\s\S]*?display: block/);
-  assert.match(mascot, /cat_bed_pixel\.png\?v=0\.9\.30/);
+  assert.match(mascot, /cat_bed_pixel\.webp\?v=0\.9\.31/);
 });
 
 test('cat bed suppresses dialogue while sleeping and restores the mounted layer on wake', () => {
