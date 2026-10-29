@@ -67,13 +67,15 @@ export function SharedCatMascot({
   const [isMeowing, setIsMeowing] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [walkDuration, setWalkDuration] = useState(0.8);
-  const [isCatBedActive, setIsCatBedActive] = useState(false);
-  const [isCatBedSleepReady, setIsCatBedSleepReady] = useState(false);
+  // Seeded from `isSleeping` so a reload of a sleeping cat paints it in the bed on the very first frame
+  // instead of one awake frame (and the entry walk) before the effect below catches up.
+  const [isCatBedActive, setIsCatBedActive] = useState(isSleeping);
+  const [isCatBedSleepReady, setIsCatBedSleepReady] = useState(isSleeping);
   const [catBedPosition, setCatBedPosition] = useState({ right: 24, bottom: 104 });
 
   const walkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const catBedRef = useRef<HTMLButtonElement | null>(null);
-  const isCatBedActiveRef = useRef(false);
+  const isCatBedActiveRef = useRef(isSleeping);
   const lastMoveStartPos = useRef({ x: -10, y: 85 });
   const lastMoveStartTime = useRef(0);
   const lastMoveDuration = useRef(0.8);

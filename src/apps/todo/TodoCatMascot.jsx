@@ -72,6 +72,16 @@ export function createTodoCatMascot(supabase) {
 return function TodoCatMascot({ onCatClick, disabled = false, userId = null, authStatus }) {
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(userId, PET_SLEEPING_KEY) === 'true');
   const handleCatBedSleepChange = useSharedCatSleepSync(supabase, userId, setIsPetSleeping);
+  // Persist the sleep state the moment it changes (bed click, realtime update, another tab) so a
+  // reload starts in the right pose. Without this the cache is only refreshed by the network fetch,
+  // so a reload briefly shows an awake cat that falls asleep 1-2s later.
+  // Owner kept in a ref so a late-arriving user id never overwrites the cached value with a default.
+  const sleepCacheOwnerRef = useRef(userId);
+  sleepCacheOwnerRef.current = userId;
+  useEffect(() => {
+    writeCatStorage(sleepCacheOwnerRef.current, PET_SLEEPING_KEY, String(isPetSleeping));
+    writeCatStorage(sleepCacheOwnerRef.current, PET_SLEEPING_UPDATED_AT_KEY, new Date().toISOString());
+  }, [isPetSleeping]);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, userId);
   const initialPetName = readSharedPetName(userId);
   const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);

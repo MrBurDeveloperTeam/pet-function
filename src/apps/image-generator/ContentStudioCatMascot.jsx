@@ -41,6 +41,15 @@ export default function ContentStudioCatMascot({ supabase, onCatClick, disabled 
     try { return localStorage.getItem(PET_SLEEPING_KEY) === 'true'; } catch { return false; }
   });
   const handleCatBedSleepChange = useSharedCatSleepSync(supabase, userId, setIsPetSleeping);
+  // Persist the sleep state the moment it changes (bed click, realtime update, another tab) so a
+  // reload starts in the right pose. Without this the cache is only refreshed by the network fetch,
+  // so a reload briefly shows an awake cat that falls asleep 1-2s later.
+  useEffect(() => {
+    try {
+      localStorage.setItem(PET_SLEEPING_KEY, String(isPetSleeping));
+      localStorage.setItem(PET_SLEEPING_UPDATED_AT_KEY, new Date().toISOString());
+    } catch { /* storage unavailable */ }
+  }, [isPetSleeping]);
   // initialPetName comes from the server (layout.tsx) and is always correct;
   // fall back to localStorage for client-only apps (all other 6 apps).
   const initialResolvedPetName = initialPetName ?? readSharedPetName(userId);

@@ -63,6 +63,16 @@ export default function InventoryCatMascot({ supabase, onCatClick, disabled = fa
   // remount) that requires explicit manual browser acceptance.
   const [isPetSleeping, setIsPetSleeping] = useState(() => readCatStorage(catCacheOwnerId, PET_SLEEPING_KEY) === 'true');
   const handleCatBedSleepChange = useSharedCatSleepSync(supabase, catCacheOwnerId, setIsPetSleeping);
+  // Persist the sleep state the moment it changes (bed click, realtime update, another tab) so a
+  // reload starts in the right pose. Without this the cache is only refreshed by the network fetch,
+  // so a reload briefly shows an awake cat that falls asleep 1-2s later.
+  // Owner kept in a ref so a late-arriving user id never overwrites the cached value with a default.
+  const sleepCacheOwnerRef = useRef(catCacheOwnerId);
+  sleepCacheOwnerRef.current = catCacheOwnerId;
+  useEffect(() => {
+    writeCatStorage(sleepCacheOwnerRef.current, PET_SLEEPING_KEY, String(isPetSleeping));
+    writeCatStorage(sleepCacheOwnerRef.current, PET_SLEEPING_UPDATED_AT_KEY, new Date().toISOString());
+  }, [isPetSleeping]);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, catCacheOwnerId);
   const initialPetName = readSharedPetName(catCacheOwnerId);
   const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);

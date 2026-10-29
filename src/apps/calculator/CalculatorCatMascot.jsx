@@ -51,6 +51,15 @@ export default function CalculatorCatMascot({ supabase, onCatClick, disabled = f
     try { return localStorage.getItem(PET_SLEEPING_KEY) === 'true'; } catch { return false; }
   });
   const handleCatBedSleepChange = useSharedCatSleepSync(supabase, userId, setIsPetSleeping);
+  // Persist the sleep state the moment it changes (bed click, realtime update, another tab) so a
+  // reload starts in the right pose. Without this the cache is only refreshed by the network fetch,
+  // so a reload briefly shows an awake cat that falls asleep 1-2s later.
+  useEffect(() => {
+    try {
+      localStorage.setItem(PET_SLEEPING_KEY, String(isPetSleeping));
+      localStorage.setItem(PET_SLEEPING_UPDATED_AT_KEY, new Date().toISOString());
+    } catch { /* storage unavailable */ }
+  }, [isPetSleeping]);
   const resolvedAuthStatus = resolveCatAuthStatus(authStatus, disabled, userId);
   const initialPetName = readSharedPetName(userId);
   const [selectedPetId, setSelectedPetId] = useState(() => resolvedAuthStatus === 'guest' || initialPetName ? normalizePetId(initialPetName) : null);
