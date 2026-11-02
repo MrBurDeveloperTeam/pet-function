@@ -24,7 +24,7 @@ for (const name of ['resource-manifest.json','dist/index.js','dist/styles.css','
 }
 const coreArt = new Set([
   ...['mallow','silverbelt','fastrat','gulu','munchkin','mochi'].map(cat => `public/pet-function/pets/${cat}-spritesheet.webp`),
-  'public/pet-function/ai/ai_logo.png',
+  'public/pet-function/ai/ai_logo.webp',
   ...['grey_bed','red_bed','purple_bed','poop','shower','soap'].map(name => `public/pet-function/pet/${name}.png`),
 ]);
 for (const path of coreArt) {

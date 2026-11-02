@@ -4,7 +4,7 @@ import {parsePackOutput,checkPackage} from '../scripts/check-package-size.mjs';
 const files = [
   'resource-manifest.json','dist/index.js','dist/styles.css','scripts/sync-resource-packs.mjs','scripts/vite-games.mjs',
   ...['mallow','silverbelt','fastrat','gulu','munchkin','mochi'].map(cat => `public/pet-function/pets/${cat}-spritesheet.webp`),
-  'public/pet-function/ai/ai_logo.png',
+  'public/pet-function/ai/ai_logo.webp',
   ...['grey_bed','red_bed','purple_bed','poop','shower','soap'].map(name => `public/pet-function/pet/${name}.png`),
 ].map(path => ({path}));
 const pack = {size:24*1024*1024,files};

@@ -37,7 +37,7 @@ const PET_SPRITE_SHEET_URLS = {
 export const CAT_SPRITE_SHEET_URLS = PET_SPRITE_SHEET_URLS;
 
 /** For SharedMolarAI's `logoUrl` prop. */
-export const MOLAR_LOGO_URL = '/pet-function/ai/ai_logo.png';
+export const MOLAR_LOGO_URL = '/pet-function/ai/ai_logo.webp';
 
 // A versioned query prevents browsers and edge caches from reusing an old
 // negative (404) response after a host starts shipping these shared assets.
