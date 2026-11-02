@@ -675,9 +675,6 @@
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.05));
   transition: transform 0.3s;
 }
-.snabbb-molar-experience .molar-ai-trigger-icon--disabled {
-  filter: brightness(0.8);
-}
 
 /* Chat panel ---------------------------------------------------------------- */
 
