@@ -7,7 +7,7 @@ import type { AIMessage } from '../contracts';
 import type { SharedMolarAIProps } from './presentation';
 import { DynamicIcon } from './internal/DynamicIcon';
 import { MolarMarkdown } from './internal/MolarMarkdown';
-import molarAiLogo from '../assets/ai/ai_logo.png';
+import molarAiLogo from '../assets/ai/ai_logo.webp';
 import { SharedSNAISupportCard } from './SharedSNAISupportCard';
 import { getSnaiErrorUserMessage, toSnaiError } from './errors';
 import { createDiagnosticId, emitSnabbbDiagnostic } from '../observability';

@@ -1,6 +1,6 @@
 {
   "name": "@mrburdeveloperteam/pet-function",
-  "version": "0.12.4",
+  "version": "0.12.5",
   "description": "Shared Cat Mascot, Molar AI chatbox, and Virtual Pet UI/runtime for the Snabbb app suite. Skeleton/foundation phase — see README.",
   "repository": {
     "type": "git",
@@ -94,7 +94,7 @@
     "public/pet-function/pets/gulu-spritesheet.webp",
     "public/pet-function/pets/munchkin-spritesheet.webp",
     "public/pet-function/pets/mochi-spritesheet.webp",
-    "public/pet-function/ai/ai_logo.png",
+    "public/pet-function/ai/ai_logo.webp",
     "public/pet-function/pet/grey_bed.png",
     "public/pet-function/pet/red_bed.png",
     "public/pet-function/pet/purple_bed.png",
